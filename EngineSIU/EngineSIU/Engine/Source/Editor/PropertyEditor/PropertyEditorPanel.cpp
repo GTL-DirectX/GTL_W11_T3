@@ -574,6 +574,27 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             GEngineLoop.Show(GEngineLoop.SkeletalMeshViewerAppWnd);
         }
 
+        if (ImGui::Button("Animation"))
+        {
+            UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+            if (Engine)
+            {
+                USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh();
+                if (SkeletalMesh)
+                {
+                    for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.AnimationViewerAppWnd)->GetActiveLevel()->Actors)
+                    {
+                        if (Actor && Actor->IsA<AItemActor>())
+                        {
+                            USkeletalMeshComponent* PreviewSkeletalMeshComponent = Cast<AItemActor>(Actor)->GetComponentByClass<USkeletalMeshComponent>();
+                            PreviewSkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
+                        }
+                    }
+                }
+            }
+            GEngineLoop.Show(GEngineLoop.AnimationViewerAppWnd);
+        }
+
         if (ImGui::Button("Apply"))
         {
             UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);

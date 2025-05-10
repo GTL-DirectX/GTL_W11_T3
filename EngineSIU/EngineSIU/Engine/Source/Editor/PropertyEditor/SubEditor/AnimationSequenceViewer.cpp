@@ -1,4 +1,12 @@
 ﻿#include "AnimationSequenceViewer.h"
+
+#include "Components/Mesh/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimData/AnimDataModel.h"
+#include "Contents/Actors/ItemActor.h"
+#include "Engine/EditorEngine.h"
+#include "Engine/FFbxLoader.h"
 #include "ImGui/imgui_neo_sequencer.h"
 
 // UI Sample
@@ -8,6 +16,18 @@ void AnimationSequenceViewer::Render()
 {
     ImVec2 WinSize = ImVec2(Width, Height);
 
+    UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+    if (Engine)
+    {
+        for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.AnimationViewerAppWnd)->GetActiveLevel()->Actors)
+        {
+            if (Actor && Actor->IsA<AItemActor>())
+            {
+                SelectedSkeletalMeshComponent = Cast<AItemActor>(Actor)->GetComponentByClass<USkeletalMeshComponent>();
+            }
+        }
+    }
+    
     /* Flags */
     ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_HorizontalScrollbar;
 
@@ -116,6 +136,21 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
     if (ImGui::Button(PlayIcon, IconSize)) // Play & Stop
     {
         bIsPlaying = !bIsPlaying;
+
+        if (SelectedAnimIndex == -1 || SelectedAnimName.IsEmpty() || SelectedAnimSequence == nullptr)
+        {
+            return;
+        }
+
+        if (bIsPlaying)
+        {
+            // Play
+            SelectedSkeletalMeshComponent->PlayAnimation(SelectedAnimSequence, bIsRepeating);
+        }
+        else
+        {
+            // Pause
+        }
     }
 
     ImGui::SameLine();
@@ -151,9 +186,45 @@ void AnimationSequenceViewer::RenderAssetDetails() const
     
 }
 
-void AnimationSequenceViewer::RenderAssetBrowser() const
+void AnimationSequenceViewer::RenderAssetBrowser()
 {
+    TArray<FString> animNames;
+    {
+        std::lock_guard<std::mutex> lock(FFbxLoader::AnimMapMutex);
+        for (auto const& [name, entry] : FFbxLoader::AnimMap)
+        {
+            if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+            {
+                animNames.Add(name);
+            }
+        }
+    }
+    const char* preview_value = (SelectedAnimIndex != -1 && SelectedAnimIndex < animNames.Num()) ? *animNames[SelectedAnimIndex] : "None";
+
+    if (ImGui::BeginCombo("Animations", preview_value))
+    {
+        for (int i = 0; i < animNames.Num(); ++i)
+        {
+            const bool is_selected = (SelectedAnimIndex == i);
+            if (ImGui::Selectable(*animNames[i], is_selected))
+            {
+                SelectedAnimIndex = i;
+                SelectedAnimName = animNames[i]; // 선택된 애니메이션 이름 업데이트
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
     
+    SelectedAnimSequence = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
+
+    if (SelectedAnimSequence)
+    {
+        EndFrameSeconds = SelectedAnimSequence->GetDataModel()->PlayLength;
+    }
 }
 
 void AnimationSequenceViewer::PlayButton(bool* v) const
