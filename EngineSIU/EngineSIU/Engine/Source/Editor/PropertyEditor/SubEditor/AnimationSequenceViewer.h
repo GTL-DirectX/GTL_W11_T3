@@ -20,7 +20,7 @@ private:
     float Width = 800, Height = 600;
 
     float CurrentFrameSeconds = 0.0f;
-    float StartFrameSeconds = 0.0f;
+    float StartFrameSeconds = -1.0f;
     float EndFrameSeconds = 0.0f;
 
     int CurrentFrame = 0;

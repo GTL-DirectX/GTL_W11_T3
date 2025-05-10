@@ -62,6 +62,11 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
     static bool transformOpen = false;
     std::vector<ImGui::FrameIndexType> keys = {0.0f, 10.2f, 24.3f};
 
+    if (StartFrameSeconds >= EndFrameSeconds)
+    {
+        StartFrameSeconds -= (StartFrameSeconds - EndFrameSeconds - 1); 
+    }
+    
     if (ImGui::BeginNeoSequencer("Sequencer", &CurrentFrameSeconds, &StartFrameSeconds, &EndFrameSeconds, {InWidth, InHeight},
                                  ImGuiNeoSequencerFlags_EnableSelection |
                                  ImGuiNeoSequencerFlags_AllowLengthChanging |
