@@ -561,7 +561,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                 USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh();
                 if (SkeletalMesh)
                 {
-                    for (auto Actor : Engine->EditorPreviewWorld->GetActiveLevel()->Actors)
+                    for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.SkeletalMeshViewerAppWnd)->GetActiveLevel()->Actors)
                     {
                         if (Actor && Actor->IsA<AItemActor>())
                         {
@@ -581,7 +581,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             {
                 //if (SkeletalMesh)
                 {
-                    for (auto Actor : Engine->EditorPreviewWorld->GetActiveLevel()->Actors)
+                    for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.SkeletalMeshViewerAppWnd)->GetActiveLevel()->Actors)
                     {
                         if (Actor && Actor->IsA<AItemActor>())
                         {

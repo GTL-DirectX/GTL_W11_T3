@@ -188,9 +188,9 @@ void FEngineLoop::Render(HWND Handle) const
         
         // ActiveWorld를 변경하여 FRenderer::Render()에서 EditorPreviewWorld를 접근하도록 함
         UWorld* CurrentWorld = GEngine->ActiveWorld;
-        if (const UEditorEngine* E = Cast<UEditorEngine>(GEngine))
+        if (UEditorEngine* Engine = Cast<UEditorEngine>(GEngine))
         {
-            UWorld* EditorWorld = E->EditorPreviewWorld;
+            UWorld* EditorWorld = Engine->GetPreviewWorld(Handle);
             if (EditorWorld)
             {
                 GEngine->ActiveWorld = EditorWorld;

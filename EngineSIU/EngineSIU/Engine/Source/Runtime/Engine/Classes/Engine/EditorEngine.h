@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine.h"
 #include "Actors/Player.h"
+#include "World/World.h"
 
 /*
     Editor 모드에서 사용될 엔진.
@@ -20,18 +21,19 @@ public:
 
     virtual void Init() override;
     virtual void Tick(float DeltaTime) override;
-    void Release() override;
+    virtual void Release() override;
 
     UWorld* PIEWorld = nullptr;
     UWorld* EditorWorld = nullptr;
     UWorld* EditorPreviewWorld = nullptr;
 
     void StartPIE();
-    void BindEssentialObjects();
+    void BindEssentialObjects() const;
     void EndPIE();
 
-    void StartPreviewWorld(class UMeshComponent* TargetMesh);
-    void EndPreviewWorld();
+    UWorld* StartPreviewWorld(HWND hWnd);
+    void EndPreviewWorld(HWND hWnd);
+    UWorld* GetPreviewWorld(HWND hWnd);
 
     // 주석은 UE에서 사용하던 매개변수.
     FWorldContext& GetEditorWorldContext(/*bool bEnsureIsGWorld = false*/);
@@ -70,6 +72,7 @@ public:
 private:
     AEditorPlayer* EditorPlayer = nullptr;
 
+    TMap<HWND, std::unique_ptr<UWorld>> PreviewWorldMap;
 };
 
 

@@ -113,7 +113,7 @@ void SkeletalTreePanel::CreateSkeletalTreeNode()
 
     // SkeletalMeshComponent 가져오기
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
-    for (auto Actor : Engine->EditorPreviewWorld->GetActiveLevel()->Actors)
+    for (auto Actor : Engine->GetPreviewWorld(Handle)->GetActiveLevel()->Actors)
     {
         if (Actor && Actor->IsA<AItemActor>())
         {
