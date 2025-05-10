@@ -889,7 +889,11 @@ namespace ImGui
                       ImGuiNeoSequencerFlags flags)
     {
         IM_ASSERT(!inSequencer && "Called when while in other NeoSequencer, that won't work, call End!");
-        IM_ASSERT(*startFrame < *endFrame && "Start frame must be smaller than end frame");
+
+        if (*startFrame >= *endFrame)
+        {
+            *startFrame = *endFrame - 1;
+        }
 
         static char childNameStorage[64];
         snprintf(childNameStorage, sizeof(childNameStorage), "##%s_child_wrapper", idin);
