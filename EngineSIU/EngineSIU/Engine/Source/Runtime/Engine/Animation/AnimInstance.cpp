@@ -6,6 +6,7 @@
 #include "Components/Mesh/SkeletalMesh.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Math/Transform.h"
+#include "UObject/Casts.h"
 
 UAnimInstance::UAnimInstance()
     : OwningComp(nullptr)
@@ -39,7 +40,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
     const float RateScale = Sequence->GetRateScale();
     CurrentTime += DeltaSeconds * RateScale;
 
-    const float SequenceLength = Sequence->GetSequenceLength();
+    const float SequenceLength = Sequence->GetPlayLength();
     const bool bLooping = Sequence->IsLooping();
 
     if (bLooping)
@@ -83,7 +84,7 @@ const TArray<FTransform>& UAnimInstance::EvaluateAnimation()
     }
 
     UAnimDataModel* DataModel = Sequence->GetDataModel();
-    const float SequenceLength = Sequence->GetSequenceLength();
+    const float SequenceLength = Sequence->GetPlayLength();
 
     if (!DataModel || SequenceLength < 0.f)
     {
@@ -114,8 +115,19 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 }
 
+USkeletalMeshComponent* UAnimInstance::GetSkelMeshComponent()
+{
+    return Cast<USkeletalMeshComponent>(OwningComp);
+}
+
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
-    // TODO: 현재 시간과 이전 시간을 비교하여 Notify 트리거
+    if (!Sequence || !OwningComp)
+    {
+        return;
+    }
+
+    float PrevTime = CurrentTime - DeltaSeconds * Sequence->GetRateScale();
+    float CurrTime = CurrentTime;
 }
 

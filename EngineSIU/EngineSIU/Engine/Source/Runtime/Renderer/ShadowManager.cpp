@@ -582,8 +582,8 @@ void FShadowManager::UpdateCascadeMatrices(const std::shared_ptr<FEditorViewport
     }
 
     // 배열 비우기 (Add 하기 전)
-    CascadesViewProjMatrices.Empty(); // 예상 크기로 비우기
-    CascadesInvProjMatrices.Empty();  // 예상 크기로 비우기
+    CascadesViewProjMatrices.Empty(); 
+    CascadesInvProjMatrices.Empty();  
 
     for (uint32 c = 0; c < NumCascades; ++c)
     {

@@ -33,6 +33,7 @@ public:
     bool IsPlaying() const { return bPlaying; }
 
     const TArray<FTransform>& GetCurrentPose() const { return CurrentPose; }
+    USkeletalMeshComponent* GetSkelMeshComponent();
     float GetCurrentTime() const { return CurrentTime; }
 
 protected:
