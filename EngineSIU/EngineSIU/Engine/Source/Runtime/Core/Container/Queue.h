@@ -21,7 +21,7 @@ public:
 
 private:
     ContainerType ContainerPrivate;
-    FSpinLock ContainerLock; // 큐에 대한 스핀락
+    mutable FSpinLock ContainerLock; // 큐에 대한 스핀락
 
 public:
     ContainerType& GetContainerPrivate()

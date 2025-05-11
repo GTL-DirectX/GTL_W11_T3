@@ -7,13 +7,13 @@
 #include "Engine/FObjLoader.h"
 
 inline UAssetManager::UAssetManager() {
-    FFbxLoader::Init();
-    FFbxLoader::OnLoadFBXCompleted.BindLambda(
+    FFbxManager::Init();
+    FFbxManager::OnLoadFBXCompleted.BindLambda(
         [this](const FString& filename) {
             OnLoaded(filename);
         }
     );
-    FFbxLoader::OnLoadFBXFailed.BindLambda(
+    FFbxManager::OnLoadFBXFailed.BindLambda(
         [this](const FString& filename) {
             OnFailed(filename);
         }
@@ -72,7 +72,7 @@ bool UAssetManager::AddAsset(std::wstring filePath)
     if (path.extension() == ".fbx")
     {
         assetType = EAssetType::SkeletalMesh;
-        if (!FFbxLoader::GetSkeletalMesh(filePath))
+        if (!FFbxManager::GetSkeletalMesh(filePath))
             return false;
     }
     else if (path.extension() == ".obj")
@@ -133,7 +133,7 @@ void UAssetManager::LoadEntireAssets()
             AddAssetInternal(NewAssetInfo.AssetName, NewAssetInfo);
 
             FString MeshName = NewAssetInfo.PackagePath.ToString() + "/" + NewAssetInfo.AssetName.ToString();
-            FFbxLoader::LoadFBX(MeshName);
+            FFbxManager::Load(MeshName);
         }
     }
 
@@ -173,7 +173,7 @@ void UAssetManager::LoadEntireAssets()
             AddAssetInternal(NewAssetInfo.AssetName, NewAssetInfo);
 
             FString MeshName = NewAssetInfo.PackagePath.ToString() + "/" + NewAssetInfo.AssetName.ToString();
-            FFbxLoader::LoadFBX(MeshName);
+            FFbxManager::Load(MeshName);
         }
     }
 }

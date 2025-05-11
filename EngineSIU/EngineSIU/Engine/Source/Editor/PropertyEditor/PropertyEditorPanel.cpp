@@ -471,10 +471,10 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
 
     TArray<FString> animNames;
     {
-        FSpinLockGuard Lock(FFbxLoader::AnimMapLock);
-        for (auto const& [name, entry] : FFbxLoader::AnimMap)
+        FSpinLockGuard Lock(FFbxManager::AnimMapLock);
+        for (auto const& [name, entry] : FFbxManager::GetAnimSequences())
         {
-            if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+            if (entry.State == FFbxManager::LoadState::Completed && entry.Sequence != nullptr)
             {
                 animNames.Add(name);
             }
@@ -509,7 +509,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     {
         if (SelectedSkeleton && bCanPlay) // SelectedSkeleton 유효성 재확인
         {
-            UAnimSequence* animToPlay = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
+            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
             if (animToPlay)
             {
                 UE_LOG(ELogLevel::Display, TEXT("Playing animation: %s"), *SelectedAnimName);
@@ -580,7 +580,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                     if (ImGui::Selectable(*Label, false) && bIsLoaded)
                     {
                         FString MeshName = Asset.Value.GetFullPath();
-                        USkeletalMesh* SkeletalMesh = FFbxLoader::GetSkeletalMesh(MeshName.ToWideString());
+                        USkeletalMesh* SkeletalMesh = FFbxManager::GetSkeletalMesh(MeshName.ToWideString());
                         if (SkeletalMesh)
                         {
                             SkeletalComp->SetSkeletalMesh(SkeletalMesh);

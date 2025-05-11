@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
-#include "FbxObject.h"
+#include "FBXObject.h"
 #include "Serializer.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimTypes.h"
@@ -36,94 +36,8 @@ void FFbxLoader::Init()
     }
 }
 
-// FBX 파일을 로드합니다.
-// 비동기적으로 실행되며, 실행이 끝나면 로그와 함께 UAssetManager에 해당 등록됩니다.
-// 현재는 UAssetManager에서 Contents 폴더의 모든 파일에 대해서 프로그램 시작 시 호출됩니다.
-void FFbxLoader::LoadFBX(const FString& filename)
-{
-    {
-        FSpinLockGuard Lock(MapLock);
-        if (MeshMap.Contains(filename)) return;
-
-        // 바로 Loading 상태 등록
-        MeshMap.Add(filename, { LoadState::Loading, nullptr });
-    }
-
-    std::thread loader([filename]() {
-        USkeletalMesh* mesh = ParseSkeletalMesh(filename);
-        FSpinLockGuard Lock(MapLock);
-        if (mesh) {
-            MeshMap[filename] = { LoadState::Completed, mesh };
-            OnLoadFBXCompleted.Execute(filename);
-        }
-        else
-        {
-            MeshMap[filename] = { LoadState::Failed, nullptr };
-            OnLoadFBXFailed.Execute(filename);
-        }
-        });
-    loader.detach();
-}
-
-// 이전에 LoadFBX로 호출된 파일이라면 로드된 에셋을 반환합니다.
-// 만약 그런적이 없다면 메인 쓰레드에서 로드합니다.
-USkeletalMesh* FFbxLoader::GetSkeletalMesh(const FString& filename)
-{
-    while (true)
-    {
-        {
-            FSpinLockGuard Lock(MapLock);
-
-            // 로드를 시도했으면 기다림
-            if (MeshMap.Contains(filename))
-            {
-                const MeshEntry& entry = MeshMap[filename];
-                switch (entry.State)
-                {
-                case LoadState::Completed:
-                    return entry.Mesh;
-                case LoadState::Failed:
-                    return nullptr;
-                case LoadState::Loading:
-                    break; //switch break : 기다림
-                }
-            }
-            else
-            {
-                break; // while break : 메인 쓰레드에서 로드
-            }
-        }
-
-        // Sleep 없이 무한 루프 → CPU 낭비 방지
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    // 로드를 시작한 적이 없으면 메인쓰레드에서 로드
-    // 이 경우 AssetManager에서 로드한 적이 없는거이므로
-    // AssetManager에 추가
-
-    USkeletalMesh* mesh = nullptr;
-    {
-        // 메인쓰레드에서 실행
-        mesh = ParseSkeletalMesh(filename);
-        FSpinLockGuard Lock(MapLock);
-        if (mesh) {
-            MeshMap[filename] = { LoadState::Completed, mesh };
-            UAssetManager::Get().RegisterAsset(StringToWString(*filename), FAssetInfo::LoadState::Completed);
-            OnLoadFBXCompleted.Execute(filename);
-        }
-        else
-        {
-            MeshMap[filename] = { LoadState::Failed, nullptr };
-            OnLoadFBXFailed.Execute(filename);
-            UAssetManager::Get().RegisterAsset(StringToWString(*filename), FAssetInfo::LoadState::Failed);
-        }
-    }
-    return mesh;
-}
-
-// .fbx 파일을 파싱합니다.
-FFbxSkeletalMesh* FFbxLoader::ParseFBX(const FString& FBXFilePath)
+// .fbx -> FFbxSkeletalMesh
+bool FFbxLoader::ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSkeletalMesh)
 {
     UE_LOG(ELogLevel::Display, "Start FBX Parsing : %s", *FBXFilePath);
     // .fbx 파일을 로드/언로드 시에만 mutex를 사용
@@ -137,7 +51,7 @@ FFbxSkeletalMesh* FFbxLoader::ParseFBX(const FString& FBXFilePath)
     {
         importer->Destroy();
         UE_LOG(ELogLevel::Warning, "Failed to parse FBX: %s", *FBXFilePath);
-        return nullptr;
+        return false;
     }
 
     if (importer->IsFBX())
@@ -157,7 +71,7 @@ FFbxSkeletalMesh* FFbxLoader::ParseFBX(const FString& FBXFilePath)
     if (!bIsImported)
     {
         UE_LOG(ELogLevel::Warning, "Failed to parse FBX: %s", *FBXFilePath);
-        return nullptr;
+        return false;
     }
     // ✨ --- 좌표계 및 단위 변환 시작 ---
     FbxGlobalSettings& settings = scene->GetGlobalSettings();
@@ -186,152 +100,100 @@ FFbxSkeletalMesh* FFbxLoader::ParseFBX(const FString& FBXFilePath)
     converter->Triangulate(scene, true);
     delete converter;
 
-    FFbxSkeletalMesh* result;
-
-    result = LoadFBXObject(scene);
+    LoadFBXObject(scene, OutFbxSkeletalMesh);
     scene->Destroy();
-    result->name = FBXFilePath;
-    UE_LOG(ELogLevel::Display, "FBX parsed: %s", *FBXFilePath);
-    return result;
+    OutFbxSkeletalMesh->name = FBXFilePath;
+
+    //UE_LOG(ELogLevel::Display, "FBX parsed: %s", *FBXFilePath);
+    return true;
 }
 
-// Skeletal Mesh를 파싱합니다.
-// 등록되지 않은 .bin 또는 .fbx 파일을 파싱합니다.
-// 실패하면 nullptr을 반환합니다.
-USkeletalMesh* FFbxLoader::ParseSkeletalMesh(const FString& filename)
+// FFbxSkeletalMesh -> USkeletalMesh
+// 등록은 외부에서 해야합니다.
+void FFbxLoader::GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh* OutSkeletalMesh)
 {
-    FWString BinaryPath = (filename + ".bin").ToWideString();
-
-    // Last Modified Time
-    auto FileTime = std::filesystem::last_write_time(filename.ToWideString());
-    int64_t lastModifiedTime = std::chrono::system_clock::to_time_t(
-    std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-    FileTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()));
-    
-    // fbx 파일에서 바로 추출한 데이터. 엔진에서 사용할 수 있게 USkeletalMesh로 변환해야함.
-    FFbxSkeletalMesh* fbxObject = new FFbxSkeletalMesh();
-    bool bCreateNewMesh = true;
-    
-    // bin 파일이 존재하면 로드
-    if (std::ifstream(BinaryPath).good())
-    {
-        // bin
-        if (FFbxManager::LoadFBXFromBinary(BinaryPath, lastModifiedTime, *fbxObject))
-        {
-            bCreateNewMesh = false;
-        }
-    }
-
-    // bin 파일 없음. fbx 파싱 필요
-    if (bCreateNewMesh)
-    {
-        {
-            std::lock_guard<std::mutex> lock(SDKMutex);
-            fbxObject = ParseFBX(filename);
-        }
-
-        if (fbxObject)
-        {
-            FFbxManager::SaveFBXToBinary(BinaryPath, lastModifiedTime, *fbxObject);
-        }
-    }
-    
-    if (!fbxObject) // 파싱 실패
-    {
-        delete fbxObject;
-        return nullptr;
-    }
-
     // .bin 또는 .fbx 파일에서 파싱한 FFbxSkeletalMesh를 USkeletalMesh로 변환
-    USkeletalMesh* newSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(nullptr);
+    OutSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(nullptr);
 
     FSkeletalMeshRenderData renderData;
-    renderData.ObjectName = fbxObject->name;
-    renderData.RenderSections.SetNum(fbxObject->mesh.Num());
-    renderData.MaterialSubsets.SetNum(fbxObject->materialSubsets.Num());
+    renderData.ObjectName = InFbxSkeletal->name;
+    renderData.RenderSections.SetNum(InFbxSkeletal->mesh.Num());
+    renderData.MaterialSubsets.SetNum(InFbxSkeletal->materialSubsets.Num());
 
-    for (int i = 0; i < fbxObject->mesh.Num(); ++i)
+    for (int i = 0; i < InFbxSkeletal->mesh.Num(); ++i)
     {
         // TArray로 직접 접근해도 돼나?
         // 두 구조체의 메모리 레이아웃이 같아야함.
-        renderData.RenderSections[i].Vertices.SetNum(fbxObject->mesh[i].vertices.Num());
-        for (int j = 0; j < fbxObject->mesh[i].vertices.Num(); ++j)
+        renderData.RenderSections[i].Vertices.SetNum(InFbxSkeletal->mesh[i].vertices.Num());
+        for (int j = 0; j < InFbxSkeletal->mesh[i].vertices.Num(); ++j)
         {
-            renderData.RenderSections[i].Vertices[j].Position = fbxObject->mesh[i].vertices[j].position;
-            renderData.RenderSections[i].Vertices[j].Color = fbxObject->mesh[i].vertices[j].color;
-            renderData.RenderSections[i].Vertices[j].Normal = fbxObject->mesh[i].vertices[j].normal;
-            renderData.RenderSections[i].Vertices[j].Tangent = fbxObject->mesh[i].vertices[j].tangent;
-            renderData.RenderSections[i].Vertices[j].UV = fbxObject->mesh[i].vertices[j].uv;
-            renderData.RenderSections[i].Vertices[j].MaterialIndex = fbxObject->mesh[i].vertices[j].materialIndex;
+            renderData.RenderSections[i].Vertices[j].Position = InFbxSkeletal->mesh[i].vertices[j].position;
+            renderData.RenderSections[i].Vertices[j].Color = InFbxSkeletal->mesh[i].vertices[j].color;
+            renderData.RenderSections[i].Vertices[j].Normal = InFbxSkeletal->mesh[i].vertices[j].normal;
+            renderData.RenderSections[i].Vertices[j].Tangent = InFbxSkeletal->mesh[i].vertices[j].tangent;
+            renderData.RenderSections[i].Vertices[j].UV = InFbxSkeletal->mesh[i].vertices[j].uv;
+            renderData.RenderSections[i].Vertices[j].MaterialIndex = InFbxSkeletal->mesh[i].vertices[j].materialIndex;
             memcpy(
                 renderData.RenderSections[i].Vertices[j].BoneIndices,
-                fbxObject->mesh[i].vertices[j].boneIndices,
+                InFbxSkeletal->mesh[i].vertices[j].boneIndices,
                 sizeof(int8) * 8
             );
             memcpy(
                 renderData.RenderSections[i].Vertices[j].BoneWeights,
-                fbxObject->mesh[i].vertices[j].boneWeights,
+                InFbxSkeletal->mesh[i].vertices[j].boneWeights,
                 sizeof(float) * 8
             );
         }
         memcpy(
             renderData.RenderSections[i].Vertices.GetData(),
-            fbxObject->mesh[i].vertices.GetData(),
-            sizeof(FFbxVertex) * fbxObject->mesh[i].vertices.Num()
+            InFbxSkeletal->mesh[i].vertices.GetData(),
+            sizeof(FFbxVertex) * InFbxSkeletal->mesh[i].vertices.Num()
         );
 
-        renderData.RenderSections[i].Indices = fbxObject->mesh[i].indices;
-        renderData.RenderSections[i].SubsetIndex = fbxObject->mesh[i].subsetIndex;
-        renderData.RenderSections[i].Name = fbxObject->mesh[i].name;
+        renderData.RenderSections[i].Indices = InFbxSkeletal->mesh[i].indices;
+        renderData.RenderSections[i].SubsetIndex = InFbxSkeletal->mesh[i].subsetIndex;
+        renderData.RenderSections[i].Name = InFbxSkeletal->mesh[i].name;
     }
-    for (int i = 0; i < fbxObject->materialSubsets.Num(); ++i)
+    for (int i = 0; i < InFbxSkeletal->materialSubsets.Num(); ++i)
     {
-        renderData.MaterialSubsets[i] = fbxObject->materialSubsets[i];
+        renderData.MaterialSubsets[i] = InFbxSkeletal->materialSubsets[i];
     }
-    //RenderDatas.Add(renderData);
 
     FReferenceSkeleton refSkeleton;
-    refSkeleton.RawRefBoneInfo.SetNum(fbxObject->skeleton.joints.Num());
-    refSkeleton.RawRefBonePose.SetNum(fbxObject->skeleton.joints.Num());
-    //refSkeleton.RawNameToIndexMap.Reserve(fbxObject->skeleton.joints.Num());
-    for (int i = 0; i < fbxObject->skeleton.joints.Num(); ++i)
+    refSkeleton.RawRefBoneInfo.SetNum(InFbxSkeletal->skeleton.joints.Num());
+    refSkeleton.RawRefBonePose.SetNum(InFbxSkeletal->skeleton.joints.Num());
+
+    for (int i = 0; i < InFbxSkeletal->skeleton.joints.Num(); ++i)
     {
-        refSkeleton.RawRefBoneInfo[i].Name = fbxObject->skeleton.joints[i].name;
-        refSkeleton.RawRefBoneInfo[i].ParentIndex = fbxObject->skeleton.joints[i].parentIndex;
-        refSkeleton.RawRefBonePose[i].Translation = fbxObject->skeleton.joints[i].position;
-        refSkeleton.RawRefBonePose[i].Rotation = fbxObject->skeleton.joints[i].rotation;
-        refSkeleton.RawRefBonePose[i].Scale3D = fbxObject->skeleton.joints[i].scale;
-        refSkeleton.RawNameToIndexMap.Add(fbxObject->skeleton.joints[i].name, i);
+        refSkeleton.RawRefBoneInfo[i].Name = InFbxSkeletal->skeleton.joints[i].name;
+        refSkeleton.RawRefBoneInfo[i].ParentIndex = InFbxSkeletal->skeleton.joints[i].parentIndex;
+        refSkeleton.RawRefBonePose[i].Translation = InFbxSkeletal->skeleton.joints[i].position;
+        refSkeleton.RawRefBonePose[i].Rotation = InFbxSkeletal->skeleton.joints[i].rotation;
+        refSkeleton.RawRefBonePose[i].Scale3D = InFbxSkeletal->skeleton.joints[i].scale;
+        refSkeleton.RawNameToIndexMap.Add(InFbxSkeletal->skeleton.joints[i].name, i);
     }
 
-    TArray<UMaterial*> Materials = fbxObject->material;
+    TArray<UMaterial*> Materials = InFbxSkeletal->material;
 
     TArray<FMatrix> InverseBindPoseMatrices;
-    InverseBindPoseMatrices.SetNum(fbxObject->skeleton.joints.Num());
-    for (int i = 0; i < fbxObject->skeleton.joints.Num(); ++i)
+    InverseBindPoseMatrices.SetNum(InFbxSkeletal->skeleton.joints.Num());
+    for (int i = 0; i < InFbxSkeletal->skeleton.joints.Num(); ++i)
     {
-        InverseBindPoseMatrices[i] = fbxObject->skeleton.joints[i].inverseBindPose;
+        InverseBindPoseMatrices[i] = InFbxSkeletal->skeleton.joints[i].inverseBindPose;
     }
-    newSkeletalMesh->SetData(renderData, refSkeleton, InverseBindPoseMatrices, Materials);
+    OutSkeletalMesh->SetData(renderData, refSkeleton, InverseBindPoseMatrices, Materials);
     if (InverseBindPoseMatrices.Num() > 128)
     {
         // GPU Skinning: 최대 bone 개수 128개를 넘어가면 CPU로 전환
-        newSkeletalMesh->bForcedCPUSkinning = true;
+        OutSkeletalMesh->bForcedCPUSkinning = true;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(SDKMutex);
-        ParseFBXAnimationOnly(filename, newSkeletalMesh); // 이 호출에서 애니메이션 정보만 파싱됨
-    }
-
-    delete fbxObject;
-    return newSkeletalMesh;
+    //ParseFBXAnimationOnly(filename, newSkeletalMesh); // 이 호출에서 애니메이션 정보만 파싱됨
 }
 
-FFbxSkeletalMesh* FFbxLoader::LoadFBXObject(FbxScene* InFbxScene)
+// FbxScene -> FFbxSkeletalMesh
+void FFbxLoader::LoadFBXObject(FbxScene* InFbxScene, FFbxSkeletalMesh* OutFbxSkeletalMesh)
 {
-    FFbxSkeletalMesh* result = new FFbxSkeletalMesh();
-
     TArray<TMap<int, TArray<BoneWeights>>> weightMaps;
     TMap<FString, int> boneNameToIndex;
 
@@ -366,7 +228,7 @@ FFbxSkeletalMesh* FFbxLoader::LoadFBXObject(FbxScene* InFbxScene)
     // parse bones
     for (auto& node : skeletons)
     {
-        LoadFbxSkeleton(result, node, boneNameToIndex, -1);
+        LoadFbxSkeleton(OutFbxSkeletalMesh, node, boneNameToIndex, -1);
     }
 
     // parse skins
@@ -382,8 +244,8 @@ FFbxSkeletalMesh* FFbxLoader::LoadFBXObject(FbxScene* InFbxScene)
     for (int i = 0; i < meshes.Num(); ++i)
     {
         FbxNode*& node = meshes[i];
-        LoadFBXMesh(result, node, boneNameToIndex, weightMaps[i]);
-        LoadFBXMaterials(result, node);
+        LoadFBXMesh(OutFbxSkeletalMesh, node, boneNameToIndex, weightMaps[i]);
+        LoadFBXMaterials(OutFbxSkeletalMesh, node);
     }
 
 //    // 애니메이션 정보 로드
@@ -399,8 +261,6 @@ FFbxSkeletalMesh* FFbxLoader::LoadFBXObject(FbxScene* InFbxScene)
 //#ifdef DEBUG_DUMP_ANIMATION
 //    DumpAnimationDebug(result->name, Mesh, AnimSequences);
 //#endif
-
-    return result;
 }
 
 
@@ -595,7 +455,7 @@ void FFbxLoader::LoadSkinWeights(
 }
 
 // 신규 함수: 애니메이션만 파싱
-void FFbxLoader::ParseFBXAnimationOnly(const FString& filename, USkeletalMesh* skeletalMesh)
+void FFbxLoader::ParseFBXAnimationOnly(const FString& filename, USkeletalMesh* skeletalMesh, TArray<UAnimSequence*>& OutSequences)
 {
     FbxScene* scene = FbxScene::Create(Manager, "");
     FbxImporter* importer = FbxImporter::Create(Manager, "");
@@ -630,22 +490,21 @@ void FFbxLoader::ParseFBXAnimationOnly(const FString& filename, USkeletalMesh* s
         FbxSystemUnit::cm.ConvertScene(scene); // 씬 단위를 센티미터로 변환
     }
 
-    TArray<UAnimSequence*> Sequences;
-    LoadAnimationInfo(scene, skeletalMesh, Sequences);
-    for (UAnimSequence* Sequence : Sequences)
+    LoadAnimationInfo(scene, OutSequences);
+    for (UAnimSequence* Sequence : OutSequences)
     {
         LoadAnimationData(scene, scene->GetRootNode(), skeletalMesh, Sequence);
-        AnimMap.Add(Sequence->GetSeqName(), { LoadState::Completed, Sequence });
+        //AnimMap.Add(Sequence->GetSeqName(), { LoadState::Completed, Sequence });
     }
 
 #ifdef DEBUG_DUMP_ANIMATION
-    DumpAnimationDebug(filename, skeletalMesh, Sequences);
+    DumpAnimationDebug(filename, skeletalMesh, OutSequences);
 #endif
 
     scene->Destroy();
 }
 
-void FFbxLoader::LoadAnimationInfo(FbxScene* Scene, USkeletalMesh* SkeletalMesh, TArray<UAnimSequence*>& OutSequences)
+void FFbxLoader::LoadAnimationInfo(FbxScene* Scene, TArray<UAnimSequence*>& OutSequences)
 {
     FbxArray<FbxString*> animNames;
     Scene->FillAnimStackNameArray(animNames);
@@ -697,16 +556,16 @@ void FFbxLoader::LoadAnimationInfo(FbxScene* Scene, USkeletalMesh* SkeletalMesh,
 }
 
 
-void FFbxLoader::LoadAnimationData(FbxScene* Scene, FbxNode* RootNode, USkeletalMesh* SkeletalMesh, UAnimSequence* Sequence)
+void FFbxLoader::LoadAnimationData(FbxScene* Scene, FbxNode* RootNode, USkeletalMesh* SkeletalMesh, UAnimSequence* OutSequence)
 {
-     if (!Sequence || !Sequence->GetDataModel() || !SkeletalMesh)
+     if (!OutSequence || !OutSequence->GetDataModel() || !SkeletalMesh)
          return;
 
-     auto NameDebug = *Sequence->GetSeqName();
-     FbxAnimStack* AnimStack = Scene->FindMember<FbxAnimStack>(*Sequence->GetSeqName());
+     auto NameDebug = *OutSequence->GetSeqName();
+     FbxAnimStack* AnimStack = Scene->FindMember<FbxAnimStack>(*OutSequence->GetSeqName());
      if (!AnimStack)
      {
-         UE_LOG(ELogLevel::Warning, "AnimStack not found for sequence: %s", *Sequence->GetSeqName());
+         UE_LOG(ELogLevel::Warning, "AnimStack not found for sequence: %s", *OutSequence->GetSeqName());
          return;
      }
 
@@ -714,10 +573,10 @@ void FFbxLoader::LoadAnimationData(FbxScene* Scene, FbxNode* RootNode, USkeletal
      FbxAnimLayer* AnimLayer = AnimStack->GetMember<FbxAnimLayer>();
      if (!AnimLayer) return;
 
-     const int32 FrameCount = Sequence->GetDataModel()->NumberOfFrames;
-     const float DeltaTime = Sequence->GetDataModel()->PlayLength / FrameCount;
+     const int32 FrameCount = OutSequence->GetDataModel()->NumberOfFrames;
+     const float DeltaTime = OutSequence->GetDataModel()->PlayLength / FrameCount;
 
-    TArray<FBoneAnimationTrack>& Tracks = Sequence->GetDataModel()->BoneAnimationTracks;
+    TArray<FBoneAnimationTrack>& Tracks = OutSequence->GetDataModel()->BoneAnimationTracks;
     FReferenceSkeleton RefSkeleton;
     SkeletalMesh->GetRefSkeleton(RefSkeleton);
 
@@ -1213,43 +1072,447 @@ void FFbxLoader::CalculateTangent(FFbxVertex& PivotVertex, const FFbxVertex& Ver
     PivotVertex.tangent.W = Sign;
 }
 
-UAnimSequence* FFbxLoader::GetAnimSequenceByName(const FString& SequenceName)
+FFbxManager::~FFbxManager()
 {
-    FSpinLockGuard Lock(AnimMapLock);
-
-    if (AnimMap.Contains(SequenceName))
+    bStopThread = true;
+    LoadCondition.notify_all();
+    ConvertCondition.notify_all();
+    SaveCondition.notify_all();
     {
-        const FAnimEntry& entry = AnimMap[SequenceName]; // const 참조로 가져옴
-
-        switch (entry.State)
-        {
-        case LoadState::Completed:
-            return entry.Sequence;
-
-        case LoadState::Loading:
-            // 현재 로딩 중. 호출 측에서 나중에 다시 시도해야 함.
-            UE_LOG(ELogLevel::Display, TEXT("GetAnimSequenceByName: Sequence '%s' is currently loading. Try again later."), *SequenceName);
-            return nullptr;
-        case LoadState::Failed:
-            // 이전에 로드 시도했으나 실패함.
-            UE_LOG(ELogLevel::Warning, TEXT("GetAnimSequenceByName: Sequence '%s' failed to load previously."), *SequenceName);
-            return nullptr;
-        default:
-            // 알 수 없는 상태
-            UE_LOG(ELogLevel::Error, TEXT("GetAnimSequenceByName: Sequence '%s' has an unknown load state."), *SequenceName);
-            return nullptr;
-        }
+        std::unique_lock<std::mutex> LockL(LoadTerminatedMutex);
+        LoadTerminatedCondition.wait(LockL, [&] { return bLoadThreadTerminated; });
     }
-    else
+    
     {
-        // AnimMap에 해당 SequenceName 키 자체가 없는 경우.
-        UE_LOG(ELogLevel::Display, TEXT("GetAnimSequenceByName: Sequence '%s' not found in AnimMap. Ensure it has been (or is being) loaded from an FBX file."), *SequenceName);
-        return nullptr;
+        std::unique_lock<std::mutex> LockC(ConvertTerminatedMutex);
+        ConvertTerminatedCondition.wait(LockC, [&] { return bConvertThreadTerminated; });
+    }
+
+    {
+        std::unique_lock<std::mutex> LockS(SaveTerminatedMutex);
+        SaveTerminatedCondition.wait(LockS, [&] { return bSaveThreadTerminated; });
+    }
+    
+    {
+        std::unique_lock<std::mutex> LockA(AnimTerminatedMutex);
+        AnimTerminatedCondition.wait(LockA, [&] { return bAnimThreadTerminated; });
+    }
+
+
+    for (auto& pair : FbxMeshMap)
+    {
+        delete pair.Value;
     }
 }
 
-// .bin 파일로 저장합니다.
-bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, const FFbxSkeletalMesh& FBXObject)
+void FFbxManager::Init()
+{
+    LoadThread = std::thread(&FFbxManager::LoadFunc);
+    SaveThread = std::thread(&FFbxManager::SaveFunc);
+    ConvertThread = std::thread(&FFbxManager::ConvertFunc);
+
+    LoadThread.detach();
+    SaveThread.detach();
+    ConvertThread.detach();
+
+}
+
+void FFbxManager::Load(const FString& filename)
+{
+    if (filename.IsEmpty())
+        return;
+    {
+        FSpinLockGuard Lock(MeshMapLock);
+        if (MeshMap.Contains(filename))
+        {
+            UE_LOG(ELogLevel::Display, TEXT("Already Loaded: %s"), *filename);
+            return;
+        }
+        MeshMap.Add(filename, { LoadState::Queued, nullptr });
+    }
+
+    // 로드 큐에 추가
+    LoadQueue.Enqueue(filename);
+    LoadCondition.notify_one();
+}
+
+USkeletalMesh* FFbxManager::GetSkeletalMesh(const FString& filename)
+{
+    {
+        FSpinLockGuard Lock(MeshMapLock);
+        if (MeshMap.Contains(filename))
+        {
+            if (MeshMap[filename].State == LoadState::Completed)
+            {
+                return MeshMap[filename].Mesh;
+            }
+        }
+    }
+    UE_LOG(ELogLevel::Warning, TEXT("GetSkeletalMesh: %s not found or not loaded yet."), *filename);
+    return nullptr;
+}
+
+UAnimSequence* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
+{
+    {
+        FSpinLockGuard Lock(AnimMapLock);
+        if (AnimMap.Contains(SeqName))
+        {
+            if (AnimMap[SeqName].State == LoadState::Completed)
+            {
+                return AnimMap[SeqName].Sequence;
+            }
+        }
+    }
+    UE_LOG(ELogLevel::Warning, TEXT("GetAnimSequence: %s not found or not loaded yet."), *SeqName);
+    return nullptr;
+}
+
+const TMap<FString, FFbxManager::FAnimEntry>& FFbxManager::GetAnimSequences()
+{
+    return AnimMap;
+}
+
+void FFbxManager::LoadFunc()
+{
+    while (!bStopThread)
+    {
+        std::unique_lock<std::mutex> Lock(LoadMutex);
+        // 비어있으면 Condition Variable을 대기
+        LoadCondition.wait(Lock, [&] { return !PriorityLoadQueue.IsEmpty() || !LoadQueue.IsEmpty(); });
+
+        while (!PriorityLoadQueue.IsEmpty() || !LoadQueue.IsEmpty())
+        {
+            if (bStopThread)
+                break;
+            bool IsPriority = !PriorityLoadQueue.IsEmpty();
+            TQueue<FString>& Queue = IsPriority ? PriorityLoadQueue : LoadQueue;
+            FString FileName;
+            if (Queue.Dequeue(FileName))
+            {
+                {
+                    FSpinLockGuard Lock(MeshMapLock);
+                    MeshMap[FileName].State = LoadState::Loading;
+                    OnLoadFBXStarted.Execute(FileName);
+                }
+                // 먼저 Binary 파싱을 시도합니다.
+                // 이 포인터는 사용이 끝나면 제거합니다.
+                FFbxSkeletalMesh* FbxMesh = new FFbxSkeletalMesh();
+                FWString BinaryPath = (FileName + ".bin").ToWideString();
+                // Last Modified Time
+                auto FileTime = std::filesystem::last_write_time(FileName.ToWideString());
+                int64_t lastModifiedTime = std::chrono::system_clock::to_time_t(
+                    std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                        FileTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()));
+
+                bool Success = false;
+                Success = LoadFBXFromBinary(BinaryPath, lastModifiedTime, FbxMesh);
+                // Binary 파싱 실패. FBX 파싱 시도
+                if (!Success)
+                {
+                    Success = FFbxLoader::ParseFBX(FileName, FbxMesh);
+                }
+
+                // FBX 파싱 실패
+                if (!Success)
+                {
+                    UE_LOG(ELogLevel::Error, TEXT("Failed to load FBX file: %s"), *FileName);
+                    FSpinLockGuard Lock(MeshMapLock);
+                    MeshMap[FileName].State = LoadState::Failed;
+                    OnLoadFBXFailed.Execute(FileName);
+                    continue;
+                }
+
+                // Ffbx를 등록
+                {
+                    FSpinLockGuard Lock(FbxMeshMapLock);
+                    FbxMeshMap.Emplace(FileName, FbxMesh);
+                }
+                // 변환 큐에 등록
+                if (IsPriority)
+                {
+                    PriorityConvertQueue.Enqueue(FileName);
+                }
+                else
+                {
+                    ConvertQueue.Enqueue(FileName);
+                }
+                ConvertCondition.notify_one();
+                // 저장은 메타값만 저장
+                {
+                    FSpinLockGuard Lock(MetaMapLock);
+                    MetaMap[FileName] = BinaryMetaData{ BinaryPath, lastModifiedTime };
+                }
+            }
+        }
+    }
+    {
+        std::lock_guard<std::mutex> Lock(LoadTerminatedMutex);
+        bLoadThreadTerminated = true;
+    }
+    LoadTerminatedCondition.notify_one();
+}
+
+
+void FFbxManager::ConvertFunc()
+{
+    while (!bStopThread)
+    {
+        std::unique_lock<std::mutex> Lock(ConvertMutex);
+        ConvertCondition.wait(Lock, [&] { return !PriorityConvertQueue.IsEmpty() || !ConvertQueue.IsEmpty(); });
+
+        while (!PriorityConvertQueue.IsEmpty() || !ConvertQueue.IsEmpty())
+        {
+            if (bStopThread)
+                break;
+            bool IsPriority = !PriorityConvertQueue.IsEmpty();
+            TQueue<FString>& Queue = IsPriority ? PriorityConvertQueue : ConvertQueue;
+            FString FileName;
+            if (Queue.Dequeue(FileName))
+            {
+                // 변환 큐에서 꺼내서 변환
+                FFbxSkeletalMesh* FbxMesh = nullptr;
+                bool bContaining = false;
+                {
+                    FSpinLockGuard Lock(FbxMeshMapLock);
+                    bContaining = FbxMeshMap.Contains(FileName);
+                    if (!bContaining)
+                    {
+                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+                    }
+                    else
+                    {
+                        FbxMesh = FbxMeshMap[FileName];
+                    }
+                }
+                if (!bContaining)
+                {
+                    FSpinLockGuard Lock(MeshMapLock);
+                    if (MeshMap.Contains(FileName))
+                    {
+                        MeshMap[FileName].State = LoadState::Failed;
+                    }
+                    continue;   
+                }
+                USkeletalMesh* SkeletalMesh = nullptr;
+                FFbxLoader::GenerateSkeletalMesh(FbxMesh, SkeletalMesh);
+                if (!SkeletalMesh)
+                {
+                    UE_LOG(ELogLevel::Error, TEXT("Failed to generate SkeletalMesh from FBX: %s"), *FileName);
+                    {
+                        FSpinLockGuard Lock(MeshMapLock);
+                        MeshMap[FileName].State = LoadState::Failed;
+                    }
+
+                    OnLoadFBXFailed.Execute(FileName);
+                    
+                    FSpinLockGuard Lock(FbxMeshMapLock);
+                    if (FbxMeshMap.Contains(FileName))
+                    {
+                        delete FbxMeshMap[FileName];
+                        FbxMeshMap.Remove(FileName);
+                    }
+                    else
+                    {
+                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+                    }
+                    continue;
+                }
+                // SkeletalMesh가 생성되었으면 Map에 등록
+                bContaining = false;
+                {
+                    FSpinLockGuard Lock(MeshMapLock);
+                    if (bContaining = MeshMap.Contains(FileName))
+                    {
+                        MeshMap[FileName].State = LoadState::Completed;
+                        MeshMap[FileName].Mesh = SkeletalMesh;
+                    }
+                }
+                // 성공 : 다음 큐에 넣고 외부에 알림
+                if (bContaining)
+                {
+                    OnLoadFBXCompleted.Execute(FileName);
+                    UE_LOG(ELogLevel::Display, TEXT("Converted FBX file: %s"), *FileName);
+
+                    SaveQueue.Enqueue(FileName);
+                    if (IsPriority)
+                    {
+                        PriorityAnimQueue.Enqueue(FileName);
+                    }
+                    else
+                    {
+                        AnimQueue.Enqueue(FileName);
+                    }
+                    {
+                        FSpinLockGuard Lock(AnimMapLock);
+                        AnimMap[FileName] = { LoadState::Queued, nullptr };
+                    }
+                    SaveCondition.notify_one();
+                    AnimCondition.notify_one();
+                }
+                // 실패 : 정리하고 외부에 알림
+                else
+                {
+                    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error : %s"), *FileName); // 맵에 등록하지 않음
+                    FSpinLockGuard Lock(FbxMeshMapLock);
+                    if (FbxMeshMap.Contains(FileName))
+                    {
+                        delete FbxMeshMap[FileName];
+                        FbxMeshMap.Remove(FileName);
+                    }
+                    else
+                    {
+                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+                    }
+                }
+            }
+        }
+    }
+    {
+        std::lock_guard<std::mutex> Lock(ConvertTerminatedMutex);
+        bConvertThreadTerminated = true;
+    }
+    ConvertTerminatedCondition.notify_one();
+}
+
+void FFbxManager::SaveFunc()
+{
+    while (!bStopThread)
+    {
+        // condition variable을 혼자 갖기위해 lock를 획득
+        std::unique_lock<std::mutex> Lock(SaveMutex);
+        // 비어있으면 Condition Variable을 대기
+        SaveCondition.wait(Lock, [&] { return !SaveQueue.IsEmpty(); });
+        while (!SaveQueue.IsEmpty())
+        {
+            if (bStopThread)
+                break;
+            FString FileName;
+            if (SaveQueue.Dequeue(FileName))
+            {
+                BinaryMetaData MetaData;
+                {
+                    FSpinLockGuard Lock(MetaMapLock);
+                    if (!MetaMap.Contains(FileName))
+                    {
+                        UE_LOG(ELogLevel::Error, TEXT("File not found in MetaMap: %s"), *FileName);
+                        continue;
+                    }
+                    MetaData = MetaMap[FileName];
+                    MetaMap.Remove(FileName);
+                }
+                const FWString& BinaryPath = MetaData.BinaryPath;
+                const int64_t& lastModifiedTime = MetaData.LastModifiedTime;
+                // Binary 파싱
+                // Map에서 복사해서 이용
+                FFbxSkeletalMesh* Parsed;
+                {
+                    FSpinLockGuard Lock(FbxMeshMapLock);
+                    Parsed = FbxMeshMap[FileName];
+                }
+                if (SaveFBXToBinary(BinaryPath, lastModifiedTime, Parsed))
+                {
+                    UE_LOG(ELogLevel::Display, TEXT("Saved FBX to binary: %s"), BinaryPath.c_str());
+                }
+                else
+                {
+                    UE_LOG(ELogLevel::Error, TEXT("Failed to save FBX to binary: %s"), BinaryPath.c_str());
+                }
+
+                // 더이상 사용되지 않으니 FFbxSkeletalMesh는 제거
+                {
+                    FSpinLockGuard Lock(FbxMeshMapLock);
+                    if (FbxMeshMap.Contains(FileName))
+                    {
+                        delete FbxMeshMap[FileName];
+                        FbxMeshMap[FileName] = nullptr;
+                    }
+                    else
+                    {
+                        UE_LOG(ELogLevel::Error, TEXT("File not found in FbxMeshMap: %s"), *FileName);
+                    }
+                }
+            }
+        }
+    }
+    {
+        std::lock_guard<std::mutex> Lock(SaveTerminatedMutex);
+        bSaveThreadTerminated = true;
+    }
+    SaveTerminatedCondition.notify_one();
+}
+
+void FFbxManager::ProcessAnimFunc()
+{
+    while (!bStopThread)
+    {
+        std::unique_lock<std::mutex> Lock(ConvertMutex);
+        ConvertCondition.wait(Lock, [&] { return !PriorityAnimQueue.IsEmpty() || !AnimQueue.IsEmpty(); });
+
+        while (!PriorityAnimQueue.IsEmpty() || !AnimQueue.IsEmpty())
+        {
+            if (bStopThread)
+                break;
+            bool IsPriority = !PriorityAnimQueue.IsEmpty();
+            TQueue<FString>& Queue = IsPriority ? PriorityAnimQueue : AnimQueue;
+            FString FileName;
+            if (Queue.Dequeue(FileName))
+            {
+                {
+                    FSpinLockGuard Lock(AnimMapLock);
+                    if (AnimMap.Contains(FileName))
+                    {
+                        AnimMap[FileName].State = LoadState::Loading;
+                        OnLoadAnimStarted.Execute(FileName);
+                    }
+                }
+
+                // Fbx다시 파싱
+                USkeletalMesh* SkeletalMesh = nullptr;
+                {
+                    FSpinLockGuard Lock(MeshMapLock);
+                    if (MeshMap.Contains(FileName))
+                    {
+                        SkeletalMesh = MeshMap[FileName].Mesh;
+                    }
+                }
+                if (!SkeletalMesh)
+                {
+                    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+                    continue;
+                }
+
+                TArray<UAnimSequence*> Sequences;
+                FFbxLoader::ParseFBXAnimationOnly(FileName, SkeletalMesh, Sequences);
+
+                if (Sequences.Num() == 0)
+                {
+                    UE_LOG(ELogLevel::Display, TEXT("Failed to parse animation from FBX. Maybe FBX does not have any animation.: %s"), *FileName);
+                }
+                else
+                {
+                    {
+                        FSpinLockGuard Lock(AnimMapLock);
+                        for (UAnimSequence* Sequence : Sequences)
+                        {
+                            AnimMap.Add(Sequence->GetName(), { LoadState::Completed, Sequence });
+                        }
+                    }
+                    // 파일이름을 등록
+                    OnLoadAnimCompleted.Execute(FileName);
+                }
+            }
+        }
+    }
+    {
+        std::lock_guard<std::mutex> Lock(AnimTerminatedMutex);
+        bAnimThreadTerminated = true;
+    }
+    AnimTerminatedCondition.notify_one();
+}
+
+    // .bin 파일로 저장합니다.
+bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, const FFbxSkeletalMesh* FBXObject)
 {
     /** File Open */
     std::ofstream File(FilePath, std::ios::binary);
@@ -1264,12 +1527,12 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
     File.write(reinterpret_cast<const char*>(&LastModifiedTime), sizeof(&LastModifiedTime));
 
     /** FBX Name */
-    Serializer::WriteFString(File, FBXObject.name);
+    Serializer::WriteFString(File, FBXObject->name);
 
     /** FBX Mesh */
-    uint32 MeshCount = FBXObject.mesh.Num();
+    uint32 MeshCount = FBXObject->mesh.Num();
     File.write(reinterpret_cast<const char*>(&MeshCount), sizeof(MeshCount));
-    for (const FFbxMeshData& MeshData : FBXObject.mesh)
+    for (const FFbxMeshData& MeshData : FBXObject->mesh)
     {
         // Mesh Vertices
         uint32 VertexCount = MeshData.vertices.Num();
@@ -1300,9 +1563,9 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
     }
     
     /** FBX Skeleton */
-    uint32 JointCount = FBXObject.skeleton.joints.Num();
+    uint32 JointCount = FBXObject->skeleton.joints.Num();
     File.write(reinterpret_cast<const char*>(&JointCount), sizeof(JointCount));
-    for (const FFbxJoint& Joint : FBXObject.skeleton.joints)
+    for (const FFbxJoint& Joint : FBXObject->skeleton.joints)
     {
         // Joint Name
         Serializer::WriteFString(File, Joint.name);
@@ -1327,9 +1590,9 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
     }
 
     /** FBX UMaterial */
-    uint32 MaterialCount = FBXObject.material.Num();
+    uint32 MaterialCount = FBXObject->material.Num();
     File.write(reinterpret_cast<const char*>(&MaterialCount), sizeof(MaterialCount));
-    for (UMaterial* const Material : FBXObject.material)
+    for (UMaterial* const Material : FBXObject->material)
     {
         bool bIsValidMaterial = (Material != nullptr);
         File.write(reinterpret_cast<const char*>(&bIsValidMaterial), sizeof(bIsValidMaterial));
@@ -1402,9 +1665,9 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
     }
 
     /** FBX Material Subset */
-    uint32 SubsetCount = FBXObject.materialSubsets.Num();
+    uint32 SubsetCount = FBXObject->materialSubsets.Num();
     File.write(reinterpret_cast<const char*>(&SubsetCount), sizeof(SubsetCount));
-    for (const FMaterialSubset& Subset : FBXObject.materialSubsets)
+    for (const FMaterialSubset& Subset : FBXObject->materialSubsets)
     {
         File.write(reinterpret_cast<const char*>(&Subset.IndexStart), sizeof(Subset.IndexStart));
         File.write(reinterpret_cast<const char*>(&Subset.IndexCount), sizeof(Subset.IndexCount));
@@ -1413,15 +1676,15 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
     }
     
     /** FBX AABB */
-    File.write(reinterpret_cast<const char*>(&FBXObject.AABBmin), sizeof(FVector));
-    File.write(reinterpret_cast<const char*>(&FBXObject.AABBmax), sizeof(FVector));
+    File.write(reinterpret_cast<const char*>(&FBXObject->AABBmin), sizeof(FVector));
+    File.write(reinterpret_cast<const char*>(&FBXObject->AABBmax), sizeof(FVector));
     
     File.close();
     return true;
 }
 
 // .bin 파일을 파싱합니다.
-bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, FFbxSkeletalMesh& OutFBXObject)
+bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, FFbxSkeletalMesh* OutFBXObject)
 {
     UE_LOG(ELogLevel::Display, "Loading binary: %s", WStringToString(FilePath).c_str());
     std::ifstream File(FilePath, std::ios::binary);
@@ -1446,12 +1709,12 @@ bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifi
     TArray<TPair<FWString, bool>> Textures;
 
     /** FBX Name */
-    Serializer::ReadFString(File, OutFBXObject.name);
+    Serializer::ReadFString(File, OutFBXObject->name);
     
     /** FBX Mesh */
     uint32 MeshCount;
     File.read(reinterpret_cast<char*>(&MeshCount), sizeof(MeshCount));
-    OutFBXObject.mesh.Reserve(MeshCount); // 미리 메모리 할당
+    OutFBXObject->mesh.Reserve(MeshCount); // 미리 메모리 할당
     for (uint32 i = 0; i < MeshCount; ++i)
     {
         FFbxMeshData MeshData;
@@ -1485,13 +1748,13 @@ bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifi
 
         // Name
         Serializer::ReadFString(File, MeshData.name);
-        OutFBXObject.mesh.Add(std::move(MeshData));
+        OutFBXObject->mesh.Add(std::move(MeshData));
     }
 
     /** FBX Skeleton */
     uint32 JointCount;
     File.read(reinterpret_cast<char*>(&JointCount), sizeof(JointCount));
-    OutFBXObject.skeleton.joints.Reserve(JointCount); // 미리 메모리 할당
+    OutFBXObject->skeleton.joints.Reserve(JointCount); // 미리 메모리 할당
     for (uint32 i = 0; i < JointCount; ++i)
     {
         FFbxJoint Joint;
@@ -1517,13 +1780,13 @@ bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifi
         // Scale
         File.read(reinterpret_cast<char*>(&Joint.scale), sizeof(Joint.scale));
         
-        OutFBXObject.skeleton.joints.Add(std::move(Joint));
+        OutFBXObject->skeleton.joints.Add(std::move(Joint));
     }
     
     /** FBX UMaterial */
     uint32 MaterialCount;
     File.read(reinterpret_cast<char*>(&MaterialCount), sizeof(MaterialCount));
-    OutFBXObject.material.Reserve(MaterialCount); // 미리 메모리 할당
+    OutFBXObject->material.Reserve(MaterialCount); // 미리 메모리 할당
     for (uint32 i = 0; i < MaterialCount; ++i)
     {
         bool bIsValidMaterial;
@@ -1599,18 +1862,18 @@ bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifi
                 MaterialInfo.TextureInfos.Add(std::move(TexInfo));
             }
             NewMaterial->SetMaterialInfo(MaterialInfo);
-            OutFBXObject.material.Add(NewMaterial);
+            OutFBXObject->material.Add(NewMaterial);
         }
         else
         {
-            OutFBXObject.material.Add(nullptr);
+            OutFBXObject->material.Add(nullptr);
         }
     }
 
     /** FBX Material Subset */
     uint32 SubsetCount;
     File.read(reinterpret_cast<char*>(&SubsetCount), sizeof(SubsetCount));
-    OutFBXObject.materialSubsets.Reserve(SubsetCount); // 미리 메모리 할당
+    OutFBXObject->materialSubsets.Reserve(SubsetCount); // 미리 메모리 할당
     for (uint32 i = 0; i < SubsetCount; ++i)
     {
         FMaterialSubset Subset;
@@ -1618,12 +1881,12 @@ bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifi
         File.read(reinterpret_cast<char*>(&Subset.IndexCount), sizeof(Subset.IndexCount));
         File.read(reinterpret_cast<char*>(&Subset.MaterialIndex), sizeof(Subset.MaterialIndex));
         Serializer::ReadFString(File, Subset.MaterialName);
-        OutFBXObject.materialSubsets.Add(std::move(Subset));
+        OutFBXObject->materialSubsets.Add(std::move(Subset));
     }
     
     /** FBX AABB */
-    File.read(reinterpret_cast<char*>(&OutFBXObject.AABBmin), sizeof(FVector));
-    File.read(reinterpret_cast<char*>(&OutFBXObject.AABBmax), sizeof(FVector));
+    File.read(reinterpret_cast<char*>(&OutFBXObject->AABBmin), sizeof(FVector));
+    File.read(reinterpret_cast<char*>(&OutFBXObject->AABBmax), sizeof(FVector));
     
     File.close();
 
