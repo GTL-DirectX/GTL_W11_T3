@@ -27,6 +27,34 @@ void AnimationSequenceViewer::Render()
             }
         }
     }
+
+    // Update CurrentFrameSeconds if playing
+    if (bIsPlaying && SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
+    {
+        float deltaTime = ImGui::GetIO().DeltaTime;
+        CurrentFrameSeconds += deltaTime;
+
+        // Todo:
+        // const UAnimDataModel* dataModel = SelectedAnimSequence->GetDataModel();
+        
+        if (CurrentFrameSeconds >= MaxFrameSeconds)
+        {
+            if (bIsRepeating)
+            {
+                CurrentFrameSeconds = fmodf(CurrentFrameSeconds, MaxFrameSeconds);
+                if (SelectedSkeletalMeshComponent)
+                {
+                    SelectedSkeletalMeshComponent->PlayAnimation(SelectedAnimSequence, bIsRepeating);
+                }
+            }
+            else
+            {
+                CurrentFrameSeconds = MaxFrameSeconds;
+                bIsPlaying = false; // Stop playing
+            }
+        }
+    }
+
     
     /* Flags */
     ImGuiWindowFlags PanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_HorizontalScrollbar;
@@ -80,28 +108,39 @@ void AnimationSequenceViewer::OnResize(HWND hWnd)
 void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHeight)
 {
     static bool transformOpen = false;
-    std::vector<ImGui::FrameIndexType> keys = {0.0f, 10.2f, 24.3f};
+    std::vector<ImGui::FrameIndexType> Keys;
 
-    if (StartFrameSeconds >= EndFrameSeconds)
-    {
-        StartFrameSeconds -= (StartFrameSeconds - EndFrameSeconds - 1); 
-    }
+    // auto Notifies = SelectedAnimSequence->GetNotifies();
+    // for (auto&& v: Notifies)
+    // {
+    //     Keys.push_back(v.TriggerTime);
+    // }
     
     if (ImGui::BeginNeoSequencer("Sequencer", &CurrentFrameSeconds, &StartFrameSeconds, &EndFrameSeconds, {InWidth, InHeight},
                                  ImGuiNeoSequencerFlags_EnableSelection |
                                  ImGuiNeoSequencerFlags_AllowLengthChanging |
                                  ImGuiNeoSequencerFlags_Selection_EnableDeletion))
     {
+        EndFrameSeconds = std::min(EndFrameSeconds, MaxFrameSeconds);
+
         if (ImGui::BeginNeoGroup("Notifies", &transformOpen))
         {
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
             {
                 UE_LOG(ELogLevel::Warning, "RIGHT CLICKED");
+                ImGui::OpenPopup("TrackPopup");
+            }
+            
+            if (ImGui::BeginPopup("TrackPopup"))
+            {
+                UE_LOG(ELogLevel::Warning, "OPENED POPUP");
+                ImGui::Text("Track Popup");
+                ImGui::EndPopup();
             }
             
             if (ImGui::BeginNeoTimelineEx("1"))
             {
-                for (auto&& v: keys)
+                for (auto&& v: Keys)
                 {
                     ImGui::NeoKeyframe(&v);
                     // Per keyframe code here
@@ -127,7 +166,8 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
 
     if (ImGui::Button("\ue9d2", IconSize)) // Rewind
     {
-        
+        CurrentFrameSeconds = 0.0f;
+        bIsPlaying = false;
     }
     
     ImGui::SameLine();
@@ -135,16 +175,23 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
     const char* PlayIcon = bIsPlaying ? "\ue99c" : "\ue9a8";
     if (ImGui::Button(PlayIcon, IconSize)) // Play & Stop
     {
-        bIsPlaying = !bIsPlaying;
-
         if (SelectedAnimIndex == -1 || SelectedAnimName.IsEmpty() || SelectedAnimSequence == nullptr)
         {
+            ImGui::PopFont();
+            ImGui::EndChild();
             return;
+            
         }
+        
+        bIsPlaying = !bIsPlaying;
 
         if (bIsPlaying)
         {
             // Play
+            if (CurrentFrameSeconds >= MaxFrameSeconds && MaxFrameSeconds > 0.0f)
+            {
+                CurrentFrameSeconds = 0.0f;
+            }
             SelectedSkeletalMeshComponent->PlayAnimation(SelectedAnimSequence, bIsRepeating);
         }
         else
@@ -157,6 +204,11 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
 
     if (ImGui::Button("\ue96a", IconSize)) // Fast-forward
     {
+        if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
+        {
+            CurrentFrameSeconds = MaxFrameSeconds;
+        }
+        
         if (!bIsRepeating)
         {
             bIsPlaying = false; // Stop Play
@@ -171,13 +223,62 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
 
     ImGui::SameLine();
 
-    static int KeyValue = 0;
-    ImGui::SliderInt("AnimationKeySlider", &KeyValue, 0, 100);
+    
+    // Slider and Text display
+    if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
+    {
+        const UAnimDataModel* dataModel = SelectedAnimSequence->GetDataModel();
+        int totalFrames = dataModel->NumberOfFrames > 0 ? dataModel->NumberOfFrames : 1; // Avoid 0 total frames for slider
+        
+        // Calculate current frame from CurrentFrameSeconds
+        int currentFrameInt = 0;
+        if (dataModel->FrameRate.AsDecimal() > 0) {
+            currentFrameInt = static_cast<int>(round(CurrentFrameSeconds * dataModel->FrameRate.AsDecimal()));
+        }
+        
+        int sliderMax = (dataModel->NumberOfFrames > 0) ? dataModel->NumberOfFrames -1 : 0;
+        currentFrameInt = std::max(0, std::min(currentFrameInt, sliderMax));
 
-    ImGui::SameLine();
+
+        if (ImGui::SliderInt("##FrameSlider", &currentFrameInt, 0, sliderMax ))
+        {
+            if (dataModel->FrameRate.AsDecimal() > 0)
+            {
+                CurrentFrameSeconds = static_cast<float>(currentFrameInt) / dataModel->FrameRate.AsDecimal();
+                CurrentFrameSeconds = std::min(CurrentFrameSeconds, MaxFrameSeconds); // Clamp to max length
+                CurrentFrameSeconds = std::max(0.0f, CurrentFrameSeconds);           // Ensure non-negative
+
+                // If scrubbing while playing, might want to update animation component
+                // if (bIsPlaying && SelectedSkeletalMeshComponent)
+                // {
+                // }
+            }
+        }
+
+        ImGui::SameLine();
     
-    ImGui::Text("Ani Percentage: %.2lf%% CurrentTime: %.3lf/%.3lf (second(s)) CurrentFrame: %.2lf/ %dFrame", 0.1f, 0.1f, 0.1f, 0.1f, 1);
-    
+        float animPercentage = (MaxFrameSeconds > 0.0f) ? (CurrentFrameSeconds / MaxFrameSeconds) * 100.0f : 0.0f;
+        int displayCurrentFrame = currentFrameInt; 
+        if(dataModel->NumberOfFrames > 0 && CurrentFrameSeconds >= MaxFrameSeconds && !bIsPlaying && !bIsRepeating) {
+            displayCurrentFrame = dataModel->NumberOfFrames > 0 ? dataModel->NumberOfFrames -1 : 0; // Show last frame if at end and stopped
+        }
+
+
+        ImGui::Text("Time: %.2f/%.2fs | Frame: %d/%d | %.1f%%",
+                    CurrentFrameSeconds,
+                    MaxFrameSeconds,
+                    displayCurrentFrame, // Display 0-indexed or 1-indexed based on preference, here 0-indexed
+                    dataModel->NumberOfFrames > 0 ? dataModel->NumberOfFrames -1: 0, // Max frame index
+                    animPercentage);
+    }
+    else
+    {
+        static int dummyFrame = 0;
+        ImGui::SliderInt("##FrameSlider", &dummyFrame, 0, 100);
+        ImGui::SameLine();
+        ImGui::Text("Time: 0.00/0.00s | Frame: 0/0 | 0.0%%");
+    }
+
     ImGui::EndChild();
 }
 
@@ -209,7 +310,26 @@ void AnimationSequenceViewer::RenderAssetBrowser()
             if (ImGui::Selectable(*animNames[i], is_selected))
             {
                 SelectedAnimIndex = i;
-                SelectedAnimName = animNames[i]; // 선택된 애니메이션 이름 업데이트
+                SelectedAnimName = animNames[i]; 
+
+                UAnimSequence* newSequence = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
+                if (newSequence != SelectedAnimSequence) // If sequence changed
+                {
+                    SelectedAnimSequence = newSequence;
+                    bIsPlaying = false; // Stop playback for new animation
+                    CurrentFrameSeconds = 0.0f; // Reset time
+                    StartFrameSeconds = 0.0f;
+                    if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
+                    {
+                        MaxFrameSeconds = SelectedAnimSequence->GetDataModel()->PlayLength;
+                        EndFrameSeconds = MaxFrameSeconds; // Set sequencer end to anim length
+                    }
+                    else
+                    {
+                        MaxFrameSeconds = 0.0f;
+                        EndFrameSeconds = 0.0f;
+                    }
+                }
             }
             if (is_selected)
             {
@@ -218,13 +338,7 @@ void AnimationSequenceViewer::RenderAssetBrowser()
         }
         ImGui::EndCombo();
     }
-    
-    SelectedAnimSequence = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
 
-    if (SelectedAnimSequence)
-    {
-        EndFrameSeconds = SelectedAnimSequence->GetDataModel()->PlayLength;
-    }
 }
 
 void AnimationSequenceViewer::PlayButton(bool* v) const

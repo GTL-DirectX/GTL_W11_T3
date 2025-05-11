@@ -26,6 +26,7 @@ private:
     float CurrentFrameSeconds = 0.0f;
     float StartFrameSeconds = 0.0f;
     float EndFrameSeconds = 1.0f;
+    float MaxFrameSeconds = 1.0f;
 
     int CurrentFrame = 0;
     int StartFrame = 0;
