@@ -30,7 +30,8 @@ void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
         return;
     }
 
-    AnimScriptInstance->UpdateAnimation(DeltaSeconds, CurrentPose);
+    AnimScriptInstance->UpdateAnimation(DeltaSeconds);
+    CurrentPose = AnimScriptInstance->EvaluateAnimation();
 }
 
 UObject* USkeletalMeshComponent::Duplicate(UObject* InOuter)
@@ -376,7 +377,7 @@ void USkeletalMeshComponent::SetAnimation(UAnimSequenceBase* NewAnimToPlay)
         AnimScriptInstance = FObjectFactory::ConstructObject<UAnimSingleNodeInstance>(nullptr);
         if (AnimScriptInstance) 
         {
-            AnimScriptInstance->Initialize(this); // UAnimInstance 초기화
+            AnimScriptInstance->InitializeAnimation(this); // UAnimInstance 초기화
         }
         else 
         {

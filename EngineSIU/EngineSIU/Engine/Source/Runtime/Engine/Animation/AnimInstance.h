@@ -17,10 +17,12 @@ class UAnimInstance : public UObject
     DECLARE_CLASS(UAnimInstance, UObject)
 public:
     UAnimInstance();
-    void Initialize(USkeletalMeshComponent* InOwningComponent);
+    virtual void InitializeAnimation(USkeletalMeshComponent* InOwningComponent);
 
     // 매 틱마다 애니메이션을 업데이트하고 최종 포즈를 OutPose에 반환합니다.
-    virtual void UpdateAnimation(float DeltaSeconds, TArray<FTransform>& OutPose);
+    virtual void UpdateAnimation(float DeltaSeconds);
+    const TArray<FTransform>& EvaluateAnimation();
+    void ResetToRefPose();
 
     virtual void NativeInitializeAnimation();
     virtual void NativeUpdateAnimation(float DeltaSeconds);
@@ -30,9 +32,12 @@ public:
     void SetPlaying(bool bIsPlaying){ bPlaying = bIsPlaying;}
     bool IsPlaying() const { return bPlaying; }
 
+    const TArray<FTransform>& GetCurrentPose() const { return CurrentPose; }
     float GetCurrentTime() const { return CurrentTime; }
 
 protected:
+    TArray<FTransform> CurrentPose;
+
     UAnimSequenceBase* Sequence = nullptr; // 본래 FAnimNode_SequencePlayer에서 소유
 
     USkeletalMeshComponent* OwningComp; 
