@@ -113,6 +113,14 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, TArray<FTransform>& OutP
     DataModel->GetPoseAtTime(CurrentTime, OutPose, RefSkeleton, bLooping);
 }
 
+void UAnimInstance::NativeInitializeAnimation()
+{
+}
+
+void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+}
+
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
     // TODO: 현재 시간과 이전 시간을 비교하여 Notify 트리거

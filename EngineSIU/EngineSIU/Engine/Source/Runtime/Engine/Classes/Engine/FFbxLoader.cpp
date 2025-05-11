@@ -15,7 +15,7 @@
 #include "Container/StringConv.h"
 #include "Engine/AssetManager.h"
 
-#define DEBUG_DUMP_ANIMATION
+//#define DEBUG_DUMP_ANIMATION
 
 const FbxAxisSystem FFbxLoader::UnrealTargetAxisSystem(
     FbxAxisSystem::eZAxis,

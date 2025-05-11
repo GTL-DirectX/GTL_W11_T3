@@ -9,6 +9,8 @@ class UAnimSequenceBase;
 /*
  * 일반적인 애니메이션 블루프린트 기반의 인스턴스
  * 여러 개의 애니메이션을 소유하여 블렌드 및 상태 전이 가능 - 플레이어 캐릭터 등에 사용
+ * 시퀀스를 오물딱 조물딱 블렌드 등을 하는 요리사
+ * 즉, 애니메이션을 만들기 위해 필요한 데이터들의 집합
  */
 class UAnimInstance : public UObject
 {
@@ -19,6 +21,9 @@ public:
 
     // 매 틱마다 애니메이션을 업데이트하고 최종 포즈를 OutPose에 반환합니다.
     virtual void UpdateAnimation(float DeltaSeconds, TArray<FTransform>& OutPose);
+
+    virtual void NativeInitializeAnimation();
+    virtual void NativeUpdateAnimation(float DeltaSeconds);
 
     void TriggerAnimNotifies(float DeltaSeconds);
 
