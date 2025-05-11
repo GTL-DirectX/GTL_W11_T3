@@ -31,7 +31,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
         return;
     }
 
-    // 사용자 확장 영역으로 여백의 미
+    // 사용자 확장 영역 - 커스텀 변수 또는 입력 값 설정
     NativeUpdateAnimation(DeltaSeconds);
 
 

@@ -516,6 +516,22 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
             SelectedSkeleton->ResetPose(); // 기본 포즈로
         }
     }
+    if (SelectedSkeleton)
+    {
+        UAnimSingleNodeInstance* SingleNodeInstance = SelectedSkeleton->GetSingleNodeInstance();
+        if (SingleNodeInstance && SingleNodeInstance->IsPlaying())
+        {
+            UAnimSequenceBase* CurrentAnim = SingleNodeInstance->GetCurrentSequence();
+            if (CurrentAnim)
+            {
+                float CurrentRate = CurrentAnim->GetRateScale();
+                if (ImGui::SliderFloat("Rate Scale", &CurrentRate, -5.0f, 5.0f, "%.1f"))
+                {
+                    CurrentAnim->SetRateScale(CurrentRate);
+                }
+            }
+        }
+    }
     ImGui::Spacing();
     ImGui::Separator();
 

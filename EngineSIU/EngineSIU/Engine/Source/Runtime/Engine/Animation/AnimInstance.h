@@ -21,7 +21,7 @@ public:
 
     // 매 틱마다 애니메이션을 업데이트하고 최종 포즈를 OutPose에 반환합니다.
     virtual void UpdateAnimation(float DeltaSeconds);
-    const TArray<FTransform>& EvaluateAnimation();
+    virtual const TArray<FTransform>& EvaluateAnimation();
     void ResetToRefPose();
 
     virtual void NativeInitializeAnimation();
