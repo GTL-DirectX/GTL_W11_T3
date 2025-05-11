@@ -1,6 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
+#include "Core/Misc/Spinlock.h"
 
 enum class EAssetType : uint8
 {
@@ -53,7 +54,7 @@ public:
     void InitAssetManager();
 
     const TMap<FName, FAssetInfo>& GetAssetRegistry();
-    bool AddAsset(std::wstring filePath) const;
+    bool AddAsset(std::wstring filePath);
 
     //void LoadAssetsOnScene();
     void LoadEntireAssets();
@@ -64,4 +65,12 @@ private:
     void OnLoaded(const FString& filename);
 
     void OnFailed(const FString& filename);
+
+    bool AddAssetInternal(const FName& AssetName, const FAssetInfo& AssetInfo);
+
+    bool SetAssetInternal(const FName& AssetName, const FAssetInfo& AssetInfo);
+
+    bool ContainsInternal(const FName& AssetName);
+
+    FSpinLock RegistryLock; // AssetRegistry에 접근할 때 쓰는 스핀락
 };
