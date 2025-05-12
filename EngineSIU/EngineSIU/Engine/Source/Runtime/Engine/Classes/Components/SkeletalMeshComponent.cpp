@@ -66,9 +66,8 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
     {
         if (*SkeletalMeshPath != TEXT("None"))
         {
-            if (UAssetManager::Get().AddAsset(StringToWString(SkeletalMeshPath->ToAnsiString())))
+            if (USkeletalMesh* MeshToSet = FFbxManager::GetSkeletalMesh(*SkeletalMeshPath))
             {
-                USkeletalMesh* MeshToSet = FFbxManager::GetSkeletalMesh(SkeletalMeshPath->ToAnsiString());
                 SetSkeletalMesh(MeshToSet);
                 UE_LOG(ELogLevel::Display, TEXT("Set SkeletalMesh '%s' for %s"), **SkeletalMeshPath, *GetName());
             }

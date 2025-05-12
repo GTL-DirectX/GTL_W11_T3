@@ -10,6 +10,7 @@
 
 #include "JSON/json.hpp"
 #include "World/World.h"
+#include "Engine/FbxManager.h"
 
 using namespace NS_SceneManagerData;
 using json = nlohmann::json;
@@ -241,12 +242,42 @@ bool SceneManager::LoadWorldFromData(const FSceneData& sceneData, UWorld* target
     TMap<FString, AActor*> SpawnedActorsMap;
     //TMap<FString, UActorComponent*> SpawnedComponentsMap;
     
-
-    // --- 1단계: 액터 및 컴포넌트 생성 ---
-    UE_LOG(ELogLevel::Display, TEXT("Loading Scene Data: Phase 1 - Spawning Actors and Components..."));
+    // --- 1단계: 맵에 있는 리소스 모두 로드
+    const FName SkeletalMeshComponentClassName = FName("USkeletalMeshComponent");
+    const FName StaticMeshComponentClassName = FName("UStaticMeshComponent");
+    UE_LOG(ELogLevel::Display, TEXT("Loading Scene Data: Phase 1 - Loading resources from scene..."));
     for (const FActorSaveData& actorData : sceneData.Actors)
     {
-        // 1.1. 액터 클래스 찾기
+        for (const FComponentSaveData& componentData : actorData.Components)
+        {
+            // 컴포넌트 클래스 로드
+            UClass* ComponentClass = UClass::FindClass(FName(componentData.ComponentClass));
+            if (ComponentClass->GetFName() == SkeletalMeshComponentClassName)
+            {
+                FString Path = componentData.Properties[TEXT("SkeletalMeshPath")];
+                if (Path != TEXT("None"))
+                {
+                    FFbxManager::Load(Path, true);
+                }
+            }
+            else if (ComponentClass->GetFName() == StaticMeshComponentClassName)
+            {
+
+            }
+        }
+    }
+
+    // 0.1초간 sleep하며 대기
+    while (!FFbxManager::IsPriorityQueueDone())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // --- 2단계: 액터 및 컴포넌트 생성 ---
+    UE_LOG(ELogLevel::Display, TEXT("Loading Scene Data: Phase 2 - Spawning Actors and Components..."));
+    for (const FActorSaveData& actorData : sceneData.Actors)
+    {
+        // 2.1. 액터 클래스 찾기
         
         UClass* classAActor = UClass::FindClass(FName(actorData.ActorClass));
         
@@ -263,7 +294,7 @@ bool SceneManager::LoadWorldFromData(const FSceneData& sceneData, UWorld* target
         
         // 액터 클래스가 AActor의 자식인지 확인
 
-        // 1.2. 액터 스폰 (기본 위치/회전 사용, 나중에 루트 컴포넌트가 설정)
+        // 2.2. 액터 스폰 (기본 위치/회전 사용, 나중에 루트 컴포넌트가 설정)
         if (SpawnedActor == nullptr)
         {
             UE_LOG(ELogLevel::Error, TEXT("LoadSceneFromData: Failed to spawn Actor '%s' of class '%s'."),
@@ -278,7 +309,7 @@ bool SceneManager::LoadWorldFromData(const FSceneData& sceneData, UWorld* target
         // 액터별 로컬 컴포넌트 맵: ComponentID -> 생성/재사용된 컴포넌트 포인터
         TMap<FString, UActorComponent*> ActorComponentsMap;
 
-        // 1.3. 컴포넌트 생성 및 속성 설정 (아직 부착 안 함)
+        // 2.3. 컴포넌트 생성 및 속성 설정 (아직 부착 안 함)
         for (const FComponentSaveData& componentData : actorData.Components)
         {
             UClass* ComponentClass =  UClass::FindClass(FName(componentData.ComponentClass));
@@ -315,11 +346,11 @@ bool SceneManager::LoadWorldFromData(const FSceneData& sceneData, UWorld* target
             // --- 이제 TargetComponent는 유효한 기존 컴포넌트 또는 새로 생성된 컴포넌트 ---
             if (TargetComponent)
             {
-                // 1.4. 컴포넌트 속성 설정 (공통 로직)
+                // 2.4. 컴포넌트 속성 설정 (공통 로직)
                 //ApplyComponentProperties(TargetComponent, componentData.Properties);
                 TargetComponent->SetProperties( componentData.Properties); // 태그 설정 (ID로 사용)
 
-                // 1.5. *** 수정: 복합 키를 사용하여 컴포넌트 맵에 추가 ***
+                // 2.5. *** 수정: 복합 키를 사용하여 컴포넌트 맵에 추가 ***
                 //FString CompositeKey = actorData.ActorID + TEXT("::") + componentData.ComponentID; // 예: "MyActor1::MeshComponent"
                 ActorComponentsMap.Add(componentData.ComponentID, TargetComponent);
             }
@@ -390,7 +421,7 @@ bool SceneManager::LoadWorldFromData(const FSceneData& sceneData, UWorld* target
         }
 
     }
-    UE_LOG(ELogLevel::Display, TEXT("Loading Scene Data: Phase 1 Complete. Spawned %d actors."), SpawnedActorsMap.Num());
+    UE_LOG(ELogLevel::Display, TEXT("Loading Scene Data: Phase 2 Complete. Spawned %d actors."), SpawnedActorsMap.Num());
 
     UE_LOG(ELogLevel::Display, TEXT("Scene loading complete."));
 

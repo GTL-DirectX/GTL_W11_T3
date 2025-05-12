@@ -25,7 +25,7 @@ DECLARE_DELEGATE_OneParam(FOnLoadAnimFailed, const FString& /*filename*/);
 struct FFbxManager
 {
 public:
-    enum class LoadState
+    enum class LoadState : uint8
     {
         //Prioritized,
         Queued,
@@ -35,6 +35,7 @@ public:
     };
     struct MeshEntry {
         LoadState State;
+        bool bPrioritized = false;
         USkeletalMesh* Mesh;
     };
     struct FAnimEntry
@@ -48,14 +49,14 @@ public:
 public:
     ~FFbxManager();
     static void Init();
-    static void Load(const FString& filename);
-    static void LoadPriority(const FString& filename);
+    static void Load(const FString& filename, bool bPrioritized = false);
 
     static USkeletalMesh* GetSkeletalMesh(const FString& filename);
     static UAnimSequence* GetAnimSequenceByName(const FString& SeqName);
     static UAnimSequence* GetAnimSequence(const FString& filename);
     static const TMap<FString, MeshEntry>& GetSkeletalMeshes();
     static const TMap<FString, FAnimEntry>& GetAnimSequences();
+    static bool IsPriorityQueueDone();
 
     // UAssetManager와 연동
     //inline static FOnLoadFBXStarted OnLoadFBXStarted;

@@ -65,7 +65,7 @@ void FFbxManager::Load(const FString& filename, bool bPrioritized)
             UE_LOG(ELogLevel::Display, TEXT("Already Loaded: %s"), *filename);
             return;
         }
-        MeshMap.Add(filename, { LoadState::Queued, nullptr });
+        MeshMap.Add(filename, { LoadState::Queued, bPrioritized, nullptr });
     }
 
     // 로드 큐에 추가
@@ -124,6 +124,26 @@ const TMap<FString, FFbxManager::FAnimEntry>& FFbxManager::GetAnimSequences()
     return AnimMap;
 }
 
+bool FFbxManager::IsPriorityQueueDone()
+{
+    if (!PriorityLoadQueue.IsEmpty() || !PriorityConvertQueue.IsEmpty())
+        return false;
+
+    FSpinLockGuard Lock(MeshMapLock);
+    for (const auto& Pair : MeshMap)
+    {
+        const MeshEntry& Info = Pair.Value;
+        if (Info.bPrioritized)
+        {
+            if (Info.State != LoadState::Completed && Info.State != LoadState::Failed)
+            {
+                return false; // 아직 처리 중이거나 실패도 아님
+            }
+        }
+    }
+
+    return true;
+}
 void FFbxManager::LoadFunc()
 {
     while (!bStopThread)
@@ -248,6 +268,7 @@ void FFbxManager::ConvertFunc()
                 }
                 USkeletalMesh* SkeletalMesh = nullptr;
                 FFbxLoader::GenerateSkeletalMesh(FbxMesh, SkeletalMesh);
+                // 파싱 실패
                 if (!SkeletalMesh)
                 {
                     UE_LOG(ELogLevel::Error, TEXT("Failed to generate SkeletalMesh from FBX: %s"), *FileName);
@@ -302,7 +323,7 @@ void FFbxManager::ConvertFunc()
                     SaveCondition.notify_one();
                     AnimCondition.notify_one();
                 }
-                // 실패 : 정리하고 외부에 알림
+                // 파싱은 성공했지만 이후 실패 : 정리하고 외부에 알림
                 else
                 {
                     UE_LOG(ELogLevel::Error, TEXT("Unexpected Error : %s"), *FileName); // 맵에 등록하지 않음
@@ -311,10 +332,6 @@ void FFbxManager::ConvertFunc()
                     {
                         delete FbxMeshMap[FileName];
                         FbxMeshMap.Remove(FileName);
-                    }
-                    else
-                    {
-                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
                     }
                 }
             }

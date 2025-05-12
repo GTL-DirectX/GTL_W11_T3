@@ -69,7 +69,6 @@ private:
     static FTransform FTransformFromFbxMatrix(const FbxAMatrix& Matrix);
     //inline static TArray<FSkeletalMeshRenderData> RenderDatas; // 일단 Loader에서 가지고 있게 함
 
-    // 비동기용 로드 상태
     inline static FbxManager* Manager;
 public:
     static const FbxAxisSystem UnrealTargetAxisSystem;
