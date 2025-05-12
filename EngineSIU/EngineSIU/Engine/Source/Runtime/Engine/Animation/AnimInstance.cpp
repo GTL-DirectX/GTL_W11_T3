@@ -146,7 +146,7 @@ void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent& AnimNotifyEv
         if (Owner)
         {
             UE_LOG(ELogLevel::Display, TEXT(" └ Owner: VALID (%s)"), *Owner->GetName());
-            //Owner->HandleAnimNotify(AnimNotifyEvent);
+            Owner->HandleAnimNotify(AnimNotifyEvent);
         }
         else
         {
