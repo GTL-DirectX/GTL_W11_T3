@@ -186,8 +186,11 @@ void FEngineLoop::Render(HWND Handle) const
             Viewer = AnimationViewer;
         }
         
-        // ActiveWorld를 변경하여 FRenderer::Render()에서 EditorPreviewWorld를 접근하도록 함
+        /**
+         * Child Window 의 월드를 처리하기 위해 기존의 월드를 임시 저장
+         */
         UWorld* CurrentWorld = GEngine->ActiveWorld;
+        
         if (UEditorEngine* Engine = Cast<UEditorEngine>(GEngine))
         {
             UWorld* EditorWorld = Engine->GetPreviewWorld(Handle);
@@ -195,10 +198,6 @@ void FEngineLoop::Render(HWND Handle) const
             {
                 GEngine->ActiveWorld = EditorWorld;
                 Renderer.Render(Viewer->GetActiveViewportClient());
-                auto Viewport = Viewer->GetActiveViewportClient();
-                auto Location = Viewport->GetCameraLocation();
-
-                // UE_LOG(ELogLevel::Display, TEXT("%f %f %f"), Location.X, Location.Y, Location.Z);
             }
             Renderer.RenderViewport(Handle, Viewer->GetActiveViewportClient());
         }
@@ -208,7 +207,7 @@ void FEngineLoop::Render(HWND Handle) const
 
     if (Handle && IsWindowVisible(Handle))
     {
-        // 스켈레탈 메쉬 뷰어 ImGui
+        // Skeletal Mesh Viewer
         if (SkeletalMeshViewerUIManager && SkeletalMeshViewerUIManager->GetContext() && Handle == SkeletalMeshViewerAppWnd)
         {
             SkeletalMeshViewerUIManager->BeginFrame();
@@ -273,7 +272,6 @@ void FEngineLoop::Tick()
         LevelEditor->Tick(DeltaTime);
         SkeletalMeshViewer->Tick(DeltaTime);
         AnimationViewer->Tick(DeltaTime);
-        // @todo SkeletalMeshViewer->Tick(DeltaTime);
 
         /* Render Viewports */
         Render();
