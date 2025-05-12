@@ -32,9 +32,6 @@ void AnimationSequenceViewer::Render()
     {
         float deltaTime = ImGui::GetIO().DeltaTime;
         CurrentFrameSeconds += deltaTime;
-
-        // Todo:
-        // const UAnimDataModel* dataModel = SelectedAnimSequence->GetDataModel();
         
         if (CurrentFrameSeconds >= MaxFrameSeconds)
         {
@@ -201,7 +198,27 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
                                 SelectedTrackIndex = TrackIndex;
                                 SelectedNotifyIndex = i;
                             }
+
+                            if (ImGui::IsNeoKeyframeRightClicked())
+                            {
+                                ImGui::OpenPopup("KeyframePopup");
+                            }
                         }
+                    }
+
+                    if (ImGui::BeginPopup("KeyframePopup"))
+                    {
+                        if (ImGui::MenuItem("Delete Notify"))
+                        {
+                            if (SelectedNotifyIndex >= 0 && SelectedNotifyIndex < Notifies.Num())
+                            {
+                                Notifies.RemoveAt(SelectedNotifyIndex);
+                                SelectedNotifyIndex = -1;
+                                bNeedsNotifyUpdate = true;
+                            }
+                        }
+                                
+                        ImGui::EndPopup();
                     }
                     
                     ImGui::SetItemDefaultFocus();
@@ -235,6 +252,11 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
             
             ImGui::EndNeoGroup();
         }
+
+        if ( SelectedSkeletalMeshComponent->GetSingleNodeInstance() != nullptr)
+        {
+             SelectedSkeletalMeshComponent->GetSingleNodeInstance()->SetCurrentTime(CurrentFrameSeconds);
+        }
         
         ImGui::EndNeoSequencer();
     }
@@ -245,6 +267,7 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
     const ImGuiIO& IO = ImGui::GetIO();
     ImFont* IconFont = IO.Fonts->Fonts.size() == 1 ? IO.FontDefault : IO.Fonts->Fonts[FEATHER_FONT];
     constexpr ImVec2 IconSize = ImVec2(32, 32);
+    UAnimSingleNodeInstance* SingleNode =  SelectedSkeletalMeshComponent->GetSingleNodeInstance();
     
     ImGui::BeginChild("PlayController", ImVec2(InWidth, InHeight), ImGuiChildFlags_AutoResizeX, ImGuiWindowFlags_NoMove);
     ImGui::PushFont(IconFont);
@@ -269,8 +292,7 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
         }
         
         bIsPlaying = !bIsPlaying;
-        UAnimSingleNodeInstance* SingleNode =  SelectedSkeletalMeshComponent->GetSingleNodeInstance();
-
+        
         if (bIsPlaying)
         {
             // Already Playing
@@ -294,7 +316,8 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
             // Pause
             if (SingleNode != nullptr)
             {
-                SingleNode->GetCurrentSequence()->SetRateScale(-1.0f);
+                SingleNode->GetCurrentSequence()->SetRateScale(0.0f);
+                
             }
         }
     }

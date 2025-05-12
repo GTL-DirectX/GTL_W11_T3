@@ -39,6 +39,7 @@ public:
     const TArray<FTransform>& GetCurrentPose() const { return CurrentPose; }
     USkeletalMeshComponent* GetSkelMeshComponent();
     float GetCurrentTime() const { return CurrentTime; }
+    void SetCurrentTime(float NewTime);
 
 protected:
     TArray<FTransform> CurrentPose;
