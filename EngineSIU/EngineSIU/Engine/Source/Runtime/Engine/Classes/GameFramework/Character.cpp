@@ -7,18 +7,17 @@
 
 ACharacter::ACharacter()
 {
-    
 }
 
 void ACharacter::PostSpawnInitialize()
 {
     Super::PostSpawnInitialize();
 
-    AddComponent<UCapsuleComponent>(FName("CapsuleComponent_0"));
+    CapsuleComponent = AddComponent<UCapsuleComponent>(FName("CapsuleComponent_0"));
     RootComponent = CapsuleComponent;
 
     Mesh = AddComponent<USkeletalMeshComponent>(FName("SkeletalMeshComponent_0"));
-    Mesh->SetupAttachment(CapsuleComponent);
+    Mesh->SetupAttachment(RootComponent);
 }
 
 void ACharacter::HandleAnimNotify(const FAnimNotifyEvent& NotifyEvent) const 
