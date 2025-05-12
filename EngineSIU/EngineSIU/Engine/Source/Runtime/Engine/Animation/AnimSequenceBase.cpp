@@ -33,12 +33,16 @@ void UAnimSequenceBase::GetAnimNotifies(
     const float PlayLength = GetPlayLength();
 
     // 최대 루프 횟수 (무한 루프 방지용)
+    // 짧은 애니메이션이 매우 큰 DeltaTime으로 여러 번 루프 재생되는 경우 처리 - 보호 로직
+    // 2번째 조건 : 프레임 사이 시간 차가 너무 커서 한 프레임 동안 Animation 여러 번 반복
+    // AnimNotify는 루프마다 트리거될 수 있으므로, [2, 1000] Clamp
     uint32 MaxLoopCount = 2;
     if (PlayLength > 0.0f && FMath::Abs(DeltaTime) > PlayLength)
     {
         MaxLoopCount = FMath::Clamp(static_cast<uint32>(DesiredDeltaMove / PlayLength), static_cast<uint32>(2), static_cast<uint32>(1000));
     }
 
+    // 각 루프마다 Notify가 반복 호출될 수 있음
     for (uint32 i = 0; i < MaxLoopCount; ++i)
     {
         const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, CurrentPosition, PlayLength);
