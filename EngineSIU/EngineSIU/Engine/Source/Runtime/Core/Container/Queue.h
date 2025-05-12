@@ -100,7 +100,7 @@ public:
     bool Dequeue(ElementType& OutItem)
     {
         FSpinLockGuard Lock(ContainerLock);
-        if (IsEmpty())
+        if (ContainerPrivate.empty())
         {
             return false;
         }
@@ -120,7 +120,7 @@ public:
 	bool Dequeue()
 	{
         FSpinLockGuard Lock(ContainerLock);
-        if (IsEmpty())
+        if (ContainerPrivate.empty())
 		{
 			return false;
 		}
@@ -138,7 +138,7 @@ public:
     bool Peek(ElementType& OutItem) const
     {
         FSpinLockGuard Lock(ContainerLock);
-        if (IsEmpty())
+        if (ContainerPrivate.empty())
         {
             return false;
         }
@@ -157,7 +157,7 @@ public:
 	ElementType* Peek()
 	{
         FSpinLockGuard Lock(ContainerLock);
-        if (IsEmpty())
+        if (ContainerPrivate.empty())
 		{
 			return nullptr;
 		}
@@ -184,7 +184,7 @@ public:
     bool Pop()
     {
         FSpinLockGuard Lock(ContainerLock);
-        if (IsEmpty())
+        if (ContainerPrivate.empty())
         {
             return false;
         }
