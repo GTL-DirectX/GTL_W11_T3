@@ -17,13 +17,14 @@ struct FFbxSkeletalMesh;
 struct BoneWeights;
 class USkeletalMesh;
 
-DECLARE_DELEGATE_OneParam(FOnLoadFBXStarted, const FString& /*filename*/);
+//DECLARE_DELEGATE_OneParam(FOnLoadFBXStarted, const FString& /*filename*/);
 DECLARE_DELEGATE_OneParam(FOnLoadFBXCompleted, const FString& /*filename*/);
 DECLARE_DELEGATE_OneParam(FOnLoadFBXFailed, const FString& /*filename*/);
-DECLARE_DELEGATE_OneParam(FOnLoadAnimStarted, const FString& /*filename*/);
+//DECLARE_DELEGATE_OneParam(FOnLoadAnimStarted, const FString& /*filename*/);
 DECLARE_DELEGATE_OneParam(FOnLoadAnimCompleted, const FString& /*filename*/);
 DECLARE_DELEGATE_OneParam(FOnLoadAnimFailed, const FString& /*filename*/);
 
+// FFbxManager 전용으로만 사용
 struct FFbxLoader
 {
 public:
@@ -31,7 +32,7 @@ public:
     //static void LoadFBX(const FString& filename);
     //static USkeletalMesh* GetSkeletalMesh(const FString& filename);
     static bool ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSkeletalMesh);
-    static void GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh* OutSkeletalMesh);
+    static void GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh*& OutSkeletalMesh);
     static void ParseFBXAnimationOnly(
         const FString& filename, USkeletalMesh* skeletalMesh,
         TArray<UAnimSequence*>& OutSequences
@@ -122,11 +123,11 @@ public:
     static const TMap<FString, FAnimEntry>& GetAnimSequences();
 
     // UAssetManager와 연동
-    inline static FOnLoadFBXStarted OnLoadFBXStarted;
+    //inline static FOnLoadFBXStarted OnLoadFBXStarted;
     inline static FOnLoadFBXCompleted OnLoadFBXCompleted;
     inline static FOnLoadFBXFailed OnLoadFBXFailed;
 
-    inline static FOnLoadAnimStarted OnLoadAnimStarted;
+    //inline static FOnLoadAnimStarted OnLoadAnimStarted;
     inline static FOnLoadAnimCompleted OnLoadAnimCompleted;
     inline static FOnLoadAnimFailed OnLoadAnimFailed;
 

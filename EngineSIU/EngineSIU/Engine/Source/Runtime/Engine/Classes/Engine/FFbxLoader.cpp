@@ -110,7 +110,7 @@ bool FFbxLoader::ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSk
 
 // FFbxSkeletalMesh -> USkeletalMesh
 // 등록은 외부에서 해야합니다.
-void FFbxLoader::GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh* OutSkeletalMesh)
+void FFbxLoader::GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh*& OutSkeletalMesh)
 {
     // .bin 또는 .fbx 파일에서 파싱한 FFbxSkeletalMesh를 USkeletalMesh로 변환
     OutSkeletalMesh = FObjectFactory::ConstructObject<USkeletalMesh>(nullptr);
@@ -1107,6 +1107,7 @@ FFbxManager::~FFbxManager()
 
 void FFbxManager::Init()
 {
+    FFbxLoader::Init();
     LoadThread = std::thread(&FFbxManager::LoadFunc);
     SaveThread = std::thread(&FFbxManager::SaveFunc);
     ConvertThread = std::thread(&FFbxManager::ConvertFunc);
@@ -1168,6 +1169,13 @@ UAnimSequence* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
     return nullptr;
 }
 
+// !!! 뮤텍스 적용 필수
+const TMap<FString, FFbxManager::MeshEntry>& FFbxManager::GetSkeletalMeshes()
+{
+    return MeshMap;
+}
+
+// !!! 뮤텍스 적용 필수
 const TMap<FString, FFbxManager::FAnimEntry>& FFbxManager::GetAnimSequences()
 {
     return AnimMap;
@@ -1193,8 +1201,9 @@ void FFbxManager::LoadFunc()
                 {
                     FSpinLockGuard Lock(MeshMapLock);
                     MeshMap[FileName].State = LoadState::Loading;
-                    OnLoadFBXStarted.Execute(FileName);
                 }
+                UAssetManager::Get().RegisterAsset(FileName, FAssetInfo::LoadState::Loading);
+
                 // 먼저 Binary 파싱을 시도합니다.
                 // 이 포인터는 사용이 끝나면 제거합니다.
                 FFbxSkeletalMesh* FbxMesh = new FFbxSkeletalMesh();
@@ -1412,11 +1421,11 @@ void FFbxManager::SaveFunc()
                 }
                 if (SaveFBXToBinary(BinaryPath, lastModifiedTime, Parsed))
                 {
-                    UE_LOG(ELogLevel::Display, TEXT("Saved FBX to binary: %s"), BinaryPath.c_str());
+                    UE_LOG(ELogLevel::Display, TEXT("Saved FBX to binary: %s"), WStringToString(BinaryPath).c_str());
                 }
                 else
                 {
-                    UE_LOG(ELogLevel::Error, TEXT("Failed to save FBX to binary: %s"), BinaryPath.c_str());
+                    UE_LOG(ELogLevel::Error, TEXT("Failed to save FBX to binary: %s"), WStringToString(BinaryPath).c_str());
                 }
 
                 // 더이상 사용되지 않으니 FFbxSkeletalMesh는 제거
@@ -1463,7 +1472,6 @@ void FFbxManager::ProcessAnimFunc()
                     if (AnimMap.Contains(FileName))
                     {
                         AnimMap[FileName].State = LoadState::Loading;
-                        OnLoadAnimStarted.Execute(FileName);
                     }
                 }
 
@@ -1687,11 +1695,16 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
 bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, FFbxSkeletalMesh* OutFBXObject)
 {
     UE_LOG(ELogLevel::Display, "Loading binary: %s", WStringToString(FilePath).c_str());
+    if (!std::filesystem::exists(FilePath))
+    {
+        UE_LOG(ELogLevel::Display, "Binary file does not exist: %s", WStringToString(FilePath).c_str());
+        return false;
+    }
+
     std::ifstream File(FilePath, std::ios::binary);
     if (!File.is_open())
     {
-        assert("CAN'T OPEN FBX BINARY FILE");
-        UE_LOG(ELogLevel::Warning, "Failed to load binary : %s", WStringToString(FilePath).c_str());
+        UE_LOG(ELogLevel::Warning, "Binary file exists but failed to open: %s", WStringToString(FilePath).c_str());
         return false;
     }
 

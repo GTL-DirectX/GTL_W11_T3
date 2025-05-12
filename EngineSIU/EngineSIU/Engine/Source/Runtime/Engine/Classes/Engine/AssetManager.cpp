@@ -65,15 +65,19 @@ const TMap<FName, FAssetInfo>& UAssetManager::GetAssetRegistry()
     return AssetRegistry->PathNameToAssetInfo;
 }
 
-bool UAssetManager::AddAsset(std::wstring filePath)
+bool UAssetManager::AddAsset(FString filePath)
 {
-    std::filesystem::path path(filePath);
+    std::wstring wFilePath = filePath.ToWideString();
+    std::filesystem::path path(wFilePath);
     EAssetType assetType;
     if (path.extension() == ".fbx")
     {
         assetType = EAssetType::SkeletalMesh;
-        if (!FFbxManager::GetSkeletalMesh(filePath))
-            return false;
+        FFbxManager::Load(filePath);
+        return true;
+
+        //if (!FFbxManager::GetSkeletalMesh(filePath))
+            //return false;
     }
     else if (path.extension() == ".obj")
     {
@@ -84,16 +88,17 @@ bool UAssetManager::AddAsset(std::wstring filePath)
     {
         return false;
     }
-    
-    FAssetInfo NewAssetInfo;
-    NewAssetInfo.AssetName = FName(path.filename().string());
-    NewAssetInfo.PackagePath = FName(path.parent_path().string());
-    NewAssetInfo.Size = static_cast<uint32>(std::filesystem::file_size(path));
-    NewAssetInfo.AssetType = assetType;
-    NewAssetInfo.State = FAssetInfo::LoadState::Completed;
-    AddAssetInternal(NewAssetInfo.AssetName, NewAssetInfo);
 
-    return true;
+    
+    //FAssetInfo NewAssetInfo;
+    //NewAssetInfo.AssetName = FName(path.filename().string());
+    //NewAssetInfo.PackagePath = FName(path.parent_path().string());
+    //NewAssetInfo.Size = static_cast<uint32>(std::filesystem::file_size(path));
+    //NewAssetInfo.AssetType = assetType;
+    //NewAssetInfo.State = FAssetInfo::LoadState::Completed;
+    //AddAssetInternal(NewAssetInfo.AssetName, NewAssetInfo);
+
+    //return true;
 }
 
 void UAssetManager::LoadEntireAssets()
@@ -179,9 +184,10 @@ void UAssetManager::LoadEntireAssets()
 }
 
 // 파일 로드의 호출이 UAssetManager 외부에서 발생하였을 때 등록하는 함수입니다.
-void UAssetManager::RegisterAsset(std::wstring filePath, FAssetInfo::LoadState State)
+void UAssetManager::RegisterAsset(FString filePath, FAssetInfo::LoadState State)
 {
-    std::filesystem::path path(filePath);
+    std::wstring wFilePath = filePath.ToWideString();
+    std::filesystem::path path(wFilePath);
     EAssetType assetType;
     if (path.extension() == ".fbx" || path.extension() == ".FBX")
     {

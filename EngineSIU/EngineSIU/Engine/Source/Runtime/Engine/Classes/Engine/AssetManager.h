@@ -54,12 +54,12 @@ public:
     void InitAssetManager();
 
     const TMap<FName, FAssetInfo>& GetAssetRegistry();
-    bool AddAsset(std::wstring filePath);
+    bool AddAsset(FString filePath);
 
     //void LoadAssetsOnScene();
     void LoadEntireAssets();
 
-    void RegisterAsset(std::wstring filePath, FAssetInfo::LoadState State);
+    void RegisterAsset(FString filePath, FAssetInfo::LoadState State);
 
 private:
     void OnLoaded(const FString& filename);
