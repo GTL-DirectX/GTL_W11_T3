@@ -3,6 +3,7 @@
 #include "ImGui/imgui_neo_sequencer.h"
 #include "UnrealEd/EditorPanel.h"
 
+struct FAnimNotifyEvent;
 class USkeletalMeshComponent;
 class UAnimSequence;
 
@@ -15,11 +16,14 @@ public:
 private:
     void RenderAnimationSequence(float InWidth, float InHeight);
     void RenderPlayController(float InWidth, float InHeight);
-    void RenderAssetDetails() const;
+    void RenderAssetDetails();
     void RenderAssetBrowser();
 
     void PlayButton(bool* v) const;
     void RepeatButton(bool* v) const;
+
+private:
+    int FindAvailableTrackIndex(const TArray<FAnimNotifyEvent>& NotifyEvents) const;
     
 private:
     float Width = 800, Height = 600;
@@ -39,10 +43,17 @@ private:
     /* Animation Property for Debug */
     int SelectedAnimIndex = -1;
     FString SelectedAnimName;
-
-    int SelectedTrackIndex = -1;
     
     UAnimSequence* SelectedAnimSequence = nullptr;
     USkeletalMeshComponent* SelectedSkeletalMeshComponent = nullptr;
+    
+
+private:
+    int SelectedTrackIndex = -1;
+    int SelectedNotifyIndex = -1;
+    bool bNeedsNotifyUpdate = false;
+    
+    
     TMap<int32, TArray<ImGui::FrameIndexType>> TrackAndKeyMap;
+    TSet<int32> TrackList;
 };

@@ -112,15 +112,16 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
     }
     
     static bool transformOpen = false;
-    static int32 TrackCount = 0;
+    TArray<FAnimNotifyEvent>& Notifies =  SelectedAnimSequence->Notifies;
 
-    if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
+    if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel() && bNeedsNotifyUpdate)
     {
-        for (auto& v : SelectedAnimSequence->Notifies)
+        TrackAndKeyMap.Empty();
+        for (auto& v : Notifies)
         {
-            TrackCount = std::max(TrackCount, v.TrackIndex);
             TrackAndKeyMap[v.TrackIndex].Add(v.TriggerTime);
         }
+        bNeedsNotifyUpdate = false;
     }
     
     if (ImGui::BeginNeoSequencer("Sequencer", &CurrentFrameSeconds, &StartFrameSeconds, &EndFrameSeconds, {InWidth, InHeight},
@@ -140,22 +141,33 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
             
             if (ImGui::BeginPopup("TrackPopup"))
             {
-                UE_LOG(ELogLevel::Warning, "OPENED POPUP");
                 if (ImGui::BeginMenu("Track"))
                 {
                     if (ImGui::MenuItem("Add Track"))
                     {
-                        TrackAndKeyMap.Add(TrackCount, TArray<ImGui::FrameIndexType>());
-                        TrackCount++;
+                        int FindTrackIndex = FindAvailableTrackIndex(Notifies);
+                        TrackAndKeyMap.Add(FindTrackIndex, TArray<ImGui::FrameIndexType>());
+                        TrackList.Add(FindTrackIndex);
+                        bNeedsNotifyUpdate = true;
                     }
                     
                     if (ImGui::MenuItem("Remove Track"))
                     {
-                        if (!TrackAndKeyMap.IsEmpty())
+                        if (SelectedTrackIndex >= 0)
                         {
-                            TrackAndKeyMap[TrackCount - 1].Empty();
-                            TrackAndKeyMap.Remove(TrackCount - 1);
-                            TrackCount--;
+                            TrackList.Remove(SelectedTrackIndex);
+                            
+                            for (int32 i = Notifies.Num() - 1; i >= 0; --i)
+                            {
+                                if (Notifies[i].TrackIndex == SelectedTrackIndex)
+                                {
+                                    Notifies.RemoveAt(i);
+                                }
+                            }
+                            
+                            SelectedTrackIndex = -1;
+                            SelectedNotifyIndex = -1;
+                            bNeedsNotifyUpdate = true;
                         }
                     }
                     
@@ -163,26 +175,36 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
                 }
                 ImGui::EndPopup();
             }
-            
-            // TrackAndKeyMap을 순회하며 각 트랙에 대한 타임라인 생성
-            for (auto&& pair : TrackAndKeyMap)
+
+            for (int32 TrackIndex : TrackList)
             {
-                // 트랙 인덱스를 사용하여 고유한 ID 생성
-                FString TimelineId = FString::Printf(TEXT("Track_%d"), pair.Key);
+                FString TimelineId = FString::Printf(TEXT("Track_%d"), TrackIndex);
+                
                 if (ImGui::BeginNeoTimelineEx(GetData(TimelineId)))
                 {
                     if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
                     {
-                        SelectedTrackIndex = pair.Key;
+                        SelectedTrackIndex = TrackIndex;
                         ImGui::OpenPopup("NotifyPopup_Generic"); // 우선은 하나의 제네릭 팝업 사용
                     }
                 
-                    // 각 타임라인의 키프레임 렌더링
-                    for (auto& keyframeValue : pair.Value)
+                    // 해당 트랙에 속한 Notify만 찾아서 렌더링
+                    for (int32 i = 0; i < Notifies.Num(); ++i)
                     {
-                        ImGui::NeoKeyframe(&keyframeValue);
-                        // Per keyframe code here (예: 키프레임 선택, 수정 등)
+                        if (Notifies[i].TrackIndex == TrackIndex)
+                        {
+                            ImGui::FrameIndexType& TimeRef = Notifies[i].TriggerTime;
+                            ImGui::NeoKeyframe(&TimeRef);
+
+                            if (ImGui::IsNeoKeyframeSelected())
+                            {
+                                SelectedTrackIndex = TrackIndex;
+                                SelectedNotifyIndex = i;
+                            }
+                        }
                     }
+                    
+                    ImGui::SetItemDefaultFocus();
                     
                     ImGui::EndNeoTimeLine();
                 }
@@ -195,7 +217,16 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
                 {
                     if (ImGui::MenuItem("Add Notify"))
                     {
-                        TrackAndKeyMap[SelectedTrackIndex].Add(CurrentFrameSeconds);
+                        UE_LOG(ELogLevel::Display, "Add Notify Clicked");
+                        
+                        FAnimNotifyEvent NewNotify;
+                        NewNotify.TrackIndex = SelectedTrackIndex;
+                        NewNotify.TriggerTime = CurrentFrameSeconds;
+                        NewNotify.Duration = 0.0f;
+                        NewNotify.NotifyName = "NONE";
+                        
+                        Notifies.Add(NewNotify);
+                        bNeedsNotifyUpdate = true;
                     }
                     ImGui::EndMenu();
                 }
@@ -204,8 +235,7 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
             
             ImGui::EndNeoGroup();
         }
-
-
+        
         ImGui::EndNeoSequencer();
     }
 }
@@ -239,19 +269,33 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
         }
         
         bIsPlaying = !bIsPlaying;
+        UAnimSingleNodeInstance* SingleNode =  SelectedSkeletalMeshComponent->GetSingleNodeInstance();
 
         if (bIsPlaying)
         {
-            // Play
-            if (CurrentFrameSeconds >= MaxFrameSeconds && MaxFrameSeconds > 0.0f)
+            // Already Playing
+            if (CurrentFrameSeconds < MaxFrameSeconds && CurrentFrameSeconds > 0.0f)
             {
-                CurrentFrameSeconds = 0.0f;
+                SingleNode->GetCurrentSequence()->SetRateScale(1.0f);
             }
-            SelectedSkeletalMeshComponent->PlayAnimation(SelectedAnimSequence, bIsRepeating);
+            else 
+            {
+                // Play
+                if (CurrentFrameSeconds >= MaxFrameSeconds && MaxFrameSeconds > 0.0f)
+                {
+                    CurrentFrameSeconds = 0.0f;
+                }
+
+                SelectedSkeletalMeshComponent->PlayAnimation(SelectedAnimSequence, bIsRepeating);
+            }
         }
         else
         {
             // Pause
+            if (SingleNode != nullptr)
+            {
+                SingleNode->GetCurrentSequence()->SetRateScale(-1.0f);
+            }
         }
     }
 
@@ -337,12 +381,42 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
     ImGui::EndChild();
 }
 
-void AnimationSequenceViewer::RenderAssetDetails() const
+void AnimationSequenceViewer::RenderAssetDetails()
 {
+    if (SelectedNotifyIndex == -1)
+    {
+        return;
+    }
+
+    FAnimNotifyEvent& Notify = SelectedAnimSequence->Notifies[SelectedNotifyIndex];
     
+    static char NotifyBuffer[128] = { 0 };
+
+    // FString → char (UTF8 변환)
+    std::string NotifyNameStr = GetData(*Notify.NotifyName.ToString());
+    strncpy(NotifyBuffer, NotifyNameStr.c_str(), sizeof(NotifyBuffer));
+    NotifyBuffer[sizeof(NotifyBuffer) - 1] = '\0'; // null-termination 보장
+    
+    if (ImGui::InputText("Notify Name", NotifyBuffer, sizeof(NotifyBuffer), ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+        Notify.NotifyName = FName(NotifyBuffer);
+        bNeedsNotifyUpdate = true;
+    }
+    
+    float *TriggerTime = &Notify.TriggerTime;
+    if (ImGui::InputFloat("TriggerTime", TriggerTime, 0.0f, 0.0f, "%.2f"))
+    {
+        bNeedsNotifyUpdate = true;
+    }
+
+    float* Duration = &Notify.Duration;
+    if (ImGui::InputFloat("Duration", Duration, 0.0f, 0.0f, "%.2f"))
+    {
+        bNeedsNotifyUpdate = true;
+    }
 }
 
-void AnimationSequenceViewer::RenderAssetBrowser()
+void AnimationSequenceViewer::RenderAssetBrowser() 
 {
     TArray<FString> animNames;
     {
@@ -371,13 +445,17 @@ void AnimationSequenceViewer::RenderAssetBrowser()
                 if (newSequence != SelectedAnimSequence) // If sequence changed
                 {
                     TrackAndKeyMap.Empty();
+                    SelectedTrackIndex = -1;
+                    SelectedNotifyIndex = -1;
+                    bNeedsNotifyUpdate = true;
+                    
                     SelectedAnimSequence = newSequence;
                     bIsPlaying = false; // Stop playback for new animation
                     CurrentFrameSeconds = 0.0f; // Reset time
                     StartFrameSeconds = 0.0f;
                     if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
                     {
-                        MaxFrameSeconds = SelectedAnimSequence->GetDataModel()->PlayLength;
+                        MaxFrameSeconds = SelectedAnimSequence->GetPlayLength();
                         EndFrameSeconds = MaxFrameSeconds; // Set sequencer end to anim length
                     }
                     else
@@ -412,4 +490,22 @@ void AnimationSequenceViewer::RepeatButton(bool* v) const
         *v = !*v;
     }
     ImGui::PopStyleColor();
+}
+
+int AnimationSequenceViewer::FindAvailableTrackIndex(const TArray<FAnimNotifyEvent>& NotifyEvents) const
+{
+    TSet<int> UsedTrackIndex;
+
+    for (const FAnimNotifyEvent& Notify : NotifyEvents)
+    {
+        UsedTrackIndex.Add(Notify.TrackIndex);
+    }
+
+    for (int i = 0;; ++i)
+    {
+        if (!UsedTrackIndex.Contains(i))
+        {
+            return i;
+        }
+    }
 }
