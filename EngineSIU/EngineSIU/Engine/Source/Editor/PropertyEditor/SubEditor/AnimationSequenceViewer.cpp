@@ -467,6 +467,9 @@ void AnimationSequenceViewer::RenderAssetBrowser()
                     {
                         MaxFrameSeconds = SelectedAnimSequence->GetPlayLength();
                         EndFrameSeconds = MaxFrameSeconds; // Set sequencer end to anim length
+
+                        SelectedSkeletalMeshComponent->PlayAnimation(SelectedAnimSequence, false);
+                        SelectedSkeletalMeshComponent->GetSingleNodeInstance()->GetCurrentSequence()->SetRateScale(0.0f);
                     }
                     else
                     {
