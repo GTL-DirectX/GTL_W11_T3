@@ -13,11 +13,8 @@ bool UAnimSequenceBase::IsNotifyAvailable() const
 }
 
 /*
- * 루프 & 시간 전진 (AdvanceTime)
- * 각 구간에서 GetAnimNotifiesFromDeltaPositions()
- * NotifyTime 범위 체크 후 Add
+ * 새로운 프레임 내에 발생한 Notify를 추출하여 반환합니다
  */
-
 void UAnimSequenceBase::GetAnimNotifies(
     const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent*>& OutActiveNotifies
 ) const
@@ -65,6 +62,12 @@ void UAnimSequenceBase::GetAnimNotifies(
     }
 }
 
+/*
+ * 
+ * Notify 범위 체크
+ * 정방향: NotifyStartTime <= CurrentPosition && NotifyEndTime > PreviousPosition
+ * 역방향: NotifyStartTime < PreviousPosition && NotifyEndTime >= CurrentPosition
+ */
 void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(
     const TArray<FAnimNotifyEvent>& Notifies, float PreviousPosition, float CurrentPosition, TArray<const FAnimNotifyEvent*>& OutNotifies
 ) const
@@ -78,7 +81,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(
 
         if (!bPlayingBackwards)
         {
-            // 정방향: 범위에 걸치는 Notify 추출
+            // 정방향: (이전시간, 현재시간] 걸치는 Notify 추출
             if (NotifyStartTime <= CurrentPosition && NotifyEndTime > PreviousPosition)
             {
                 OutNotifies.Add(&Notify);
@@ -86,7 +89,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(
         }
         else
         {
-            // 역방향: 범위에 걸치는 Notify 추출
+            // 역방향: [현재시간, 이전시간) 걸치는 Notify 추출
             if (NotifyStartTime < PreviousPosition && NotifyEndTime >= CurrentPosition)
             {
                 OutNotifies.Add(&Notify);
