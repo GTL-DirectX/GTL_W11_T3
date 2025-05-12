@@ -17,9 +17,6 @@ class USkeletalMesh;
 //DECLARE_DELEGATE_OneParam(FOnLoadFBXStarted, const FString& /*filename*/);
 DECLARE_DELEGATE_OneParam(FOnLoadFBXCompleted, const FString& /*filename*/);
 DECLARE_DELEGATE_OneParam(FOnLoadFBXFailed, const FString& /*filename*/);
-//DECLARE_DELEGATE_OneParam(FOnLoadAnimStarted, const FString& /*filename*/);
-DECLARE_DELEGATE_OneParam(FOnLoadAnimCompleted, const FString& /*filename*/);
-DECLARE_DELEGATE_OneParam(FOnLoadAnimFailed, const FString& /*filename*/);
 
 // Skeletal Mesh를 관리하는 구조체
 struct FFbxManager
@@ -53,31 +50,26 @@ public:
 
     static USkeletalMesh* GetSkeletalMesh(const FString& filename);
     static UAnimSequence* GetAnimSequenceByName(const FString& SeqName);
-    static UAnimSequence* GetAnimSequence(const FString& filename);
     static const TMap<FString, MeshEntry>& GetSkeletalMeshes();
     static const TMap<FString, AnimEntry>& GetAnimSequences();
     static bool IsPriorityQueueDone();
 
     // UAssetManager와 연동
-    //inline static FOnLoadFBXStarted OnLoadFBXStarted;
     inline static FOnLoadFBXCompleted OnLoadFBXCompleted;
     inline static FOnLoadFBXFailed OnLoadFBXFailed;
-
-    //inline static FOnLoadAnimStarted OnLoadAnimStarted;
-    inline static FOnLoadAnimCompleted OnLoadAnimCompleted;
-    inline static FOnLoadAnimFailed OnLoadAnimFailed;
 
 private:
     static void LoadFunc();
     static void ConvertFunc();
     static void SaveFunc();
-    //static void AnimFunc();
 
-    static bool SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, const FFbxSkeletalMesh* FBXObject);
-    static bool LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, FFbxSkeletalMesh* OutFBXObject);
+    static bool SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime,
+        const FFbxSkeletalMesh* FBXObject, const TArray<FFbxAnimSequence*> FBXSequence);
+    static bool LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime,
+        FFbxSkeletalMesh* OutFBXObject, TArray<FFbxAnimSequence*>& OutFBXSequence);
 
     inline static TMap<FString, MeshEntry> MeshMap;
-    inline static TMap<FString, AnimEntry> AnimMap; // filename 말고 애니메이션 이름
+    inline static TMap<FString, AnimEntry> AnimMap; // filename + 애니메이션 이름
 
     /*
     MainThread -> LoadThread -> ConvertThread -> AnimThread -> SaveThread

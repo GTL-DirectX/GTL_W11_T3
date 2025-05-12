@@ -83,11 +83,11 @@ struct FFbxAnimTrack // bone마다 == curve
 struct FFbxAnimSequence // 애니메이션 하나 == layer
 {
     FString Name;
-    TArray<FFbxAnimTrack> AnimTracks; // 애니메이션 트랙
     float Duration;
     float FrameRate;
-    float NumFrames;
-    float NumKeys;
+    int32 NumFrames;
+    int32 NumKeys; // ????
+    TArray<FFbxAnimTrack> AnimTracks; // 애니메이션 트랙
 };
 ////////////////
 

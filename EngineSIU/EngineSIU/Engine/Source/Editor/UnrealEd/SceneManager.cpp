@@ -112,7 +112,7 @@ void SceneManager::LoadSceneFromJsonFile(const std::filesystem::path& FilePath, 
     std::ifstream JsonFile(FilePath);
     if (!JsonFile.is_open())
     {
-        UE_LOG(ELogLevel::Error, "Failed to open file for reading: %s", FilePath.c_str());
+        UE_LOG(ELogLevel::Error, "Failed to open file for reading: %s", FilePath.string().c_str());
         return;
     }
 

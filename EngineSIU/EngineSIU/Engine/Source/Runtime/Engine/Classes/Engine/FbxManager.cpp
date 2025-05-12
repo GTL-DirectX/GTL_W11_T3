@@ -188,7 +188,7 @@ void FFbxManager::LoadFunc()
                         FileTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()));
 
                 bool Success = false;
-                Success = LoadFBXFromBinary(BinaryPath, lastModifiedTime, FbxMesh);
+                Success = LoadFBXFromBinary(BinaryPath, lastModifiedTime, FbxMesh, AnimSequences);
                 // Binary 파싱 실패. FBX 파싱 시도
                 if (!Success)
                 {
@@ -319,7 +319,7 @@ void FFbxManager::ConvertFunc()
                     {
                         if (AnimSeq)
                         {
-                            AnimMap.Add(AnimSeq->Name, { LoadState::Completed, AnimSeq });
+                            AnimMap.Add(FileName + "::" + AnimSeq->Name, {LoadState::Completed, AnimSeq});
                         }
                     }
                 }
@@ -369,12 +369,17 @@ void FFbxManager::SaveFunc()
                 const int64_t& lastModifiedTime = MetaData.LastModifiedTime;
                 // Binary 파싱
                 // Map에서 복사해서 이용
-                FFbxSkeletalMesh* Parsed;
+                FFbxSkeletalMesh* Mesh = nullptr;
                 {
                     FSpinLockGuard Lock(FbxMeshMapLock);
-                    Parsed = FbxMeshMap[FileName];
+                    Mesh = FbxMeshMap[FileName];
                 }
-                if (SaveFBXToBinary(BinaryPath, lastModifiedTime, Parsed))
+                TArray<FFbxAnimSequence*> AnimSequences;
+                {
+                    FSpinLockGuard Lock(AnimMapLock);
+                    AnimSequences = FbxAnimMap[FileName];
+                }
+                if (SaveFBXToBinary(BinaryPath, lastModifiedTime, Mesh, AnimSequences))
                 {
                     UE_LOG(ELogLevel::Display, TEXT("Saved FBX to binary: %s"), WStringToString(BinaryPath).c_str());
                 }
@@ -407,7 +412,8 @@ void FFbxManager::SaveFunc()
 }
 
 // .bin 파일로 저장합니다.
-bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, const FFbxSkeletalMesh* FBXObject)
+bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, 
+    const FFbxSkeletalMesh* FBXObject, const TArray<FFbxAnimSequence*> FBXSequence)
 {
     /** File Open */
     std::ofstream File(FilePath, std::ios::binary);
@@ -574,12 +580,62 @@ bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModified
     File.write(reinterpret_cast<const char*>(&FBXObject->AABBmin), sizeof(FVector));
     File.write(reinterpret_cast<const char*>(&FBXObject->AABBmax), sizeof(FVector));
 
+    /** FBX Animations */
+    uint32 AnimCount = FBXSequence.Num();
+    File.write(reinterpret_cast<const char*>(&AnimCount), sizeof(AnimCount));
+    for (const FFbxAnimSequence* AnimSeq : FBXSequence)
+    {
+        if (AnimSeq)
+        {
+            // AnimName
+            Serializer::WriteFString(File, AnimSeq->Name);
+            // Anim Length
+            File.write(reinterpret_cast<const char*>(&AnimSeq->Duration), sizeof(AnimSeq->Duration));
+            // Anim FrameRate
+            File.write(reinterpret_cast<const char*>(&AnimSeq->FrameRate), sizeof(AnimSeq->FrameRate));
+            // Anim FrameCount
+            File.write(reinterpret_cast<const char*>(&AnimSeq->NumFrames), sizeof(AnimSeq->NumFrames));
+            // Anim KeyCount
+            File.write(reinterpret_cast<const char*>(&AnimSeq->NumKeys), sizeof(AnimSeq->NumKeys));
+
+            // Anim Tracks
+            uint32 TrackCount = AnimSeq->AnimTracks.Num();
+            File.write(reinterpret_cast<const char*>(&TrackCount), sizeof(TrackCount));
+            for (const FFbxAnimTrack& Track : AnimSeq->AnimTracks)
+            {
+                // BoneName
+                Serializer::WriteFString(File, Track.BoneName);
+                // PosKeys
+                uint32 PosKeyCount = Track.PosKeys.Num();
+                File.write(reinterpret_cast<const char*>(&PosKeyCount), sizeof(PosKeyCount));
+                if (PosKeyCount > 0)
+                {
+                    File.write(reinterpret_cast<const char*>(Track.PosKeys.GetData()), sizeof(FVector) * PosKeyCount);
+                }
+                // RotKeys
+                uint32 RotKeyCount = Track.RotKeys.Num();
+                File.write(reinterpret_cast<const char*>(&RotKeyCount), sizeof(RotKeyCount));
+                if (RotKeyCount > 0)
+                {
+                    File.write(reinterpret_cast<const char*>(Track.RotKeys.GetData()), sizeof(FQuat) * RotKeyCount);
+                }
+                // ScaleKeys
+                uint32 ScaleKeyCount = Track.ScaleKeys.Num();
+                File.write(reinterpret_cast<const char*>(&ScaleKeyCount), sizeof(ScaleKeyCount));
+                if (ScaleKeyCount > 0)
+                {
+                    File.write(reinterpret_cast<const char*>(Track.ScaleKeys.GetData()), sizeof(FVector) * ScaleKeyCount);
+                }
+            }
+        }
+    }
     File.close();
     return true;
 }
 
 // .bin 파일을 파싱합니다.
-bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, FFbxSkeletalMesh* OutFBXObject)
+bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, 
+    FFbxSkeletalMesh* OutFBXObject, TArray<FFbxAnimSequence*>& OutFBXSequence)
 {
     UE_LOG(ELogLevel::Display, "Loading binary: %s", WStringToString(FilePath).c_str());
     if (!std::filesystem::exists(FilePath))
@@ -787,6 +843,61 @@ bool FFbxManager::LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifi
     /** FBX AABB */
     File.read(reinterpret_cast<char*>(&OutFBXObject->AABBmin), sizeof(FVector));
     File.read(reinterpret_cast<char*>(&OutFBXObject->AABBmax), sizeof(FVector));
+
+    /** FBX Animations */ 
+    uint32 AnimCount;
+    File.read(reinterpret_cast<char*>(&AnimCount), sizeof(AnimCount));
+    OutFBXSequence.SetNum(AnimCount); // 미리 메모리 할당
+    for (uint32 i = 0; i < AnimCount; ++i)
+    {
+        FFbxAnimSequence* AnimSeq = new FFbxAnimSequence();
+        // AnimName
+        Serializer::ReadFString(File, AnimSeq->Name);
+        // Anim Length
+        File.read(reinterpret_cast<char*>(&AnimSeq->Duration), sizeof(AnimSeq->Duration));
+        // Anim FrameRate
+        File.read(reinterpret_cast<char*>(&AnimSeq->FrameRate), sizeof(AnimSeq->FrameRate));
+        // Anim FrameCount
+        File.read(reinterpret_cast<char*>(&AnimSeq->NumFrames), sizeof(AnimSeq->NumFrames));
+        // Anim KeyCount
+        File.read(reinterpret_cast<char*>(&AnimSeq->NumKeys), sizeof(AnimSeq->NumKeys));
+        // Anim Tracks
+        uint32 TrackCount;
+        File.read(reinterpret_cast<char*>(&TrackCount), sizeof(TrackCount));
+        OutFBXSequence[i] = AnimSeq;
+        OutFBXSequence[i]->AnimTracks.SetNum(TrackCount);
+        for (uint32 j = 0; j < TrackCount; ++j)
+        {
+            FFbxAnimTrack Track;
+            // BoneName
+            Serializer::ReadFString(File, Track.BoneName);
+            // PosKeys
+            uint32 PosKeyCount;
+            File.read(reinterpret_cast<char*>(&PosKeyCount), sizeof(PosKeyCount));
+            if (PosKeyCount > 0)
+            {
+                Track.PosKeys.SetNum(PosKeyCount); // 크기 설정
+                File.read(reinterpret_cast<char*>(Track.PosKeys.GetData()), sizeof(FVector) * PosKeyCount);
+            }
+            // RotKeys
+            uint32 RotKeyCount;
+            File.read(reinterpret_cast<char*>(&RotKeyCount), sizeof(RotKeyCount));
+            if (RotKeyCount > 0)
+            {
+                Track.RotKeys.SetNum(RotKeyCount); // 크기 설정
+                File.read(reinterpret_cast<char*>(Track.RotKeys.GetData()), sizeof(FQuat) * RotKeyCount);
+            }
+            // ScaleKeys
+            uint32 ScaleKeyCount;
+            File.read(reinterpret_cast<char*>(&ScaleKeyCount), sizeof(ScaleKeyCount));
+            if (ScaleKeyCount > 0)
+            {
+                Track.ScaleKeys.SetNum(ScaleKeyCount); // 크기 설정
+                File.read(reinterpret_cast<char*>(Track.ScaleKeys.GetData()), sizeof(FVector) * ScaleKeyCount);
+            }
+            OutFBXSequence[i]->AnimTracks[j] = std::move(Track);
+        }
+    }
 
     File.close();
 
