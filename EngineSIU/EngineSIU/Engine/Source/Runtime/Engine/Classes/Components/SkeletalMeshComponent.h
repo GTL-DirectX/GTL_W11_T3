@@ -2,6 +2,7 @@
 #include "MeshComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
+#include "Animation/AnimTwoNodeBlendInstance.h"
 
 class UAnimInstance;
 class USkeletalMesh;
@@ -13,6 +14,7 @@ namespace EAnimationMode
         AnimationBlueprint,
         AnimationSingleNode,
         // This is custom type, engine leaves AnimInstance as it is
+        AnimationTwoNodeBlend,
         AnimationCustomMode,
     };
 }
@@ -40,6 +42,7 @@ public:
     virtual int CheckRayIntersection(const FVector& InRayOrigin, const FVector& InRayDirection, float& OutHitDistance) const override;
 
     UAnimSingleNodeInstance* GetSingleNodeInstance() const;
+    UAnimTwoNodeBlendInstance* GetTwoNodeBlendInstance() const;
     void SetAnimation(UAnimSequenceBase* NewAnimToPlay);
     void SetAnimationMode(EAnimationMode::Type AnimationSingleNode);
     void PlayAnimation(class UAnimSequenceBase* NewAnimToPlay, bool bLooping);

@@ -516,6 +516,35 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
             SelectedSkeleton->ResetPose(); // 기본 포즈로
         }
     }
+
+    if (ImGui::Button("Play Blend Animation", ImVec2(120, 0)))
+    {
+        if (SelectedSkeleton)
+        {
+            UE_LOG(ELogLevel::Display, TEXT("Playing Blend animation: %s"), *SelectedAnimName);
+
+            UAnimSequence* animToPlay = FFbxLoader::GetAnimSequenceByName
+(SelectedAnimName);
+            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTwoNodeBlend);
+            SelectedSkeleton->PlayAnimation(animToPlay, true);
+        }
+        else {
+            UE_LOG(ELogLevel::Warning, TEXT("Could not find or load animation: %s"), *SelectedAnimName);
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Stop Blend Animation", ImVec2(120, 0)))
+    {
+        if (SelectedSkeleton)
+        {
+            UE_LOG(ELogLevel::Display, TEXT("Stop Blend animation: %s"), *SelectedAnimName);
+
+            SelectedSkeleton->PlayAnimation(nullptr, false); // null 재생으로 중지
+            SelectedSkeleton->ResetPose(); // 기본 포즈로
+        }
+    }
     if (SelectedSkeleton)
     {
         UAnimSingleNodeInstance* SingleNodeInstance = SelectedSkeleton->GetSingleNodeInstance();
@@ -538,7 +567,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
 
 }
 
-void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalComp)
+void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalComp)
 {
     DrawAnimationControls(SkeletalComp);
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -550,7 +579,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         FString PreviewName = FString("None");
         if (USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh())
         {
-            PreviewName = SkeletalMesh->GetOjbectName();
+            PreviewName = SkeletalMesh->GetObjectName();
         }
         
         const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
