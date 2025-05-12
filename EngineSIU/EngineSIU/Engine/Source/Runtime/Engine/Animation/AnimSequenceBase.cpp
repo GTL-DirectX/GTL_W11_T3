@@ -1,5 +1,4 @@
 #include "AnimSequenceBase.h"
-
 #include "AnimationRuntime.h"
 
 UAnimSequenceBase::UAnimSequenceBase()
@@ -16,7 +15,7 @@ bool UAnimSequenceBase::IsNotifyAvailable() const
  * 새로운 프레임 내에 발생한 Notify를 추출하여 반환합니다
  */
 void UAnimSequenceBase::GetAnimNotifies(
-    const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent*>& OutActiveNotifies
+    const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<FAnimNotifyEvent>& OutActiveNotifies
 ) const
 {
     OutActiveNotifies.Empty();
@@ -73,7 +72,7 @@ void UAnimSequenceBase::GetAnimNotifies(
  * 역방향: NotifyStartTime < PreviousPosition && NotifyEndTime >= CurrentPosition
  */
 void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(
-    const TArray<FAnimNotifyEvent>& Notifies, float PreviousPosition, float CurrentPosition, TArray<const FAnimNotifyEvent*>& OutNotifies
+    const TArray<FAnimNotifyEvent>& Notifies, float PreviousPosition, float CurrentPosition, TArray<FAnimNotifyEvent>& OutNotifies
 ) const
 {
     const bool bPlayingBackwards = (CurrentPosition < PreviousPosition);
@@ -88,7 +87,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(
             // 정방향: (이전시간, 현재시간] 걸치는 Notify 추출
             if (NotifyStartTime <= CurrentPosition && NotifyEndTime > PreviousPosition)
             {
-                OutNotifies.Add(&Notify);
+                OutNotifies.Add(Notify);
             }
         }
         else
@@ -96,7 +95,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(
             // 역방향: [현재시간, 이전시간) 걸치는 Notify 추출
             if (NotifyStartTime < PreviousPosition && NotifyEndTime >= CurrentPosition)
             {
-                OutNotifies.Add(&Notify);
+                OutNotifies.Add(Notify);
             }
         }
     }

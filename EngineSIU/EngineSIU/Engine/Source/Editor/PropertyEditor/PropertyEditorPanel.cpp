@@ -550,7 +550,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         FString PreviewName = FString("None");
         if (USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh())
         {
-            PreviewName = SkeletalMesh->GetOjbectName();
+            PreviewName = SkeletalMesh->GetObjectName();
         }
         
         const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
