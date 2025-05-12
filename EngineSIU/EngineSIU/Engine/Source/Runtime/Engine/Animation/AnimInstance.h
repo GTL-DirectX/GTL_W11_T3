@@ -1,6 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
+#include "AnimNotifyQueue.h"
 
 struct FTransform;
 class USkeletalMeshComponent;
@@ -27,6 +28,9 @@ public:
     virtual void NativeInitializeAnimation();
     virtual void NativeUpdateAnimation(float DeltaSeconds);
 
+    /* 사용자가 오버라이딩할 Notify Handling 함수 입니다*/
+    virtual bool HandleNotify(const FAnimNotifyEvent& NotifyEvent);
+    void TriggerSingleAnimNotify(const FAnimNotifyEvent& AnimNotifyEvent);
     void TriggerAnimNotifies(float DeltaSeconds);
 
     void SetPlaying(bool bIsPlaying){ bPlaying = bIsPlaying;}
@@ -41,7 +45,9 @@ protected:
 
     UAnimSequenceBase* Sequence = nullptr; // 본래 FAnimNode_SequencePlayer에서 소유
 
-    USkeletalMeshComponent* OwningComp; 
+    USkeletalMeshComponent* OwningComp;
+
+    FAnimNotifyQueue NotifyQueue;
 
     float CurrentTime;
     bool bPlaying;

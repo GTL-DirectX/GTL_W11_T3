@@ -5,12 +5,14 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Character.h"
 #include "Math/Transform.h"
 #include "UObject/Casts.h"
-
+#include "AnimTypes.h"
 UAnimInstance::UAnimInstance()
-    : OwningComp(nullptr)
-    , Sequence(nullptr)
+    : Sequence(nullptr)
+    , OwningComp(nullptr)
     , CurrentTime(0.0f)
     , bPlaying(false)
 {
@@ -34,7 +36,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 
     // 사용자 확장 영역 - 커스텀 변수 또는 입력 값 설정
     NativeUpdateAnimation(DeltaSeconds);
-
+    TriggerAnimNotifies(DeltaSeconds);
+    NotifyQueue.Reset();
 
     // 1. 애니메이션 시간 업데이트
     const float RateScale = Sequence->GetRateScale();
@@ -64,6 +67,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
             SetPlaying(false);
         }
     }
+
 }
 
 const TArray<FTransform>& UAnimInstance::EvaluateAnimation()
@@ -106,6 +110,10 @@ void UAnimInstance::ResetToRefPose()
         CurrentPose = RefSkeleton.RawRefBonePose;
     }
 }
+USkeletalMeshComponent* UAnimInstance::GetSkelMeshComponent()
+{
+    return Cast<USkeletalMeshComponent>(OwningComp);
+}
 
 void UAnimInstance::NativeInitializeAnimation()
 {
@@ -115,9 +123,41 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 }
 
-USkeletalMeshComponent* UAnimInstance::GetSkelMeshComponent()
+bool UAnimInstance::HandleNotify(const FAnimNotifyEvent& NotifyEvent)
 {
-    return Cast<USkeletalMeshComponent>(OwningComp);
+    return false;
+}
+
+void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent& AnimNotifyEvent)
+{
+    if (HandleNotify(AnimNotifyEvent)) // 사용자가 AnimInstance단에서 오버라이딩한 경우 종료
+    {
+        return;
+    }
+
+    const float TriggerTime = AnimNotifyEvent.GetTriggerTime();
+    const FName NotifyName = AnimNotifyEvent.NotifyName;
+
+    if (OwningComp)
+    {
+        UE_LOG(ELogLevel::Display, TEXT("[Notify Triggered] Name: %s, TriggerTime: %.3f, OwningComp: VALID"), *NotifyName.ToString(), TriggerTime);
+
+        ACharacter* Owner = Cast<ACharacter>(OwningComp->GetOwner());
+        if (Owner)
+        {
+            UE_LOG(ELogLevel::Display, TEXT(" └ Owner: VALID (%s)"), *Owner->GetName());
+            //Owner->HandleAnimNotify(AnimNotifyEvent);
+        }
+        else
+        {
+            UE_LOG(ELogLevel::Warning, TEXT(" └ Owner: NULL"));
+        }
+    }
+    else
+    {
+        UE_LOG(ELogLevel::Warning, TEXT("[Notify Triggered] Name: %s, TriggerTime: %.3f, OwningComp: NULL"), *NotifyName.ToString(), TriggerTime);
+    }
+
 }
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
@@ -129,5 +169,14 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 
     float PrevTime = CurrentTime - DeltaSeconds * Sequence->GetRateScale();
     float CurrTime = CurrentTime;
+
+    TArray<FAnimNotifyEvent> NotifyStateBeginEvent;
+    Sequence->GetAnimNotifies(PrevTime, DeltaSeconds, Sequence->IsLooping(), NotifyStateBeginEvent);
+    NotifyQueue.AddAnimNotifies(NotifyStateBeginEvent);
+
+    for (const FAnimNotifyEvent& NotifyEvent : NotifyStateBeginEvent)
+    {
+        TriggerSingleAnimNotify(NotifyEvent);
+    }
 }
 

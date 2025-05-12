@@ -4,17 +4,18 @@
 #include "Math/Vector.h"
 #include "UObject/ObjectMacros.h"
 
+/* [참고] UAnimNotify: 한 프레임에서 한 번만 발생하는 이벤트 */ 
 struct FAnimNotifyEvent
 {
     /** using Track UI */ 
     int32 TrackIndex;
     
     float TriggerTime;  // 발생 시간
-    float Duration;     // 지속 시간 (0이면 단일 Notify)
+    float Duration;     // 지속 시간 (0이면 단발성) = EndTriggerTime - TriggerTime
     FName NotifyName;   
 
-    float TriggerTimeOffset;
-    float EndTriggerTimeOffset;
+    float TriggerTimeOffset = 0.f;        // Notify가 시작되도록 보정된 시간 오프셋
+    float EndTriggerTimeOffset = 0.f;     // Notify 종료 보정을 위한 시간 오프셋
 
     float GetDuration() const;
     float GetTriggerTime() const;
