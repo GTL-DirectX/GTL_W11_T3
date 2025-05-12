@@ -122,15 +122,6 @@ private:
     inline static std::condition_variable SaveCondition;
     inline static std::mutex SaveMutex;
 
-    // Animation도 Converter에서 저장
-    //// Animation Parsing
-    //inline static TQueue<FString> AnimQueue; // AnimMap을 참조
-    //inline static TQueue<FString> PriorityAnimQueue; // AnimMap을 참조
-    //inline static std::thread  AnimThread;
-    //inline static std::condition_variable AnimCondition;
-    //inline static std::mutex AnimMutex;
-
-
     // 전역 쓰레드 종료 신호
     inline static bool bStopThread = false;
     inline static std::mutex LoadTerminatedMutex;
@@ -142,7 +133,4 @@ private:
     inline static std::mutex SaveTerminatedMutex;
     inline static std::condition_variable SaveTerminatedCondition;
     inline static bool bSaveThreadTerminated = false;
-    //inline static std::mutex AnimTerminatedMutex;
-    //inline static std::condition_variable AnimTerminatedCondition;
-    //inline static bool bAnimThreadTerminated = false;
 };
