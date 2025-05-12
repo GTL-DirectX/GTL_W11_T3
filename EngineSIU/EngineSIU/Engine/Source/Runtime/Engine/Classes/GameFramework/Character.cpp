@@ -4,5 +4,6 @@
 ACharacter::ACharacter()
 {
     CapsuleComponent = FObjectFactory::ConstructObject<UCapsuleComponent>(this);
+    AddComponent<UCapsuleComponent>(FName("UCapsuleComponent_0"));
     RootComponent = CapsuleComponent;
 }
