@@ -9,6 +9,13 @@ struct FAnimNotifyEvent
     float TriggerTime;
     float Duration;
     FName NotifyName;
+
+    float TriggerTimeOffset;
+    float EndTriggerTimeOffset;
+
+    float GetDuration() const;
+    float GetTriggerTime() const;
+    float GetEndTriggerTime() const;
 };
 
 /**
