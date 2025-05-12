@@ -38,16 +38,16 @@ public:
         bool bPrioritized = false;
         USkeletalMesh* Mesh;
     };
-    struct FAnimEntry
+    struct AnimEntry
     {
-        LoadState State;
+        LoadState State; // 항상 Completed가 될것임
         UAnimSequence* Sequence;
     };
 
     inline static FSpinLock MeshMapLock; // MeshEntry의 Map에 접근할 때 쓰는 스핀락 : map 접근에는 mutex사용안함
     inline static FSpinLock AnimMapLock; // AnimEntry의 Map에 접근할 때 쓰는 스핀락
 public:
-    ~FFbxManager();
+    ~FFbxManager(); // 호출 안되고있음
     static void Init();
     static void Load(const FString& filename, bool bPrioritized = false);
 
@@ -55,7 +55,7 @@ public:
     static UAnimSequence* GetAnimSequenceByName(const FString& SeqName);
     static UAnimSequence* GetAnimSequence(const FString& filename);
     static const TMap<FString, MeshEntry>& GetSkeletalMeshes();
-    static const TMap<FString, FAnimEntry>& GetAnimSequences();
+    static const TMap<FString, AnimEntry>& GetAnimSequences();
     static bool IsPriorityQueueDone();
 
     // UAssetManager와 연동
@@ -71,25 +71,29 @@ private:
     static void LoadFunc();
     static void ConvertFunc();
     static void SaveFunc();
-    static void ProcessAnimFunc();
+    //static void AnimFunc();
 
     static bool SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, const FFbxSkeletalMesh* FBXObject);
     static bool LoadFBXFromBinary(const FWString& FilePath, int64_t LastModifiedTime, FFbxSkeletalMesh* OutFBXObject);
 
     inline static TMap<FString, MeshEntry> MeshMap;
-    inline static TMap<FString, FAnimEntry> AnimMap;
+    inline static TMap<FString, AnimEntry> AnimMap; // filename 말고 애니메이션 이름
 
     /*
-    MainThread -> LoadThread -> ConvertThread -> SaveThread
+    MainThread -> LoadThread -> ConvertThread -> AnimThread -> SaveThread
     데이터는 큐를 통해서 전달.
     */
-
 
     ///////////////////////////////////
     // 파이프라인 내부에서 사용되는 변수들
     // FFbxSkeletalMesh 맵 : USkeletalMesh로 변환되고 .bin로 저장되기 전까지 저장
     inline static FSpinLock FbxMeshMapLock; // FFbxSkeletalMesh의 Map에 접근할 때 쓰는 스핀락
     inline static TMap<FString, FFbxSkeletalMesh*> FbxMeshMap;
+
+    // FFbxAnimSequence 맵 : UAnimSequence로 변환되기 전까지 저장.
+    inline static FSpinLock FbxAnimMapLock;
+    // Key : 파일이름 / Value.Name : 애니메이션 이름
+    inline static TMap<FString, TArray<FFbxAnimSequence*>> FbxAnimMap;
 
     // .fbx / .bin 에서 FFbxSkeletalMesh를 로드합니다.
     inline static TQueue<FString> LoadQueue; // MeshMap을 참조
@@ -118,12 +122,13 @@ private:
     inline static std::condition_variable SaveCondition;
     inline static std::mutex SaveMutex;
 
-    // Animation Parsing
-    inline static TQueue<FString> AnimQueue; // AnimMap을 참조
-    inline static TQueue<FString> PriorityAnimQueue; // AnimMap을 참조
-    inline static std::thread  AnimThread;
-    inline static std::condition_variable AnimCondition;
-    inline static std::mutex AnimMutex;
+    // Animation도 Converter에서 저장
+    //// Animation Parsing
+    //inline static TQueue<FString> AnimQueue; // AnimMap을 참조
+    //inline static TQueue<FString> PriorityAnimQueue; // AnimMap을 참조
+    //inline static std::thread  AnimThread;
+    //inline static std::condition_variable AnimCondition;
+    //inline static std::mutex AnimMutex;
 
 
     // 전역 쓰레드 종료 신호
@@ -137,7 +142,7 @@ private:
     inline static std::mutex SaveTerminatedMutex;
     inline static std::condition_variable SaveTerminatedCondition;
     inline static bool bSaveThreadTerminated = false;
-    inline static std::mutex AnimTerminatedMutex;
-    inline static std::condition_variable AnimTerminatedCondition;
-    inline static bool bAnimThreadTerminated = false;
+    //inline static std::mutex AnimTerminatedMutex;
+    //inline static std::condition_variable AnimTerminatedCondition;
+    //inline static bool bAnimThreadTerminated = false;
 };

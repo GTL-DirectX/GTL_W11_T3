@@ -20,12 +20,14 @@ public:
     static void Init();
     //static void LoadFBX(const FString& filename);
     //static USkeletalMesh* GetSkeletalMesh(const FString& filename);
-    static bool ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSkeletalMesh);
+    static bool ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSkeletalMesh, TArray<FFbxAnimSequence*>& OutFbxSequences);
     static void GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh*& OutSkeletalMesh);
-    static void ParseFBXAnimationOnly(
-        const FString& filename, USkeletalMesh* skeletalMesh,
-        TArray<UAnimSequence*>& OutSequences
-    );
+    static void GenerateAnimations(const FFbxSkeletalMesh* InFbxSkeletal, const FFbxAnimSequence* InFbxAnim, UAnimSequence*& OutAnimSequence);
+
+    //static void ParseFBXAnimationOnly(
+    //    const FString& filename, USkeletalMesh* skeletalMesh,
+    //    TArray<UAnimSequence*>& OutSequences
+    //);
 private:
     static FbxIOSettings* GetFbxIOSettings();
     static FbxCluster* FindClusterForBone(FbxNode* boneNode);
@@ -41,21 +43,28 @@ private:
         const TMap<FString, int>& boneNameToIndex,
         TMap<int, TArray<BoneWeights>>& OutBoneWeights
     );
-    ///!!!호출하기!!!!!
-
     static void LoadFBXMesh(
         FFbxSkeletalMesh* fbxObject,
         FbxNode* node,
         TMap<FString, int>& boneNameToIndex,
         TMap<int, TArray<BoneWeights>>& boneWeight
     );
-    static void LoadAnimationInfo(
-        FbxScene* Scene, TArray<UAnimSequence*>& OutSequences
+    static void LoadFBXAnimations(
+        FbxScene* Scene,
+        FFbxSkeletalMesh* fbxObject,
+        TArray<FFbxAnimSequence*>& OutSequences
     );
-    static void LoadAnimationData(
-        FbxScene* Scene, FbxNode* RootNode, 
-        USkeletalMesh* SkeletalMesh, UAnimSequence* OutSequence
-    );
+    //static void LoadFBXAnimations(
+    //    FFbxSkeletalMesh* fbxObject,
+    //    FbxScene* scene,
+    //    TArray<FFbxAnimTrack>& OutFbxAnimTracks
+    //);
+
+
+    //static void LoadAnimationData(
+    //    FbxScene* Scene, FbxNode* RootNode, 
+    //    USkeletalMesh* SkeletalMesh, UAnimSequence* OutSequence
+    //);
 
     static void DumpAnimationDebug(const FString& FBXFilePath, const USkeletalMesh* SkeletalMesh, const TArray<UAnimSequence*>& AnimSequences);
 
@@ -74,4 +83,3 @@ public:
     static const FbxAxisSystem UnrealTargetAxisSystem;
     inline static const FQuat FinalBoneCorrectionQuat = FQuat(FVector(0, 0, 1), FMath::DegreesToRadians(-90.0f));
 };
-

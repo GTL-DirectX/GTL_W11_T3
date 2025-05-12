@@ -23,7 +23,7 @@ struct FAssetInfo
     FName PackagePath;    // Asset의 패키지 경로
     EAssetType AssetType; // Asset의 타입
     uint32 Size;          // Asset의 크기 (바이트 단위)
-    LoadState State;
+    LoadState State;      // 로드 상태
 
     FString GetFullPath() const { return PackagePath.ToString() / AssetName.ToString(); }
 };
@@ -60,6 +60,8 @@ public:
     void LoadEntireAssets();
 
     void RegisterAsset(FString filePath, FAssetInfo::LoadState State);
+
+    void RemoveAsset(FString filePath);
 
 private:
     void OnLoaded(const FString& filename);

@@ -29,10 +29,10 @@ FFbxManager::~FFbxManager()
         SaveTerminatedCondition.wait(LockS, [&] { return bSaveThreadTerminated; });
     }
 
-    {
-        std::unique_lock<std::mutex> LockA(AnimTerminatedMutex);
-        AnimTerminatedCondition.wait(LockA, [&] { return bAnimThreadTerminated; });
-    }
+    //{
+    //    std::unique_lock<std::mutex> LockA(AnimTerminatedMutex);
+    //    AnimTerminatedCondition.wait(LockA, [&] { return bAnimThreadTerminated; });
+    //}
 
 
     for (auto& pair : FbxMeshMap)
@@ -47,10 +47,12 @@ void FFbxManager::Init()
     LoadThread = std::thread(&FFbxManager::LoadFunc);
     SaveThread = std::thread(&FFbxManager::SaveFunc);
     ConvertThread = std::thread(&FFbxManager::ConvertFunc);
+    //AnimThread = std::thread(&FFbxManager::AnimFunc);
 
     LoadThread.detach();
     SaveThread.detach();
     ConvertThread.detach();
+    //AnimThread.detach();
 
 }
 
@@ -62,8 +64,18 @@ void FFbxManager::Load(const FString& filename, bool bPrioritized)
         FSpinLockGuard Lock(MeshMapLock);
         if (MeshMap.Contains(filename))
         {
-            UE_LOG(ELogLevel::Display, TEXT("Already Loaded: %s"), *filename);
-            return;
+            if (MeshMap[filename].State != LoadState::Failed)
+            {
+                UE_LOG(ELogLevel::Display, TEXT("Already Loaded: %s"), *filename);
+                return;
+            }
+            else
+            {
+                MeshMap.Remove(filename);
+                UAssetManager::Get().RemoveAsset(filename);
+                UE_LOG(ELogLevel::Warning, TEXT("Already Loaded but failed: %s"), *filename);
+                UE_LOG(ELogLevel::Warning, TEXT("Trying reload: %s"), *filename);
+            }
         }
         MeshMap.Add(filename, { LoadState::Queued, bPrioritized, nullptr });
     }
@@ -112,14 +124,20 @@ UAnimSequence* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
     return nullptr;
 }
 
-// !!! 뮤텍스 적용 필수
+// !!! 스핀락 적용 필수
+// 예시
+//{ /* scope 지정 */
+//    FSpinLockGuard Lock(FFbxManager::MeshMapLock);
+//    FFbxManager::GetSkeletalMeshes();
+//    /* Do something*/
+//}
 const TMap<FString, FFbxManager::MeshEntry>& FFbxManager::GetSkeletalMeshes()
 {
     return MeshMap;
 }
 
-// !!! 뮤텍스 적용 필수
-const TMap<FString, FFbxManager::FAnimEntry>& FFbxManager::GetAnimSequences()
+// !!! 스핀락 적용 필수
+const TMap<FString, FFbxManager::AnimEntry>& FFbxManager::GetAnimSequences()
 {
     return AnimMap;
 }
@@ -165,11 +183,16 @@ void FFbxManager::LoadFunc()
                     FSpinLockGuard Lock(MeshMapLock);
                     MeshMap[FileName].State = LoadState::Loading;
                 }
+                //{
+                //    FSpinLockGuard Lock(AnimMapLock);
+                //    AnimMap[FileName].State = LoadState::Loading;
+                //}
                 UAssetManager::Get().RegisterAsset(FileName, FAssetInfo::LoadState::Loading);
 
                 // 먼저 Binary 파싱을 시도합니다.
                 // 이 포인터는 사용이 끝나면 제거합니다.
                 FFbxSkeletalMesh* FbxMesh = new FFbxSkeletalMesh();
+                TArray<FFbxAnimSequence*> AnimSequences;
                 FWString BinaryPath = (FileName + ".bin").ToWideString();
                 // Last Modified Time
                 auto FileTime = std::filesystem::last_write_time(FileName.ToWideString());
@@ -182,12 +205,25 @@ void FFbxManager::LoadFunc()
                 // Binary 파싱 실패. FBX 파싱 시도
                 if (!Success)
                 {
-                    Success = FFbxLoader::ParseFBX(FileName, FbxMesh);
+                    Success = FFbxLoader::ParseFBX(FileName, FbxMesh, AnimSequences);
                 }
 
                 // FBX 파싱 실패
                 if (!Success)
                 {
+                    if (FbxMesh)
+                    {
+                        delete FbxMesh;
+                        FbxMesh = nullptr;
+                    }
+                    for (auto& Anim : AnimSequences)
+                    {
+                        if (!Anim) 
+                        {
+                            delete Anim;
+                        }
+                    }
+
                     UE_LOG(ELogLevel::Error, TEXT("Failed to load FBX file: %s"), *FileName);
                     FSpinLockGuard Lock(MeshMapLock);
                     MeshMap[FileName].State = LoadState::Failed;
@@ -200,6 +236,11 @@ void FFbxManager::LoadFunc()
                     FSpinLockGuard Lock(FbxMeshMapLock);
                     FbxMeshMap.Emplace(FileName, FbxMesh);
                 }
+                // 애니메이션도 마찬가지로 등록  
+                {
+                    FSpinLockGuard Lock(AnimMapLock);
+                    FbxAnimMap.Emplace(FileName, AnimSequences);
+                }
                 // 변환 큐에 등록
                 if (IsPriority)
                 {
@@ -210,6 +251,7 @@ void FFbxManager::LoadFunc()
                     ConvertQueue.Enqueue(FileName);
                 }
                 ConvertCondition.notify_one();
+
                 // 저장은 메타값만 저장
                 {
                     FSpinLockGuard Lock(MetaMapLock);
@@ -266,74 +308,143 @@ void FFbxManager::ConvertFunc()
                     }
                     continue;
                 }
+                // USkeletalMesh 생성
                 USkeletalMesh* SkeletalMesh = nullptr;
                 FFbxLoader::GenerateSkeletalMesh(FbxMesh, SkeletalMesh);
-                // 파싱 실패
-                if (!SkeletalMesh)
-                {
-                    UE_LOG(ELogLevel::Error, TEXT("Failed to generate SkeletalMesh from FBX: %s"), *FileName);
-                    {
-                        FSpinLockGuard Lock(MeshMapLock);
-                        MeshMap[FileName].State = LoadState::Failed;
-                    }
+                MeshMap[FileName].State = LoadState::Completed;
+                MeshMap[FileName].Mesh = SkeletalMesh;
 
-                    OnLoadFBXFailed.Execute(FileName);
+                // 파싱 실패; 일단 케이스 없음
+                //if (!SkeletalMesh)
+                //{
+                //    UE_LOG(ELogLevel::Error, TEXT("Failed to generate SkeletalMesh from FBX: %s"), *FileName);
+                //    {
+                //        FSpinLockGuard Lock(MeshMapLock);
+                //        MeshMap[FileName].State = LoadState::Failed;
+                //    }
 
-                    FSpinLockGuard Lock(FbxMeshMapLock);
-                    if (FbxMeshMap.Contains(FileName))
-                    {
-                        delete FbxMeshMap[FileName];
-                        FbxMeshMap.Remove(FileName);
-                    }
-                    else
-                    {
-                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
-                    }
-                    continue;
-                }
+                //    OnLoadFBXFailed.Execute(FileName);
+
+                //    FSpinLockGuard Lock(FbxMeshMapLock);
+                //    if (FbxMeshMap.Contains(FileName))
+                //    {
+                //        delete FbxMeshMap[FileName];
+                //        FbxMeshMap.Remove(FileName);
+                //    }
+                //    else
+                //    {
+                //        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+                //    }
+                //    continue;
+                //}
                 // SkeletalMesh가 생성되었으면 Map에 등록
-                bContaining = false;
-                {
-                    FSpinLockGuard Lock(MeshMapLock);
-                    if (bContaining = MeshMap.Contains(FileName))
-                    {
-                        MeshMap[FileName].State = LoadState::Completed;
-                        MeshMap[FileName].Mesh = SkeletalMesh;
-                    }
-                }
-                // 성공 : 다음 큐에 넣고 외부에 알림
-                if (bContaining)
-                {
-                    OnLoadFBXCompleted.Execute(FileName);
-                    UE_LOG(ELogLevel::Display, TEXT("Converted FBX file: %s"), *FileName);
+                //bContaining = false;
+                //{
+                //    FSpinLockGuard Lock(MeshMapLock);
+                //    if (bContaining = MeshMap.Contains(FileName))
+                //    {
+                //        MeshMap[FileName].State = LoadState::Completed;
+                //        MeshMap[FileName].Mesh = SkeletalMesh;
+                //    }
+                //}
 
-                    SaveQueue.Enqueue(FileName);
-                    if (IsPriority)
-                    {
-                        PriorityAnimQueue.Enqueue(FileName);
-                    }
-                    else
-                    {
-                        AnimQueue.Enqueue(FileName);
-                    }
-                    {
-                        FSpinLockGuard Lock(AnimMapLock);
-                        AnimMap[FileName] = { LoadState::Queued, nullptr };
-                    }
-                    SaveCondition.notify_one();
-                    AnimCondition.notify_one();
-                }
-                // 파싱은 성공했지만 이후 실패 : 정리하고 외부에 알림
-                else
+                // ANIMATION
+                // 변환 큐에서 꺼내서 변환
+                //bContaining = false;
+                //{
+                //    FSpinLockGuard Lock(FbxAnimMapLock);
+                //    bContaining = FbxAnimMap.Contains(FileName);
+                //    if (!bContaining)
+                //    {
+                //        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+                //    }
+                //    else
+                //    {
+                //        FbxSequences = FbxAnimMap[FileName];
+                //    }
+                //}
+                //if (!bContaining)
+                //{
+                //    FSpinLockGuard Lock(FbxAnimMapLock);
+                //    if (AnimMap.Contains(FileName))
+                //    {
+                //        AnimMap[FileName].State = LoadState::Failed;
+                //    }
+                //    continue;
+                //}
+                //bool bSucceedAny = false;
+                TArray<FFbxAnimSequence*> FbxSequences = FbxAnimMap[FileName];
+                TArray<UAnimSequence*> AnimSequences;
+                for (const FFbxAnimSequence* FbxSequence : FbxSequences)
                 {
-                    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error : %s"), *FileName); // 맵에 등록하지 않음
-                    FSpinLockGuard Lock(FbxMeshMapLock);
-                    if (FbxMeshMap.Contains(FileName))
+                    // 애니메이션을 생성
+                    if (FbxSequence)
                     {
-                        delete FbxMeshMap[FileName];
-                        FbxMeshMap.Remove(FileName);
+                        UAnimSequence* AnimSequence = nullptr;
+                        FFbxLoader::GenerateAnimations(FbxMesh, FbxSequence, AnimSequence);
+                        AnimSequences.Add(AnimSequence);
                     }
                 }
+                {
+                    FSpinLockGuard Lock(AnimMapLock);
+                    for (UAnimSequence* AnimSeq : AnimSequences)
+                    {
+                        if (AnimSeq)
+                        {
+                            AnimMap.Add(AnimSeq->Name, { LoadState::Completed, AnimSeq });
+                        }
+                    }
+                }
+                OnLoadFBXCompleted.Execute(FileName);
+                UE_LOG(ELogLevel::Display, TEXT("Converted FBX file: %s"), *FileName);
+
+                // 다음 단계에 전달
+                SaveQueue.Enqueue(FileName);
+                SaveCondition.notify_one();
+
+                //if (bSucceedAny)
+                //{
+                //    FSpinLockGuard Lock(AnimMapLock);
+                //    AnimMap[FileName].State = LoadState::Completed;
+                //}
+                //else
+                //{
+                //    FSpinLockGuard Lock(AnimMapLock);
+                //    AnimMap[FileName].State = LoadState::Failed;
+                //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                //// 성공 : 다음 큐에 넣고 외부에 알림
+                //if (bContaining)
+                //{
+                //    OnLoadFBXCompleted.Execute(FileName);
+                //    UE_LOG(ELogLevel::Display, TEXT("Converted FBX file: %s"), *FileName);
+                //}
+                //// 파싱은 성공했지만 이후 실패 : 정리하고 외부에 알림
+                //else
+                //{
+                //    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error : %s"), *FileName); // 맵에 등록하지 않음
+                //    FSpinLockGuard Lock(FbxMeshMapLock);
+                //    if (FbxMeshMap.Contains(FileName))
+                //    {
+                //        delete FbxMeshMap[FileName];
+                //        FbxMeshMap.Remove(FileName);
+                //    }
+                //}
             }
         }
     }
@@ -411,73 +522,177 @@ void FFbxManager::SaveFunc()
     SaveTerminatedCondition.notify_one();
 }
 
-void FFbxManager::ProcessAnimFunc()
-{
-    while (!bStopThread)
-    {
-        std::unique_lock<std::mutex> Lock(ConvertMutex);
-        ConvertCondition.wait(Lock, [&] { return !PriorityAnimQueue.IsEmpty() || !AnimQueue.IsEmpty(); });
-
-        while (!PriorityAnimQueue.IsEmpty() || !AnimQueue.IsEmpty())
-        {
-            if (bStopThread)
-                break;
-            bool IsPriority = !PriorityAnimQueue.IsEmpty();
-            TQueue<FString>& Queue = IsPriority ? PriorityAnimQueue : AnimQueue;
-            FString FileName;
-            if (Queue.Dequeue(FileName))
-            {
-                {
-                    FSpinLockGuard Lock(AnimMapLock);
-                    if (AnimMap.Contains(FileName))
-                    {
-                        AnimMap[FileName].State = LoadState::Loading;
-                    }
-                }
-
-                // Fbx다시 파싱
-                USkeletalMesh* SkeletalMesh = nullptr;
-                {
-                    FSpinLockGuard Lock(MeshMapLock);
-                    if (MeshMap.Contains(FileName))
-                    {
-                        SkeletalMesh = MeshMap[FileName].Mesh;
-                    }
-                }
-                if (!SkeletalMesh)
-                {
-                    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
-                    continue;
-                }
-
-                TArray<UAnimSequence*> Sequences;
-                FFbxLoader::ParseFBXAnimationOnly(FileName, SkeletalMesh, Sequences);
-
-                if (Sequences.Num() == 0)
-                {
-                    UE_LOG(ELogLevel::Display, TEXT("Failed to parse animation from FBX. Maybe FBX does not have any animation.: %s"), *FileName);
-                }
-                else
-                {
-                    {
-                        FSpinLockGuard Lock(AnimMapLock);
-                        for (UAnimSequence* Sequence : Sequences)
-                        {
-                            AnimMap.Add(Sequence->GetName(), { LoadState::Completed, Sequence });
-                        }
-                    }
-                    // 파일이름을 등록
-                    OnLoadAnimCompleted.Execute(FileName);
-                }
-            }
-        }
-    }
-    {
-        std::lock_guard<std::mutex> Lock(AnimTerminatedMutex);
-        bAnimThreadTerminated = true;
-    }
-    AnimTerminatedCondition.notify_one();
-}
+//void FFbxManager::AnimFunc()
+//{
+//    while (!bStopThread)
+//    {
+//        std::unique_lock<std::mutex> Lock(ConvertMutex);
+//        ConvertCondition.wait(Lock, [&] { return !PriorityAnimQueue.IsEmpty() || !AnimQueue.IsEmpty(); });
+//
+//        while (!PriorityAnimQueue.IsEmpty() || !AnimQueue.IsEmpty())
+//        {
+//            if (bStopThread)
+//                break;
+//            bool IsPriority = !PriorityAnimQueue.IsEmpty();
+//            TQueue<FString>& Queue = IsPriority ? PriorityAnimQueue : AnimQueue;
+//            FString FileName;
+//            if (Queue.Dequeue(FileName))
+//            {
+//                // 변환 큐에서 꺼내서 변환
+//                FFbxAnimSequence* FbxSequence = nullptr;
+//                bool bContaining = false;
+//                {
+//                    FSpinLockGuard Lock(FbxAnimMapLock);
+//                    bContaining = FbxAnimMap.Contains(FileName);
+//                    if (!bContaining)
+//                    {
+//                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+//                    }
+//                    else
+//                    {
+//                        FbxSequence = FbxAnimMap[FileName];
+//                    }
+//                }
+//                if (!bContaining)
+//                {
+//                    FSpinLockGuard Lock(FbxAnimMapLock);
+//                    if (MeshMap.Contains(FileName))
+//                    {
+//                        MeshMap[FileName].State = LoadState::Failed;
+//                    }
+//                    continue;
+//                }
+//                USkeletalMesh* SkeletalMesh = nullptr;
+//                FFbxLoader::GenerateAnimations()
+//                // 파싱 실패
+//                if (!SkeletalMesh)
+//                {
+//                    UE_LOG(ELogLevel::Error, TEXT("Failed to generate SkeletalMesh from FBX: %s"), *FileName);
+//                    {
+//                        FSpinLockGuard Lock(MeshMapLock);
+//                        MeshMap[FileName].State = LoadState::Failed;
+//                    }
+//
+//                    OnLoadFBXFailed.Execute(FileName);
+//
+//                    FSpinLockGuard Lock(FbxMeshMapLock);
+//                    if (FbxMeshMap.Contains(FileName))
+//                    {
+//                        delete FbxMeshMap[FileName];
+//                        FbxMeshMap.Remove(FileName);
+//                    }
+//                    else
+//                    {
+//                        UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+//                    }
+//                    continue;
+//                }
+//                // SkeletalMesh가 생성되었으면 Map에 등록
+//                bContaining = false;
+//                {
+//                    FSpinLockGuard Lock(MeshMapLock);
+//                    if (bContaining = MeshMap.Contains(FileName))
+//                    {
+//                        MeshMap[FileName].State = LoadState::Completed;
+//                        MeshMap[FileName].Mesh = SkeletalMesh;
+//                    }
+//                }
+//                // 성공 : 다음 큐에 넣고 외부에 알림
+//                if (bContaining)
+//                {
+//                    OnLoadFBXCompleted.Execute(FileName);
+//                    UE_LOG(ELogLevel::Display, TEXT("Converted FBX file: %s"), *FileName);
+//                }
+//                // 파싱은 성공했지만 이후 실패 : 정리하고 외부에 알림
+//                else
+//                {
+//                    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error : %s"), *FileName); // 맵에 등록하지 않음
+//                    FSpinLockGuard Lock(FbxMeshMapLock);
+//                    if (FbxMeshMap.Contains(FileName))
+//                    {
+//                        delete FbxMeshMap[FileName];
+//                        FbxMeshMap.Remove(FileName);
+//                    }
+//                }
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//                {
+//                    FSpinLockGuard Lock(AnimMapLock);
+//                    if (AnimMap.Contains(FileName))
+//                    {
+//                        AnimMap[FileName].State = LoadState::Loading;
+//                    }
+//                }
+//
+//                USkeletalMesh* SkeletalMesh = nullptr;
+//                {
+//                    FSpinLockGuard Lock(MeshMapLock);
+//                    if (MeshMap.Contains(FileName))
+//                    {
+//                        SkeletalMesh = MeshMap[FileName].Mesh;
+//                    }
+//                }
+//                if (!SkeletalMesh)
+//                {
+//                    UE_LOG(ELogLevel::Error, TEXT("Unexpected Error: %s"), *FileName);
+//                    continue;
+//                }
+//
+//                TArray<UAnimSequence*> Sequences;
+//                FFbxLoader::ParseFBXAnimationOnly(FileName, SkeletalMesh, Sequences);
+//
+//                if (Sequences.Num() == 0)
+//                {
+//                    UE_LOG(ELogLevel::Display, TEXT("Failed to parse animation from FBX. Maybe FBX does not have any animation.: %s"), *FileName);
+//                }
+//                else
+//                {
+//                    {
+//                        FSpinLockGuard Lock(AnimMapLock);
+//                        for (UAnimSequence* Sequence : Sequences)
+//                        {
+//                            AnimMap.Add(Sequence->GetName(), { LoadState::Completed, Sequence });
+//                        }
+//                    }
+//                    // 파일이름을 등록
+//                    OnLoadAnimCompleted.Execute(FileName);
+//                }
+//                // 다음 단계에 전달
+//                SaveQueue.Enqueue(FileName);
+//                SaveCondition.notify_one();
+//            }
+//        }
+//    }
+//    {
+//        std::lock_guard<std::mutex> Lock(AnimTerminatedMutex);
+//        bAnimThreadTerminated = true;
+//    }
+//    AnimTerminatedCondition.notify_one();
+//}
 
 // .bin 파일로 저장합니다.
 bool FFbxManager::SaveFBXToBinary(const FWString& FilePath, int64_t LastModifiedTime, const FFbxSkeletalMesh* FBXObject)

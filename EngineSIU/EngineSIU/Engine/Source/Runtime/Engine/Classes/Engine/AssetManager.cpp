@@ -211,6 +211,12 @@ void UAssetManager::RegisterAsset(FString filePath, FAssetInfo::LoadState State)
     AddAssetInternal(NewAssetInfo.AssetName, NewAssetInfo);
 }
 
+void UAssetManager::RemoveAsset(FString filePath)
+{
+    FSpinLockGuard Lock(RegistryLock);
+    AssetRegistry->PathNameToAssetInfo.Remove(filePath);
+}
+
 void UAssetManager::OnLoaded(const FString& filename)
 {
     FName AssetName = FName(filename);
