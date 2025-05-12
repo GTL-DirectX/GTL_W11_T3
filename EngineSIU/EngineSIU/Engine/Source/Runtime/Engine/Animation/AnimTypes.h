@@ -6,6 +6,9 @@
 
 struct FAnimNotifyEvent
 {
+    /** using Track UI */ 
+    int32 TrackIndex;
+    
     float TriggerTime;
     float Duration;
     FName NotifyName;

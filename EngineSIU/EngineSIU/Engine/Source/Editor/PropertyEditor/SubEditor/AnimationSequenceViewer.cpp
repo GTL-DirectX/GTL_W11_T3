@@ -7,7 +7,6 @@
 #include "Contents/Actors/ItemActor.h"
 #include "Engine/EditorEngine.h"
 #include "Engine/FFbxLoader.h"
-#include "ImGui/imgui_neo_sequencer.h"
 
 // UI Sample
 //https://dev.epicgames.com/documentation/ko-kr/unreal-engine#%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98%EC%8B%9C%ED%80%80%EC%8A%A4%ED%8E%B8%EC%A7%91%ED%95%98%EA%B8%B0
@@ -107,14 +106,22 @@ void AnimationSequenceViewer::OnResize(HWND hWnd)
 
 void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHeight)
 {
+    if (SelectedAnimSequence == nullptr || SelectedAnimSequence->GetDataModel() == nullptr)
+    {
+        return;
+    }
+    
     static bool transformOpen = false;
-    std::vector<ImGui::FrameIndexType> Keys;
+    static int32 TrackCount = 0;
 
-    // auto Notifies = SelectedAnimSequence->GetNotifies();
-    // for (auto&& v: Notifies)
-    // {
-    //     Keys.push_back(v.TriggerTime);
-    // }
+    if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
+    {
+        for (auto& v : SelectedAnimSequence->Notifies)
+        {
+            TrackCount = std::max(TrackCount, v.TrackIndex);
+            TrackAndKeyMap[v.TrackIndex].Add(v.TriggerTime);
+        }
+    }
     
     if (ImGui::BeginNeoSequencer("Sequencer", &CurrentFrameSeconds, &StartFrameSeconds, &EndFrameSeconds, {InWidth, InHeight},
                                  ImGuiNeoSequencerFlags_EnableSelection |
@@ -125,7 +132,7 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
 
         if (ImGui::BeginNeoGroup("Notifies", &transformOpen))
         {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
             {
                 UE_LOG(ELogLevel::Warning, "RIGHT CLICKED");
                 ImGui::OpenPopup("TrackPopup");
@@ -134,22 +141,70 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
             if (ImGui::BeginPopup("TrackPopup"))
             {
                 UE_LOG(ELogLevel::Warning, "OPENED POPUP");
-                ImGui::Text("Track Popup");
+                if (ImGui::BeginMenu("Track"))
+                {
+                    if (ImGui::MenuItem("Add Track"))
+                    {
+                        TrackAndKeyMap.Add(TrackCount, TArray<ImGui::FrameIndexType>());
+                        TrackCount++;
+                    }
+                    
+                    if (ImGui::MenuItem("Remove Track"))
+                    {
+                        if (!TrackAndKeyMap.IsEmpty())
+                        {
+                            TrackAndKeyMap[TrackCount - 1].Empty();
+                            TrackAndKeyMap.Remove(TrackCount - 1);
+                            TrackCount--;
+                        }
+                    }
+                    
+                    ImGui::EndMenu();
+                }
                 ImGui::EndPopup();
             }
             
-            if (ImGui::BeginNeoTimelineEx("1"))
+            // TrackAndKeyMap을 순회하며 각 트랙에 대한 타임라인 생성
+            for (auto&& pair : TrackAndKeyMap)
             {
-                for (auto&& v: Keys)
+                // 트랙 인덱스를 사용하여 고유한 ID 생성
+                FString TimelineId = FString::Printf(TEXT("Track_%d"), pair.Key);
+                if (ImGui::BeginNeoTimelineEx(GetData(TimelineId)))
                 {
-                    ImGui::NeoKeyframe(&v);
-                    // Per keyframe code here
-                }
+                    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                    {
+                        SelectedTrackIndex = pair.Key;
+                        ImGui::OpenPopup("NotifyPopup_Generic"); // 우선은 하나의 제네릭 팝업 사용
+                    }
                 
-                ImGui::EndNeoTimeLine();
+                    // 각 타임라인의 키프레임 렌더링
+                    for (auto& keyframeValue : pair.Value)
+                    {
+                        ImGui::NeoKeyframe(&keyframeValue);
+                        // Per keyframe code here (예: 키프레임 선택, 수정 등)
+                    }
+                    
+                    ImGui::EndNeoTimeLine();
+                }
             }
+            
+            // 모든 타임라인에 공통으로 적용될 수 있는 팝업 (혹은 위에서처럼 각 타임라인별 팝업)
+            if (ImGui::BeginPopup("NotifyPopup_Generic"))
+            {
+                if (ImGui::BeginMenu("Notify"))
+                {
+                    if (ImGui::MenuItem("Add Notify"))
+                    {
+                        TrackAndKeyMap[SelectedTrackIndex].Add(CurrentFrameSeconds);
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::EndPopup();
+            }
+            
             ImGui::EndNeoGroup();
         }
+
 
         ImGui::EndNeoSequencer();
     }
@@ -315,6 +370,7 @@ void AnimationSequenceViewer::RenderAssetBrowser()
                 UAnimSequence* newSequence = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
                 if (newSequence != SelectedAnimSequence) // If sequence changed
                 {
+                    TrackAndKeyMap.Empty();
                     SelectedAnimSequence = newSequence;
                     bIsPlaying = false; // Stop playback for new animation
                     CurrentFrameSeconds = 0.0f; // Reset time

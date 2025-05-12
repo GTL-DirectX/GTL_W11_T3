@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "GameFramework/Actor.h"
+#include "ImGui/imgui_neo_sequencer.h"
 #include "UnrealEd/EditorPanel.h"
 
 class USkeletalMeshComponent;
@@ -39,6 +40,9 @@ private:
     int SelectedAnimIndex = -1;
     FString SelectedAnimName;
 
+    int SelectedTrackIndex = -1;
+    
     UAnimSequence* SelectedAnimSequence = nullptr;
     USkeletalMeshComponent* SelectedSkeletalMeshComponent = nullptr;
+    TMap<int32, TArray<ImGui::FrameIndexType>> TrackAndKeyMap;
 };
