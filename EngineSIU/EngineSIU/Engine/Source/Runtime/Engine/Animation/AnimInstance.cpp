@@ -117,6 +117,18 @@ USkeletalMeshComponent* UAnimInstance::GetSkelMeshComponent()
     return Cast<USkeletalMeshComponent>(OwningComp);
 }
 
+void UAnimInstance::SetCurrentTime(float NewTime)
+{
+    if (Sequence)
+    {
+        CurrentTime = FMath::Clamp(NewTime,0.f,Sequence->GetPlayLength());
+    }
+    else
+    {
+        UE_LOG(ELogLevel::Warning, TEXT("SetCurrentTime: Sequence is NULL"));
+    }
+}
+
 void UAnimInstance::NativeInitializeAnimation()
 {
 }
