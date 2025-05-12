@@ -129,8 +129,8 @@ namespace ImGui
 
     static float getWorkTimelineWidth(const ImGuiNeoSequencerInternalData& context)
     {
-        const auto perFrameWidth = getPerFrameWidth(context);
-        return context.Size.x - context.ValuesWidth - perFrameWidth;
+        const auto& imStyle = GetStyle();
+        return context.Size.x - context.ValuesWidth - imStyle.FramePadding.x;
     }
 
     // Dont pull frame from context, its used for dragging
@@ -177,7 +177,7 @@ namespace ImGui
             if (IsMouseDragging(ImGuiMouseButton_Left, 0.0f))
             {
                 const auto mousePosX = GetMousePos().x;
-                const auto v = mousePosX - timelineXRange.x;// Subtract min
+                const auto v = mousePosX - timelineXRange.x + 0.5f;// Subtract min
 
                 const auto normalized = v / getWorkTimelineWidth(context); //Divide by width to remap to 0 - 1 range
 

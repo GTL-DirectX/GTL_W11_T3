@@ -157,9 +157,9 @@ namespace ImGui {
 
         const auto size = totalSizeX - valuesWidth - imStyle.FramePadding.x;
 
-        auto count = (endFrame + 1) - startFrame;
-
-        return ((size / (float)count) * zoom);
+        auto count = (endFrame) - startFrame;
+        
+        return ((size / (float)count) * zoom) - 0.5f;
     }
 
     struct Vec2Pair {
