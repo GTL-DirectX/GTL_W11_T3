@@ -27,7 +27,7 @@
 #include "Components/SphereComponent.h"
 #include "Engine/AssetManager.h"
 #include "Engine/FbxObject.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "GameFramework/SpringArmComponent.h"

@@ -9,7 +9,7 @@
 #include "Components/Light/DirectionalLightComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "UObject/UObjectIterator.h"
-#include "FFbxLoader.h"
+#include "FbxManager.h"
 #include "Contents/Actors/ItemActor.h"
 
 namespace PrivateEditorSelection

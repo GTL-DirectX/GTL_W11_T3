@@ -5,7 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/FObjLoader.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 
 AItemActor::AItemActor()
 {

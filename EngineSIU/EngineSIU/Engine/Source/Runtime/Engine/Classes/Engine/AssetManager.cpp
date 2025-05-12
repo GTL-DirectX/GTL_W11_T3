@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-#include "FFbxLoader.h"
+#include "FbxManager.h"
 #include "Engine/FObjLoader.h"
 
 inline UAssetManager::UAssetManager() {

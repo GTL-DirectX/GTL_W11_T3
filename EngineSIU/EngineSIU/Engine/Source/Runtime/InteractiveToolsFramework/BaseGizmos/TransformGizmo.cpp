@@ -7,7 +7,7 @@
 #include "Engine/EditorEngine.h"
 #include "World/World.h"
 #include "Engine/FObjLoader.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 #include "Components/SkeletalMeshComponent.h"
 
 ATransformGizmo::ATransformGizmo()

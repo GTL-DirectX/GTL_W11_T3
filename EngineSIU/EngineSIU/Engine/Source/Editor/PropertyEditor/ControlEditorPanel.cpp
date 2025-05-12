@@ -44,7 +44,7 @@
 #include "Contents/Actors/GoalPlatformActor.h"
 #include "Contents/Actors/TriggerBox.h"
 #include "Engine/AssetManager.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 #include "Renderer/CompositingPass.h"
 
 void ControlEditorPanel::Render()

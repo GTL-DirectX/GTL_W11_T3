@@ -3,7 +3,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/AssetManager.h"
 #include "Engine/FbxObject.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 #include "UObject/Casts.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "GameFramework/Actor.h"
