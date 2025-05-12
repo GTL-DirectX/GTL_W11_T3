@@ -350,31 +350,18 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
     if (SelectedAnimSequence && SelectedAnimSequence->GetDataModel())
     {
         const UAnimDataModel* dataModel = SelectedAnimSequence->GetDataModel();
-        int totalFrames = dataModel->NumberOfFrames > 0 ? dataModel->NumberOfFrames : 1; // Avoid 0 total frames for slider
-        
-        // Calculate current frame from CurrentFrameSeconds
-        int currentFrameInt = 0;
-        if (dataModel->FrameRate.AsDecimal() > 0) {
-            currentFrameInt = static_cast<int>(round(CurrentFrameSeconds * dataModel->FrameRate.AsDecimal()));
-        }
-        
-        int sliderMax = (dataModel->NumberOfFrames > 0) ? dataModel->NumberOfFrames -1 : 0;
-        currentFrameInt = std::max(0, std::min(currentFrameInt, sliderMax));
+        int totalFrames = FMath::Max(1, dataModel->NumberOfFrames); // 0 방지
 
+        float frameRate = dataModel->FrameRate.AsDecimal();
+        int sliderMax = totalFrames - 1;
 
-        if (ImGui::SliderInt("##FrameSlider", &currentFrameInt, 0, sliderMax ))
+        int currentFrameInt = static_cast<int>(floor(CurrentFrameSeconds * frameRate));
+        currentFrameInt = FMath::Clamp(currentFrameInt, 0, sliderMax);
+
+        if (ImGui::SliderInt("##FrameSlider", &currentFrameInt, 0, sliderMax))
         {
-            if (dataModel->FrameRate.AsDecimal() > 0)
-            {
-                CurrentFrameSeconds = static_cast<float>(currentFrameInt) / dataModel->FrameRate.AsDecimal();
-                CurrentFrameSeconds = std::min(CurrentFrameSeconds, MaxFrameSeconds); // Clamp to max length
-                CurrentFrameSeconds = std::max(0.0f, CurrentFrameSeconds);           // Ensure non-negative
-
-                // If scrubbing while playing, might want to update animation component
-                // if (bIsPlaying && SelectedSkeletalMeshComponent)
-                // {
-                // }
-            }
+            CurrentFrameSeconds = static_cast<float>(currentFrameInt) / frameRate;
+            CurrentFrameSeconds = FMath::Clamp(CurrentFrameSeconds, 0.0f, MaxFrameSeconds);
         }
 
         ImGui::SameLine();
