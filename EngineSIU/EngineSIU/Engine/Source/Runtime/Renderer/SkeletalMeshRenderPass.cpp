@@ -212,14 +212,14 @@ void FSkeletalMeshRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FEdi
         TArray<FMatrix> SkinningMatrices;
         SkeletalMeshComponent->GetSkinningMatrices(SkinningMatrices);
 
-        bool ForceCPUSkinning = SkeletalMeshComponent->GetSkeletalMesh()->bForcedCPUSkinning ? true : bCPUSkinning;
+        bool ForceCPUSkinning = SkeletalMeshComponent->GetSkeletalMesh()->GetCPUSkinned() ? true : bCPUSkinning;
 
         // Update constant buffers
         UpdateObjectConstant(
             SkeletalMeshComponent->GetWorldMatrix(),
             SkeletalMeshComponent->EncodeUUID() / 255.0f,
             SkeletalMeshComponent->IsActive(),
-            ForceCPUSkinning
+            SkeletalMeshComponent->GetSkeletalMesh()->GetCPUSkinned()
         );
 
         TArray<UMaterial*> Materials;
@@ -230,7 +230,7 @@ void FSkeletalMeshRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FEdi
         {
             const FSkelMeshRenderSection& RenderSection = Renderdata.RenderSections[SectionIndex];
             FVertexInfo VertexInfo;
-            if (ForceCPUSkinning)
+            if (SkeletalMesh->GetCPUSkinned())
             {
                 // Update vertex buffer
                 TArray<FSkeletalVertex> Vertices;
@@ -276,60 +276,6 @@ void FSkeletalMeshRenderPass::RenderAllSkeletalMeshes(const std::shared_ptr<FEdi
             }
         }
     }
-
-
-        /////////////////////////////////////////////////
-
-
-    //    for (int i = 0; i < SkeletalMesh->GetRenderData()->RenderSections.Num(); ++i)
-    //    {
-    //        FFbxMeshData& MeshData = SkeletalMesh->mesh[i];
-    //        
-    //        FVertexInfo VertexInfo;
-    //        if (bIsCPUSkinning)
-    //        {
-    //            BufferManager->CreateDynamicVertexBuffer(MeshData.name, MeshData.vertices, VertexInfo);
-    //            UpdateVertexBuffer(SkeletalMesh->mesh[i], SkinningMatrices);
-    //        }
-    //        else
-    //        {
-    //            BufferManager->CreateVertexBuffer(MeshData.name, MeshData.vertices, VertexInfo);
-    //            UpdateBoneMatrices(SkinningMatrices);
-    //        }
-
-    //        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &VertexInfo.VertexBuffer, &VertexInfo.Stride, &VertexInfo.Offset);
-
-    //        FIndexInfo IndexInfo;
-    //        BufferManager->CreateIndexBuffer(MeshData.name, MeshData.indices, IndexInfo);
-    //        if (IndexInfo.IndexBuffer)
-    //        {
-    //            Graphics->DeviceContext->IASetIndexBuffer(IndexInfo.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-    //        }
-
-    //    
-    //        // Graphics->DeviceContext->DrawIndexed(IndexInfo.NumIndices, 0, 0);
-
-    //        for (int i = 0; i < MeshData.subsetIndex.Num(); ++i)
-    //        {
-    //            uint32 SubsetIndex = MeshData.subsetIndex[i];
-    //            uint32 MaterialIndex = SkeletalMesh->materialSubsets[SubsetIndex].MaterialIndex;
-    //        
-    //            if (MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex] != nullptr)
-    //            {
-    //                MaterialUtils::UpdateMaterial(BufferManager, Graphics, OverrideMaterials[MaterialIndex]->GetMaterialInfo());
-    //            }
-    //            else
-    //            {
-    //                MaterialUtils::UpdateMaterial(BufferManager, Graphics, Materials[MaterialIndex]->GetMaterialInfo());
-    //            }
-    //        
-    //            uint32 StartIndex = SkeletalMesh->materialSubsets[SubsetIndex].IndexStart;
-    //            uint32 IndexCount = SkeletalMesh->materialSubsets[SubsetIndex].IndexCount;
-    //            Graphics->DeviceContext->DrawIndexed(IndexCount, StartIndex, 0);
-    //        }
-    //    }
-
-    //}
 }
 
 

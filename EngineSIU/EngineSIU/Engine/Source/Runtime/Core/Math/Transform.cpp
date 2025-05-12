@@ -48,6 +48,14 @@ FMatrix FTransform::GetLocalMatrixWithOutScale() const
         * FMatrix::GetTranslationMatrix(Translation);
 }
 
+FMatrix FTransform::ToMatrixWithScale() const
+{
+    // Scale, Rotation, Translation 순서로 행렬을 생성
+    return FMatrix::GetScaleMatrix(Scale3D)
+        * FMatrix::GetRotationMatrix(Rotation)
+        * FMatrix::GetTranslationMatrix(Translation);
+}
+
 FVector FTransform::GetForward() const
 {
     const FMatrix RotationMatrix = FMatrix::GetRotationMatrix(Rotation);

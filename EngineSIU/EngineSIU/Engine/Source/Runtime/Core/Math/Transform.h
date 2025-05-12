@@ -114,6 +114,7 @@ public:
 
     // 스케일을 제외한 로컬 변환 행렬(회전 및 이동만 적용된 행렬)을 반환하는 함수
     FMatrix GetLocalMatrixWithOutScale() const;
+    FMatrix ToMatrixWithScale() const;
 
     // 객체가 바라보는 전방 벡터를 반환하는 함수
     // 회전 행렬로 변환한 후, 회전 행렬의 첫 번째 열(Forward 벡터)을 추출

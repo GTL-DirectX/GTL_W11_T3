@@ -6,9 +6,16 @@
 
 struct FAnimNotifyEvent
 {
-    float TriggerTime;
-    float Duration;
-    FName NotifyName;
+    float TriggerTime;  // 발생 시간
+    float Duration;     // 지속 시간 (0이면 단일 Notify)
+    FName NotifyName;   
+
+    float TriggerTimeOffset;
+    float EndTriggerTimeOffset;
+
+    float GetDuration() const;
+    float GetTriggerTime() const;
+    float GetEndTriggerTime() const;
 };
 
 /**

@@ -5,12 +5,20 @@
 
 class UAnimDataModel;
 
+enum ETypeAdvanceAnim : int
+{
+    ETAA_Default,
+    ETAA_Finished,
+    ETAA_Looped
+};
+
 class UAnimSequenceBase : public UObject
 {
     DECLARE_CLASS(UAnimSequenceBase, UObject)
 
 public:
     UAnimSequenceBase();
+    bool IsNotifyAvailable() const;
 
 public:
     void SetName(const FString& InName) { Name = InName; }
@@ -20,7 +28,7 @@ public:
     UAnimDataModel* GetDataModel() const { return DataModel; }
 
     void SetSequenceLength(float InLength) { SequenceLength = InLength; }
-    float GetSequenceLength() const { return SequenceLength; }
+    float GetPlayLength() const { return SequenceLength; }
 
     void SetRateScale(float InRateScale) { RateScale = InRateScale; }
     float GetRateScale() const { return RateScale; }
@@ -28,6 +36,8 @@ public:
     void SetLooping(bool bIsLooping) { bLoop = bIsLooping; }
     bool IsLooping() const { return bLoop; }
 
+    void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent*>& OutActiveNotifies) const;
+    void GetAnimNotifiesFromDeltaPositions(const TArray<FAnimNotifyEvent>& Notifies, float PreviousPosition, float CurrentPosition, TArray<const FAnimNotifyEvent*>& OutNotifies) const;
 
 
 public:
@@ -48,8 +58,5 @@ public:
     //struct FRawCurveTracks RawCurveData;
 };
 
-inline UAnimSequenceBase::UAnimSequenceBase()
-{
-    RateScale = 1.0f;
-}
+
 

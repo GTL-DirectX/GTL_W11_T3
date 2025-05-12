@@ -533,6 +533,22 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
             SelectedSkeleton->ResetPose(); // 기본 포즈로
         }
     }
+    if (SelectedSkeleton)
+    {
+        UAnimSingleNodeInstance* SingleNodeInstance = SelectedSkeleton->GetSingleNodeInstance();
+        if (SingleNodeInstance && SingleNodeInstance->IsPlaying())
+        {
+            UAnimSequenceBase* CurrentAnim = SingleNodeInstance->GetCurrentSequence();
+            if (CurrentAnim)
+            {
+                float CurrentRate = CurrentAnim->GetRateScale();
+                if (ImGui::SliderFloat("Rate Scale", &CurrentRate, -5.0f, 5.0f, "%.1f"))
+                {
+                    CurrentAnim->SetRateScale(CurrentRate);
+                }
+            }
+        }
+    }
     ImGui::Spacing();
     ImGui::Separator();
 
@@ -551,7 +567,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         FString PreviewName = FString("None");
         if (USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh())
         {
-            PreviewName = SkeletalMesh->GetOjbectName();
+            PreviewName = SkeletalMesh->GetObjectName();
         }
         
         const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
