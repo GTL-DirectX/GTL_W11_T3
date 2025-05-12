@@ -244,6 +244,8 @@ AActor* UWorld::SpawnActor(UClass* InClass, FName InActorName)
         // Actor->InitializeComponents();
         ActiveLevel->Actors.Add(NewActor);
         PendingBeginPlayActors.Add(NewActor);
+        NewActor->PostSpawnInitialize();
+
         return NewActor;
     }
     
