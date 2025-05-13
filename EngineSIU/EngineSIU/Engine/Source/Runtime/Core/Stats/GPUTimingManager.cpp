@@ -235,3 +235,41 @@ double FGPUTimingManager::GetElapsedTimeMs(const TStatId& StatId) const
     }
     return -3.0; // No data recorded for this StatId yet
 }
+
+void FGPUMemoryManager::Initialize(ID3D11Device* Device)
+{
+    IDXGIDevice* DXGIDevice = nullptr;
+    Device->QueryInterface(__uuidof(IDXGIDevice), (void**)&DXGIDevice);
+
+    if (DXGIDevice)
+    {
+        IDXGIAdapter* DXGIAdapter = nullptr;
+        DXGIDevice->GetAdapter(&DXGIAdapter);
+
+        DXGIAdapter3 = nullptr;
+
+        if (FAILED(DXGIAdapter->QueryInterface(IID_PPV_ARGS(&DXGIAdapter3))))
+        {
+            bSupported = false;
+            return;
+        }
+        bSupported = true;
+    }
+    else
+    {
+        bSupported = false;
+    }
+}
+
+// byte단위
+UINT64 FGPUMemoryManager::GetMemoryUsage() const
+{
+    if (!bSupported)
+    {
+        return 0;
+    }
+    static DXGI_QUERY_VIDEO_MEMORY_INFO VideoMemoryInfo = {};
+    DXGIAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &VideoMemoryInfo);
+
+    return VideoMemoryInfo.CurrentUsage;
+}

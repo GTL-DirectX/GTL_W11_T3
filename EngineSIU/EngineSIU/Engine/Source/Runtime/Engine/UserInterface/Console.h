@@ -46,6 +46,7 @@ public:
             uint8 bShowMemory : 1;
             uint8 bShowLight : 1;
             uint8 bShowRender : 1;
+            uint8 bShowGPUMemory : 1;
         };
         uint8 StatFlags = 0; // 기본적으로 다 끄기
     };

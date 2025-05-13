@@ -72,7 +72,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     Renderer.Initialize(&GraphicDevice, BufferManager, &GPUTimingManager);
     PrimitiveDrawBatch.Initialize(&GraphicDevice);
     ResourceManager.Initialize(&Renderer, &GraphicDevice);
-
+    GPUMemoryManager.Initialize(GraphicDevice.Device);
     GEngine->Init();
 
     MainUIManager->Initialize(MainAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);

@@ -96,6 +96,13 @@ void FStatOverlay::Render(ID3D11DeviceContext* Context, UINT Width, UINT Height)
         ImGui::Text("Spot Light: %d", GetNumOfObjectsByClass(ASpotLight::StaticClass()));
     }
 
+    if (bShowGPUMemory)
+    {
+        ImGui::SeparatorText("[ GPU Memory Usage ]\n");
+        ImGui::Text("GPU Memory: %f MB", GEngineLoop.GPUMemoryManager.GetMemoryUsage() / static_cast<float>(1024) / static_cast<float>(1024));
+    }
+
+    ImGui::PopStyleColor();
     ImGui::PopStyleColor();
     ImGui::End();
 }
