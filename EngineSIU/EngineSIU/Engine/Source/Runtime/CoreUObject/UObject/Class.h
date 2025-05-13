@@ -3,6 +3,18 @@
 #include "Object.h"
 #include "Property.h"
 
+class UField
+{
+    UField* Next = nullptr;
+    FString Name;
+    int64 Offset;
+};
+
+class UStruct
+{
+    UField* Head;
+    void Link();
+};
 
 class FArchive;
 /**
