@@ -4,6 +4,16 @@
 #include "Class.h"
 #include "UObjectHash.h"
 
+enum EPropertyFlags : uint32
+{
+    None = 0,
+    EditAnywhere = 1 << 0,
+    BlueprintReadOnly = 1 << 1,
+    BlueprintReadWrite = 1 << 2,
+    VisibleAnywhere = 1 << 3,
+};
+using enum EPropertyFlags;
+
 // name을 문자열화 해주는 매크로
 #define INLINE_STRINGIFY(name) #name
 
@@ -70,6 +80,7 @@ public: \
  * @param VarName 변수 이름
  * @param ... 기본값
  *
+ * [추가]: UField 기반 링크드 리스트에 RegisterField()
  * Example Code
  * ```
  * UPROPERTY
@@ -86,5 +97,9 @@ public: \
             ThisClass::StaticClass()->RegisterProperty( \
                 { #VarName, sizeof(Type), Offset } \
             ); \
+            UField* Field = new UField( \
+                FString(TEXT(#VarName)), Offset, sizeof(Type) \
+            ); \
+            ThisClass::StaticClass()->RegisterField(Field); \
         } \
     } VarName##_PropRegistrar_{};

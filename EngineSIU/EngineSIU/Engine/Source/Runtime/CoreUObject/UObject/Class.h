@@ -5,25 +5,78 @@
 
 class UField
 {
-    UField* Next = nullptr;
-    FString Name;
-    int64 Offset;
+public:
+    UField(const FString& InName, int64 InOffset, uint32 InSize/*, EPropertyUIFlags InUIFlags*/)
+        : Next(nullptr)
+        , Name(InName)
+        , Offset(InOffset)
+        , Size(InSize)
+        //, UIFlags(InUIFlags)
+    {
+    }
+
+    UField*             Next;     // 링크드 리스트 다음 노드
+    FString             Name;     // 변수 이름
+    int64               Offset;   // offsetof(ThisClass, Var)
+    uint32              Size;     // sizeof(Type)
+    //EPropertyUIFlags    UIFlags;  // Visible / Editable 결정
 };
 
-class UStruct
+class UStruct : public UObject
 {
-    UField* Head;
-    void Link();
+public:
+    UStruct()
+        : HeadField(nullptr)
+    {}
+
+    virtual ~UStruct() override
+    {
+        // 할당한 UField 모두 delete
+        UField* Node = HeadField;
+        while (Node)
+        {
+            UField* Next = Node->Next;
+            delete Node;
+            Node = Next;
+        }
+    }
+
+    void AddField(UField* InField)
+    {
+        if (HeadField == nullptr)
+        {
+            HeadField = InField;
+        }
+        else
+        {
+            UField* Temp = HeadField;
+            while (Temp->Next)
+            {
+                Temp = Temp->Next;
+            }
+            Temp->Next = InField;
+        }
+    }
+
+    template<typename Func>
+    void ForEachField(Func&& InFunc)
+    {
+        for (UField* Field = HeadField; Field != nullptr; Field = Field->Next)
+        {
+            InFunc(Field);
+        }
+    }
+private:
+    UField* HeadField;
 };
 
 class FArchive;
 /**
  * UObject의 RTTI를 가지고 있는 클래스
  */
-class UClass : public UObject
-{
+class UClass : public UStruct
+{    
     using ClassConstructorType = UObject*(*)();
-
 public:
     UClass(
         const char* InClassName,
@@ -85,6 +138,8 @@ public:
 
     /** 바이너리 직렬화 함수 */
     void SerializeBin(FArchive& Ar, void* Data);
+
+    void RegisterField(UField* Field);
 
 protected:
     virtual UObject* CreateDefaultObject();

@@ -67,6 +67,11 @@ void UClass::SerializeBin(FArchive& Ar, void* Data)
     }
 }
 
+void UClass::RegisterField(UField* Field)
+{
+    AddField(Field);
+}
+
 UObject* UClass::CreateDefaultObject()
 {
     if (!ClassDefaultObject)
