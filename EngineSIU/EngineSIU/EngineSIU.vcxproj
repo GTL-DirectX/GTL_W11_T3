@@ -204,6 +204,9 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Source\Contents\MyAnimInstance.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNode_State.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState_SlowMotion.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.cpp" />
@@ -486,6 +489,9 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Source\Contents\MyAnimInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNode_State.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState_SlowMotion.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.h" />
