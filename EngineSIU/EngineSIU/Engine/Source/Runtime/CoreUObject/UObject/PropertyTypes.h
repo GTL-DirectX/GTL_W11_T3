@@ -123,3 +123,9 @@ consteval EPropertyType GetPropertyType<FVector>()
 {
     return EPropertyType::Vector;
 }
+
+template<>
+consteval EPropertyType GetPropertyType<FLinearColor>()
+{
+    return EPropertyType::Color;
+}

@@ -5,7 +5,6 @@
 //#include <windows.h>
 //#include <tchar.h>
 
-#include "ImGuiInspector.h"
 #include "World/World.h"
 #include "Actors/Player.h"
 #include "Components/BoxComponent.h"
@@ -45,6 +44,8 @@
 #include "LuaScripts/LuaScriptFileUtils.h"
 #include "imgui/imgui_bezier.h"
 #include "imgui/imgui_curve.h"
+
+#define USE_UPROPERTY_IMGUI false
 
 void PropertyEditorPanel::Render()
 {
@@ -227,36 +228,14 @@ void PropertyEditorPanel::HSVToRGB(const float H, const float S, const float V, 
     R += M;  G += M;  B += M;
 }
 
-void PropertyEditorPanel::RenderForSceneComponent(USceneComponent* SceneComponent, AEditorPlayer* Player) const
+void PropertyEditorPanel::RenderForSceneComponent(USceneComponent* SceneComponent, AEditorPlayer* Player) 
 {
     ImGui::SetItemDefaultFocus();
     // TreeNode 배경색을 변경 (기본 상태)
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
     if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
     {
-        UObject* Object = Cast<UObject>(SceneComponent);
-        UClass* Cls = SceneComponent->GetClass();
-        Cls->ForEachField([&](UField* Field)
-            {
-                ImGuiInspector::DrawFieldEditor(Field, Object);
-                ImGui::Spacing();
-            });
-        /*FVector Location = SceneComponent->GetRelativeLocation();
-        FRotator Rotation = SceneComponent->GetRelativeRotation();
-        FVector Scale = SceneComponent->GetRelativeScale3D();
-
-        FImGuiWidget::DrawVec3Control("Location", Location, 0, 85);
-        ImGui::Spacing();
-
-        FImGuiWidget::DrawRot3Control("Rotation", Rotation, 0, 85);
-        ImGui::Spacing();
-
-        FImGuiWidget::DrawVec3Control("Scale", Scale, 0, 85);
-        ImGui::Spacing();
-
-        SceneComponent->SetRelativeLocation(Location);
-        SceneComponent->SetRelativeRotation(Rotation);
-        SceneComponent->SetRelativeScale3D(Scale);*/
+        RenderProperties(SceneComponent);
 
         std::string CoordiButtonLabel;
         if (Player->GetCoordMode() == ECoordMode::CDM_WORLD)
@@ -938,12 +917,13 @@ void PropertyEditorPanel::RenderForLightCommon(ULightComponentBase* LightCompone
     ImGui::PopStyleColor();
 }
 
-void PropertyEditorPanel::RenderForProjectileMovementComponent(UProjectileMovementComponent* ProjectileComp) const
+void PropertyEditorPanel::RenderForProjectileMovementComponent(UProjectileMovementComponent* ProjectileComp)
 {
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 
     if (ImGui::TreeNodeEx("Projectile Movement Component", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
     {
+#if USE_UPROPERTY_IMGUI == false
         float InitialSpeed = ProjectileComp->GetInitialSpeed();
         if (ImGui::InputFloat("InitialSpeed", &InitialSpeed, 0.f, 10000.0f, "%.1f"))
         {
@@ -976,7 +956,9 @@ void PropertyEditorPanel::RenderForProjectileMovementComponent(UProjectileMoveme
         {
             ProjectileComp->SetVelocity(FVector(Velocity[0], Velocity[1], Velocity[2]));
         }
-
+#else
+        RenderProperties(ProjectileComp);
+#endif
         ImGui::TreePop();
     }
 
@@ -1018,12 +1000,13 @@ void PropertyEditorPanel::RenderForTextComponent(UTextComponent* TextComponent) 
     ImGui::PopStyleColor();
 }
 
-void PropertyEditorPanel::RenderForExponentialHeightFogComponent(UHeightFogComponent* FogComponent) const
+void PropertyEditorPanel::RenderForExponentialHeightFogComponent(UHeightFogComponent* FogComponent)
 {
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 
     if (ImGui::TreeNodeEx("Exponential Height Fog", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
     {
+#if USE_UPROPERTY_IMGUI == false
         FLinearColor CurrColor = FogComponent->GetFogColor();
 
         float R = CurrColor.R;
@@ -1111,35 +1094,43 @@ void PropertyEditorPanel::RenderForExponentialHeightFogComponent(UHeightFogCompo
         {
             FogComponent->SetEndDistance(FogEndtDistance);
         }
+#else
+        RenderProperties(FogComponent);
+#endif
 
         ImGui::TreePop();
     }
     ImGui::PopStyleColor();
 }
 
-void PropertyEditorPanel::RenderForShapeComponent(UShapeComponent* ShapeComponent) const
+void PropertyEditorPanel::RenderForShapeComponent(UShapeComponent* ShapeComponent)
 {
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-    if (USphereComponent* Component = Cast<USphereComponent>(ShapeComponent))
+    if (USphereComponent* SphereComp = Cast<USphereComponent>(ShapeComponent))
     {
         if (ImGui::TreeNodeEx("Sphere Collision", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
         {
-            float Radius = Component->GetRadius();
+#if USE_UPROPERTY_IMGUI == false
+            float Radius = SphereComp->GetRadius();
             ImGui::Text("Radius");
             ImGui::SameLine();
             if (ImGui::DragFloat("##Radius", &Radius, 0.01f, 0.f, 1000.f))
             {
-                Component->SetRadius(Radius);
+                SphereComp->SetRadius(Radius);
             }
+#else
+            RenderProperties(SphereComp);
+#endif
             ImGui::TreePop();
         }
     }
 
-    if (UBoxComponent* Component = Cast<UBoxComponent>(ShapeComponent))
+    if (UBoxComponent* BoxComp = Cast<UBoxComponent>(ShapeComponent))
     {
         if (ImGui::TreeNodeEx("Box Collision", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
         {
-            FVector Extent = Component->GetBoxExtent();
+#if USE_UPROPERTY_IMGUI == false
+            FVector Extent = BoxComp->GetBoxExtent();
 
             float Extents[3] = { Extent.X, Extent.Y, Extent.Z };
 
@@ -1147,30 +1138,38 @@ void PropertyEditorPanel::RenderForShapeComponent(UShapeComponent* ShapeComponen
             ImGui::SameLine();
             if (ImGui::DragFloat3("##Extent", Extents, 0.01f, 0.f, 1000.f))
             {
-                Component->SetBoxExtent(FVector(Extents[0], Extents[1], Extents[2]));
+                BoxComp->SetBoxExtent(FVector(Extents[0], Extents[1], Extents[2]));
             }
+#else
+            RenderProperties(BoxComp);
+#endif
+
             ImGui::TreePop();
         }
     }
 
-    if (UCapsuleComponent* Component = Cast<UCapsuleComponent>(ShapeComponent))
+    if (UCapsuleComponent* CapsuleComp = Cast<UCapsuleComponent>(ShapeComponent))
     {
-        if (ImGui::TreeNodeEx("Box Collision", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+        if (ImGui::TreeNodeEx("Capsule Collision", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
         {
-            float HalfHeight = Component->GetHalfHeight();
-            float Radius = Component->GetRadius();
+#if USE_UPROPERTY_IMGUI == false
+            float HalfHeight = CapsuleComp->GetHalfHeight();
+            float Radius = CapsuleComp->GetRadius();
 
             ImGui::Text("HalfHeight");
             ImGui::SameLine();
             if (ImGui::DragFloat("##HalfHeight", &HalfHeight, 0.01f, 0.f, 1000.f)) {
-                Component->SetHalfHeight(HalfHeight);
+                CapsuleComp->SetHalfHeight(HalfHeight);
             }
 
             ImGui::Text("Radius");
             ImGui::SameLine();
             if (ImGui::DragFloat("##Radius", &Radius, 0.01f, 0.f, 1000.f)) {
-                Component->SetRadius(Radius);
+                CapsuleComp->SetRadius(Radius);
             }
+#else
+            RenderProperties(CapsuleComp);
+#endif
             ImGui::TreePop();
         }
     }
@@ -1178,10 +1177,11 @@ void PropertyEditorPanel::RenderForShapeComponent(UShapeComponent* ShapeComponen
     ImGui::PopStyleColor();
 }
 
-void PropertyEditorPanel::RenderForSpringArmComponent(USpringArmComponent* SpringArmComponent) const
+void PropertyEditorPanel::RenderForSpringArmComponent(USpringArmComponent* SpringArmComponent)
 {
     if (ImGui::TreeNodeEx("SpringArm", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
     {
+#if USE_UPROPERTY_IMGUI == false
         // --- TargetOffset (FVector) ---
         float TargetOffsetValues[3] = {
             SpringArmComponent->TargetOffset.X,
@@ -1247,7 +1247,9 @@ void PropertyEditorPanel::RenderForSpringArmComponent(USpringArmComponent* Sprin
         ImGui::DragFloat("LagMxStep", &SpringArmComponent->CameraLagMaxTimeStep, 0.005f, 0.0f, 1.0f);
         ImGui::SameLine();
         ImGui::DragFloat("LogMDist", &SpringArmComponent->CameraLagMaxDistance, 1.0f, 0.0f, 1000.0f);
-
+#else
+        RenderProperties(SpringArmComponent);
+#endif
         ImGui::TreePop();
     }
 }
