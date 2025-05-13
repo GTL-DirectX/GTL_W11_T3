@@ -3,9 +3,11 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Animation/AnimTwoNodeBlendInstance.h"
+#include "Animation/AnimTransitionInstance.h"
 
 class UAnimInstance;
 class USkeletalMesh;
+//class UAnimationStateMachine;
 
 namespace EAnimationMode
 {
@@ -15,6 +17,7 @@ namespace EAnimationMode
         AnimationSingleNode,
         // This is custom type, engine leaves AnimInstance as it is
         AnimationTwoNodeBlend,
+        AnimationTransition,
         AnimationCustomMode,
     };
 }
@@ -43,9 +46,12 @@ public:
 
     UAnimSingleNodeInstance* GetSingleNodeInstance() const;
     UAnimTwoNodeBlendInstance* GetTwoNodeBlendInstance() const;
+    UAnimTransitonInstance* GetTransitionInstance() const;
     void SetAnimation(UAnimSequenceBase* NewAnimToPlay);
     void SetAnimationMode(EAnimationMode::Type AnimationSingleNode);
     void PlayAnimation(class UAnimSequenceBase* NewAnimToPlay, bool bLooping);
+    void PlayTransitionAnimation(UAnimSequenceBase* FromSeq, float FromTime,
+        UAnimSequenceBase* ToSeq, float BlendTime);
     void Play(bool bLooping) const;
 
     void StopBlendAnimation();
@@ -60,6 +66,9 @@ protected:
 protected:
     USkeletalMesh* SkeletalMesh = nullptr;
     UAnimInstance* AnimScriptInstance = nullptr;
+    UAnimTransitonInstance* TransitionInstance = nullptr;
+    
+    //UAnimationStateMachine* StateMachine = nullptr;
 
     float CurrentAnimTime = 0.0f;
 };

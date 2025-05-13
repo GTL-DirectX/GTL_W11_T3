@@ -9,7 +9,9 @@
 #include "GameFramework/Actor.h"
 #include "Math/JungleMath.h"
 #include "UObject/ObjectFactory.h"
-#include <Animation/AnimTwoNodeBlendInstance.h>
+#include "Animation/AnimTwoNodeBlendInstance.h"
+#include "Animation/AnimTransitionInstance.h"
+//#include "Animation/AnimationStateMachine.h"
 
 void USkeletalMeshComponent::InitializeComponent()
 {
@@ -17,6 +19,8 @@ void USkeletalMeshComponent::InitializeComponent()
 
     /* ImGui로 play 버튼 누르면 editor에서도 움직이도록 수정 */
     GetOwner()->SetActorTickInEditor(true);
+
+    //StateMachine = FObjectFactory::ConstructObject<UAnimationStateMachine>(nullptr);
 }
 
 void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
@@ -30,6 +34,9 @@ void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
     {
         return;
     }
+
+    //if (StateMachine)
+    //    StateMachine->ProcessState();
 
     AnimScriptInstance->UpdateAnimation(DeltaSeconds);
     CurrentPose = AnimScriptInstance->EvaluateAnimation();
@@ -323,6 +330,11 @@ UAnimTwoNodeBlendInstance* USkeletalMeshComponent::GetTwoNodeBlendInstance() con
     return Cast<class UAnimTwoNodeBlendInstance>(AnimScriptInstance);
 }
 
+UAnimTransitonInstance* USkeletalMeshComponent::GetTransitionInstance() const
+{
+    return TransitionInstance;
+}
+
 
 
 void USkeletalMeshComponent::SetAnimation(UAnimSequenceBase* NewAnimToPlay)
@@ -393,6 +405,9 @@ void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMo
             AnimScriptInstance = FObjectFactory::ConstructObject<UAnimTwoNodeBlendInstance>(nullptr);
             break;
         }
+        case EAnimationMode::AnimationTransition:
+            TransitionInstance = FObjectFactory::ConstructObject<UAnimTransitonInstance>(nullptr);
+     
         default:
             break;
         }
@@ -412,6 +427,14 @@ void USkeletalMeshComponent::PlayAnimation(class UAnimSequenceBase* NewAnimToPla
     //SetAnimationMode(EAnimationMode::AnimationSingleNode); // 현재 기본모드는 single node
     SetAnimation(NewAnimToPlay);
     Play(bLooping);
+}
+
+void USkeletalMeshComponent::PlayTransitionAnimation(UAnimSequenceBase* FromSeq, float FromTime,
+    UAnimSequenceBase* ToSeq, float BlendTime)
+{
+    SetAnimationMode(EAnimationMode::AnimationTransition);
+    TransitionInstance->SetAnimationAsset(FromSeq, FromTime, ToSeq, BlendTime);
+    TransitionInstance->SetPlaying(true);
 }
 
 void USkeletalMeshComponent::Play(bool bLooping) const

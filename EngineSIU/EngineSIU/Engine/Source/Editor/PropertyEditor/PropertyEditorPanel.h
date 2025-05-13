@@ -62,6 +62,7 @@ private:
     /* Static Mesh Settings */
     void RenderForStaticMesh(UStaticMeshComponent* StaticMeshComp) const;
     void DrawAnimationControls(USkeletalMeshComponent* SkeletalComp);
+    void DrawBlendDebugControls(USkeletalMeshComponent* SkeletalComp);
     void RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalComp);
     void RenderForModifySkeletalBone(USkeletalMeshComponent* SkeletalMeshComponent);
 
@@ -109,6 +110,14 @@ private:
     /* Animation Property for Debug */
     int SelectedAnimIndex = -1;
     FString SelectedAnimName;
+
+    /* Animation Blend Property for Debug */
+    int SelectedAnimIndexA = -1;
+    FString SelectedAnimNameA;
+
+    int SelectedAnimIndexB = -1;
+    FString SelectedAnimNameB;
+
 };
 
 template <typename T> requires std::derived_from<T, UActorComponent>

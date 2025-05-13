@@ -566,9 +566,46 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     ImGui::Spacing();
     ImGui::Separator();
 
+    const char* preview_valueB = (SelectedAnimIndexB != -1 && SelectedAnimIndexB < animNames.Num()) ? *animNames[SelectedAnimIndexB] : "None";
+    if (ImGui::BeginCombo("From AnimationsB", preview_valueB))
+    {
+        for (int i = 0; i < animNames.Num(); ++i)
+        {
+            const bool is_selected = (SelectedAnimIndexB == i);
+            if (ImGui::Selectable(*animNames[i], is_selected))
+            {
+                SelectedAnimIndexB = i;
+                SelectedAnimNameB = animNames[i]; // 선택된 애니메이션 이름 업데이트
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::Button("Play Transiiton Animation", ImVec2(120, 0)))
+    {
+        if (SelectedSkeleton)
+        {
+           
+            UAnimSingleNodeInstance* NodeA = SelectedSkeleton->GetSingleNodeInstance();
+
+            
+            UAnimSequence* animToPlayB = FFbxLoader::GetAnimSequenceByName
+            (SelectedAnimNameB);
+
+            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTransition);
+            SelectedSkeleton->PlayTransitionAnimation(NodeA->GetCurrentSequence(), NodeA->GetCurrentTime(), animToPlayB, 0.0f);
+        }
+        else {
+            UE_LOG(ELogLevel::Warning, TEXT("Could not find or load animation: %s"), *SelectedAnimName);
+        }
+    }
+
 
 }
-
 void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalComp)
 {
     DrawAnimationControls(SkeletalComp);
