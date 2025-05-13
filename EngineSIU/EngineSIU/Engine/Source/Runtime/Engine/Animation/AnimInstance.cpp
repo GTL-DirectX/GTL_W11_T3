@@ -10,6 +10,8 @@
 #include "Math/Transform.h"
 #include "UObject/Casts.h"
 #include "AnimTypes.h"
+#include "AnimNotifies/AnimNotifyState.h"
+
 UAnimInstance::UAnimInstance()
     : Sequence(nullptr)
     , OwningComp(nullptr)
@@ -186,9 +188,52 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
     Sequence->GetAnimNotifies(PrevTime, DeltaSeconds, Sequence->IsLooping(), NotifyStateBeginEvent);
     NotifyQueue.AddAnimNotifies(NotifyStateBeginEvent);
 
-    for (const FAnimNotifyEvent& NotifyEvent : NotifyStateBeginEvent)
+    // 새롭게 활성화된 Anim Notify State 배열
+    TArray<FAnimNotifyEvent> NewActiveAnimNotifyState;
+    NewActiveAnimNotifyState.Reserve(NotifyQueue.AnimNotifies.Num());
+
+    for (FAnimNotifyEvent& NotifyEvent : NotifyStateBeginEvent)
     {
-        TriggerSingleAnimNotify(NotifyEvent);
+        /* Duration 구간 내에 지속적으로 Notified 되는 State 유형 */
+        if (NotifyEvent.IsStateNotify())
+        {
+            // Begin 처리: 이전 프레임에 없던 경우
+            if (!ActiveAnimNotifyState.Contains(NotifyEvent))
+            {
+                NotifyEvent.NotifyStateClass->NotifyBegin(OwningComp, NotifyEvent.GetDuration());
+            }
+
+            // Tick 처리: 이미 활성화 Notify Event 배열에 존재하는 경우
+            NotifyEvent.NotifyStateClass->NotifyTick(OwningComp, DeltaSeconds);
+
+            NewActiveAnimNotifyState.Add(NotifyEvent);
+            //NotifyQueue.AddStateNotify(NotifyEvent);
+        }
+        else
+        {
+            TriggerSingleAnimNotify(NotifyEvent);
+        }
     }
+
+    // End 처리: 이전에는 있었는데 이번에는 없는 Notify
+    for (FAnimNotifyEvent& OldActive : ActiveAnimNotifyState)
+    {
+        if (!NewActiveAnimNotifyState.Contains(OldActive))
+        {
+            if (OldActive.IsStateNotify())
+            {
+                OldActive.NotifyStateClass->NotifyEnd(OwningComp);
+            }
+
+            if (!OwningComp || this->bPlaying == false)
+            {
+                UE_LOG(ELogLevel::Warning, TEXT("▶ While Notify End, AnimationInstance has been destroyed or ended "));
+                return;
+            }
+        }
+    }
+
+    // 현재 활성 상태 업데이트
+    ActiveAnimNotifyState = std::move(NewActiveAnimNotifyState);
 }
 

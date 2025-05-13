@@ -50,6 +50,9 @@ protected:
 
     FAnimNotifyQueue NotifyQueue;
 
+    /* 현재 활성화 되어있는 Notify State 배열 */
+    TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
+
     float CurrentTime;
     bool bPlaying;
 };

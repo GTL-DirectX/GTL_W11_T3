@@ -4,22 +4,34 @@
 #include "Math/Vector.h"
 #include "UObject/ObjectMacros.h"
 
+class UAnimNotifyState;
 /* [참고] UAnimNotify: 한 프레임에서 한 번만 발생하는 이벤트 */ 
 struct FAnimNotifyEvent
 {
+    // TArray Contains 용도로 추가
+    friend bool operator==(const FAnimNotifyEvent& Lhs, const FAnimNotifyEvent& Rhs);
+    friend bool operator!=(const FAnimNotifyEvent& Lhs, const FAnimNotifyEvent& Rhs);
+
     /** using Track UI */ 
     int32 TrackIndex;
     
     float TriggerTime;  // 발생 시간
-    float Duration;     // 지속 시간 (0이면 단발성) = EndTriggerTime - TriggerTime
-    FName NotifyName;   
 
-    float TriggerTimeOffset = 0.f;        // Notify가 시작되도록 보정된 시간 오프셋
-    float EndTriggerTimeOffset = 0.f;     // Notify 종료 보정을 위한 시간 오프셋
+    /* Notify가 시작되도록 보정된 시간 오프셋 : 너무 늦게 실행되면 조금 더 일찍 실행되도록 */
+    float TriggerTimeOffset = 0.f;
+    /* Notify 종료 보정을 위한 시간 오프셋 : 종료가 너무 늦거나 빠르게 되는 것을 조절 */
+    float EndTriggerTimeOffset = 0.f;
+
+    FName NotifyName;
+
+    UAnimNotifyState* NotifyStateClass = nullptr;
+
+    float Duration;     // 지속 시간 (0이면 단발성) = EndTriggerTime - TriggerTime
 
     float GetDuration() const;
     float GetTriggerTime() const;
     float GetEndTriggerTime() const;
+    bool IsStateNotify() const;
 };
 
 /**
