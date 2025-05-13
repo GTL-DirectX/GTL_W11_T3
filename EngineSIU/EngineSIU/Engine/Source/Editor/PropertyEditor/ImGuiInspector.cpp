@@ -1,4 +1,6 @@
 #include "ImGuiInspector.h"
+
+#include "Components/SceneComponent.h"
 #include "UObject/Class.h"
 #include "ImGui/ImGui.h"
 #include "UnrealEd/ImGuiWidget.h"
@@ -6,7 +8,7 @@
 
 namespace ImGuiInspector
 {
-    void DrawFieldEditor(UField* Field, UObject* ObjPtr)
+    void DrawFieldEditor(UField* Field, UObject*& ObjPtr)
     {
         if ((Field->Flags & EditAnywhere) == 0)
             return;
@@ -46,7 +48,18 @@ namespace ImGuiInspector
             TField<FVector>* FV = dynamic_cast<TField<FVector>*>(Field);
             FVector Vec = FV->GetValue(ObjPtr);
             FImGuiWidget::DrawVec3Control(*Field->Name, Vec, 0, 85);
-                FV->SetValue(ObjPtr, Vec);
+            FV->SetValue(ObjPtr, Vec);
+            if (auto* SC = Cast<USceneComponent>(ObjPtr))
+            {
+                if (Field->Name == TEXT("RelativeLocation"))
+                {
+                    SC->SetRelativeLocation(Vec);
+                }
+                else if (Field->Name == TEXT("RelativeScale3D"))
+                {
+                    SC->SetRelativeScale3D(Vec);
+                }
+            }
             break;
         }
         case EPropertyType::Rotator:
@@ -54,7 +67,11 @@ namespace ImGuiInspector
             TField<FRotator>* FR = dynamic_cast<TField<FRotator>*>(Field);
             FRotator R = FR->GetValue(ObjPtr);
             FImGuiWidget::DrawRot3Control(*Field->Name, R, 0, 85);
-            FR->SetValue(ObjPtr, R);
+            //FR->SetValue(ObjPtr, R);
+            if (auto* SC = Cast<USceneComponent>(ObjPtr))
+            {
+                SC->SetRelativeRotation(R);
+            }
             break;
         }
         default:

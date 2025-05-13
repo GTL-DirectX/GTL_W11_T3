@@ -46,7 +46,7 @@ public:
 
     void SetValue(UObject* Obj, const T& NewValue)
     {
-        *(T*)((uint8*)Obj + Offset) = NewValue;
+       *(T*)((uint8*)Obj + Offset) = NewValue;
     }
 };
 
