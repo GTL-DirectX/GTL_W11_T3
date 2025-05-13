@@ -28,6 +28,7 @@ class USkeletalMeshComponent: public UMeshComponent
 public:
     USkeletalMeshComponent() = default;
     virtual void InitializeComponent() override;
+    void TickAnimation(float DeltaTime);
     virtual void TickComponent(float DeltaSeconds) override;
     
     virtual UObject* Duplicate(UObject* InOuter) override;
@@ -55,6 +56,8 @@ public:
     void Play(bool bLooping) const;
 
     void StopBlendAnimation();
+    void SetAnimationInstance(UAnimInstance* NewAnimInstance);
+    UAnimInstance* GetAnimationInstance() const { return AnimScriptInstance; }
 public:
     int SelectedBoneIndex = -1;
     TArray<FTransform> CurrentPose;

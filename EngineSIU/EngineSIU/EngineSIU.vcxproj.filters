@@ -1673,7 +1673,7 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTypes.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTwoNodeBlendInstance.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTransitionInstance.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1733,7 +1733,7 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimTwoNodeBlendInstance.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Asset\AnimationAsset.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimTransitionInstance.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

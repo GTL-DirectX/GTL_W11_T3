@@ -590,7 +590,7 @@ void UPrimitiveComponent::UpdateOverlapsImpl(const TArray<FOverlapInfo>* NewPend
             // NewOverlappingComponents now contains only new overlaps that didn't exist previously.
             for (const FOverlapInfo* NewOverlap : NewOverlappingComponentPtrs)
             {
-                BeginComponentOverlap(*NewOverlap, bDoNotifies);
+                //BeginComponentOverlap(*NewOverlap, bDoNotifies);
             }
         }
     }

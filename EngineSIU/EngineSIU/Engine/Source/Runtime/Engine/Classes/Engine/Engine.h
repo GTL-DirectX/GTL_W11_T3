@@ -7,7 +7,6 @@
 #include "World/WorldContext.h"
 
 class UAssetManager;
-class UWorld;
 
 class UEngine : public UObject
 {

@@ -143,6 +143,19 @@ struct FMath
         return Abs<float>(Value) <= ErrorTolerance;
     }
 
+    /**
+     * 부동 소수점 타입의 값이 같은지 비교합니다.
+     * 
+     * @param A 비교할 숫자 1
+     * @param B 비교할 숫자 2
+     * @param ErrorTolerance 값의 오차 허용 수치 
+     * @return 허용 수치 이내일 경우 True
+     */
+    [[nodiscard]] static FORCEINLINE bool IsNearlyEqual(float A, float B, float ErrorTolerance = SMALL_NUMBER)
+    {
+        return Abs<float>(A - B) <= ErrorTolerance;
+    }
+
     // Begin Interpolations
     /** A와 B를 Alpha값에 따라 선형으로 보간합니다. */
     template <typename T>

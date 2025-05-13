@@ -628,6 +628,8 @@ void SLevelEditor::RegisterEditorInputDelegates()
         {
             return;
         }
+
+        if (ImGui::GetIO().WantCaptureMouse) return;
         
         switch (InMouseEvent.GetEffectingButton())  // NOLINT(clang-diagnostic-switch-enum)
         {
@@ -680,6 +682,8 @@ void SLevelEditor::RegisterEditorInputDelegates()
         {
             return;
         }
+
+        if (ImGui::GetIO().WantCaptureMouse) return;
         
         // Mouse Move 이벤트 일때만 실행
         if (InMouseEvent.GetInputEvent() == IE_Axis
@@ -829,7 +833,7 @@ void SLevelEditor::RegisterEditorInputDelegates()
         {
             return;
         }
-        ActiveViewportClient->InputKey(InKeyEvent);
+        ActiveViewportClient->InputKey(hWnd, InKeyEvent);
     }));
 
     InputDelegatesHandles.Add(Handler->OnKeyUpDelegate.AddLambda([this](HWND hWnd, const FKeyEvent& InKeyEvent)
@@ -843,7 +847,7 @@ void SLevelEditor::RegisterEditorInputDelegates()
         {
             return;
         }
-        ActiveViewportClient->InputKey(InKeyEvent);
+        ActiveViewportClient->InputKey(hWnd, InKeyEvent);
     }));
 }
 

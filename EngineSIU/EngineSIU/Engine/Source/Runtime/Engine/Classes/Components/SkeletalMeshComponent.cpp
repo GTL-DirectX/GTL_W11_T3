@@ -23,10 +23,9 @@ void USkeletalMeshComponent::InitializeComponent()
     //StateMachine = FObjectFactory::ConstructObject<UAnimationStateMachine>(nullptr);
 }
 
-void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
-{
-    Super::TickComponent(DeltaSeconds);
 
+void USkeletalMeshComponent::TickAnimation(float DeltaTime)
+{
     /* 애니메이션 비활성화 또는 필요한 에셋과 인스턴스 없으면 실행 안 함
      * 위 경우 CurrentPose는 이전 상태 유지하거나, ResetPose() 등으로 기본 포즈임
      */
@@ -35,11 +34,15 @@ void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
         return;
     }
 
-    //if (StateMachine)
-    //    StateMachine->ProcessState();
-
-    AnimScriptInstance->UpdateAnimation(DeltaSeconds);
+    AnimScriptInstance->UpdateAnimation(DeltaTime);
     CurrentPose = AnimScriptInstance->EvaluateAnimation();
+}
+
+
+void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
+{
+    Super::TickComponent(DeltaSeconds);
+    TickAnimation(DeltaSeconds);
 }
 
 UObject* USkeletalMeshComponent::Duplicate(UObject* InOuter)
@@ -492,5 +495,14 @@ void USkeletalMeshComponent::StopBlendAnimation()
     UAnimTwoNodeBlendInstance* BlendInstance = GetTwoNodeBlendInstance();
     if (BlendInstance) {
         BlendInstance->StopBlend(true);
+    }
+}
+
+void USkeletalMeshComponent::SetAnimationInstance(UAnimInstance* NewAnimInstance)
+{
+    if (AnimScriptInstance != NewAnimInstance && NewAnimInstance != nullptr)
+    {
+        AnimScriptInstance = NewAnimInstance;
+        NewAnimInstance->InitializeAnimation(this);
     }
 }

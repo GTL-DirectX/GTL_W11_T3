@@ -106,7 +106,7 @@ void FEditorViewportClient::UpdateEditorCameraMovement(const float DeltaTime)
     }
 }
 
-void FEditorViewportClient::InputKey(const FKeyEvent& InKeyEvent)
+void FEditorViewportClient::InputKey(HWND hWnd, const FKeyEvent& InKeyEvent)
 {
     // 키 이벤트 처리 - GetKeyState API 대신 bRightMouseDown 멤버 변수 사용
     if (bRightMouseDown)
@@ -298,11 +298,16 @@ void FEditorViewportClient::InputKey(const FKeyEvent& InKeyEvent)
 
         // Virtual Key 처리
         UEditorEngine* EdEngine = CastChecked<UEditorEngine>(GEngine);
+        if (hWnd != GEngineLoop.MainAppWnd)
+        {
+            return;
+        }
         switch (InKeyEvent.GetKeyCode())
         {
         case VK_DELETE:
         {
             UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+            
             if (Engine)
             {
                 USceneComponent* SelectedComponent = Engine->GetSelectedComponent();
