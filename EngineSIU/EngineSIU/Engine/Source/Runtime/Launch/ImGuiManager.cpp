@@ -39,8 +39,12 @@ void UImGuiManager::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
         ICON_SLIDER,    ICON_SLIDER + 1,
         ICON_PLUS,      ICON_PLUS + 1,
         ICON_PLAY,      ICON_PLAY + 1,
+        ICON_PAUSE,     ICON_PAUSE + 1,
         ICON_STOP,      ICON_STOP + 1,
         ICON_SQUARE,    ICON_SQUARE + 1,
+        ICON_FORWARD,   ICON_FORWARD + 1,
+        ICON_REWIND,    ICON_REWIND + 1,
+        ICON_REPEAT,    ICON_REPEAT + 1,
         0 };
 
     io.Fonts->AddFontFromMemoryTTF(FeatherRawData, FontSizeOfFeather, 22.0f, &FeatherFontConfig, IconRanges);
@@ -106,7 +110,7 @@ void UImGuiManager::PreferenceStyle()
     Style.Colors[ImGuiCol_FrameBgActive] = ImVec4{ 1, 1, 1, 0.3f };
 
     // Check
-    Style.Colors[ImGuiCol_CheckMark] = ImVec4(0.00f, 0.30f, 0.00f, 1.0f);;
+    Style.Colors[ImGuiCol_CheckMark] = ImVec4(0.00f, 0.30f, 0.00f, 1.0f);
 
     // Slider
     Style.Colors[ImGuiCol_SliderGrab] = AccentColor;

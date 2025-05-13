@@ -15,7 +15,7 @@ class UnrealEd;
 class SSplitterV;
 class SSplitterH;
 class SLevelEditor;
-class SAssetViewer;
+class SlateViewer;
 class FEditorViewportClient;
 class FSlateAppMessageHandler;
 class UImGuiManager;
@@ -38,7 +38,6 @@ private:
     HWND CreateNewWindow(HINSTANCE hInstance, const WCHAR* WindowClass, const WCHAR* WindowName, int Width, int Height, HWND Parent = nullptr) const;
     
     static LRESULT CALLBACK AppWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
-    static LRESULT CALLBACK SubAppWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
     void UpdateUI(HWND hWnd, bool bSubWindow = false) const;
 
@@ -49,7 +48,8 @@ public:
     static FResourceMgr ResourceManager;
     static uint32 TotalAllocationBytes;
     static uint32 TotalAllocationCount;
-
+    static TMap<HWND, ImGuiContext*> WndImGuiContextMap;
+    
     HWND MainAppWnd;
     
     // @todo SubWindow를 여러개 만들 수 있도록 수정
@@ -59,11 +59,11 @@ public:
     /** Animation Viewer Handle */
     HWND AnimationViewerAppWnd;
 
-    void ToggleWindow(HWND hWnd);
-    void Show(HWND HWnd);
-    void Hide(HWND hWnd);
+    void ToggleWindow(HWND hWnd) const;
+    void Show(HWND HWnd) const;
+    void Hide(HWND hWnd) const;
 
-    bool IsVisible(const HWND hWnd) { return IsWindowVisible(hWnd); }
+    bool IsVisible(const HWND hWnd) const { return IsWindowVisible(hWnd); }
 
     FGPUTimingManager GPUTimingManager;
     FGPUMemoryManager GPUMemoryManager;
@@ -77,7 +77,8 @@ private:
 
     std::unique_ptr<FSlateAppMessageHandler> AppMessageHandler;
     SLevelEditor* LevelEditor;
-    SAssetViewer* AssetViewer;
+    SlateViewer* SkeletalMeshViewer;
+    SlateViewer* AnimationViewer;
     UnrealEd* UnrealEditor;
     FDXDBufferManager* BufferManager; //TODO: UEngine으로 옮겨야함.
 
@@ -87,7 +88,8 @@ private:
 
 public:
     SLevelEditor* GetLevelEditor() const { return LevelEditor; }
-    SAssetViewer* GetAssetViewer() const { return AssetViewer; }
+    SlateViewer* GetSkeletalMeshViewer() const { return SkeletalMeshViewer; }
+    SlateViewer* GetAnimationViewer() const { return AnimationViewer; }
     UnrealEd* GetUnrealEditor() const { return UnrealEditor; }
 
     FSlateAppMessageHandler* GetAppMessageHandler() const { return AppMessageHandler.get(); }

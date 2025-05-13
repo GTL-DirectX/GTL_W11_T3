@@ -45,6 +45,7 @@
 #include "Contents/Actors/TriggerBox.h"
 #include "Engine/AssetManager.h"
 #include "Engine/FbxManager.h"
+#include "GameFramework/Character.h"
 #include "Renderer/CompositingPass.h"
 
 void ControlEditorPanel::Render()
@@ -106,6 +107,12 @@ void ControlEditorPanel::Render()
             {
                 bShowSkeletalMeshViewer = true;
             }
+
+            if (ImGui::MenuItem("Animation Viewer"))
+            {
+                bShowAnimationViewer = true;
+            }
+            
             ImGui::EndMenu();
         }
 
@@ -186,6 +193,15 @@ void ControlEditorPanel::Render()
         if (GEngineLoop.SkeletalMeshViewerAppWnd)
         {
             GEngineLoop.Show(GEngineLoop.SkeletalMeshViewerAppWnd);
+        }
+    }
+
+    if (bShowAnimationViewer)
+    {
+        bShowAnimationViewer = false;
+        if (GEngineLoop.AnimationViewerAppWnd)
+        {
+            GEngineLoop.Show(GEngineLoop.AnimationViewerAppWnd);
         }
     }
 }
@@ -380,6 +396,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
             {.Label = "GoalPlatform", .OBJ = OBJ_GOALPLATFORM},
             {.Label = "Coin", .OBJ = OBJ_COIN},
             {.Label = "TriggerBox", .OBJ = OBJ_TRIGGERBOX},
+            {.Label = "Character", .OBJ = OBJ_CHARACTER},
         };
 
         for (const auto& primitive : primitives)
@@ -507,6 +524,10 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 case OBJ_TRIGGERBOX:
                     SpawnedActor = World->SpawnActor<ATriggerBox>();
                     SpawnedActor->SetActorLabel(TEXT("OBJ_TRIGGERBOX"));
+                    break;
+                case OBJ_CHARACTER:
+                    SpawnedActor = World->SpawnActor<ACharacter>();
+                    SpawnedActor->SetActorLabel(TEXT("OBJ_CHARACTER"));
                     break;
                 case OBJ_CAMERA:
                 case OBJ_PLAYER:
@@ -683,6 +704,11 @@ void ControlEditorPanel::CreateSRTButton(ImVec2 ButtonSize)
 
 void ControlEditorPanel::OnResize(const HWND hWnd)
 {
+    if (hWnd != Handle)
+    {
+        return;
+    }
+    
     RECT ClientRect;
     GetClientRect(hWnd, &ClientRect);
     Width = static_cast<FLOAT>(ClientRect.right - ClientRect.left);

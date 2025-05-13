@@ -32,9 +32,10 @@
 #include "Components/Mesh/SkeletalMesh.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "LevelEditor/SLevelEditor.h"
-#include "AssetViewer/AssetViewer.h"
+#include "Viewer/SlateViewer.h"
 #include "Slate/Widgets/Layout/SSplitter.h"
 #include "Components/Material/Material.h"
+#include "Contents/MyAnimInstance.h"
 #include "Contents/Actors/ItemActor.h"
 #include "Math/JungleMath.h"
 #include "Renderer/ShadowManager.h"
@@ -56,31 +57,17 @@ void PropertyEditorPanel::Render()
     /* Pre Setup */
     // Splitter 기반 영역 계산
     FRect PropertyRect{ 0,0,0,0 };
-    if (this->WindowType == WT_Main)
-    {
-        SLevelEditor* LevelEditor = GEngineLoop.GetLevelEditor();
-        if (LevelEditor && LevelEditor->EditorHSplitter && LevelEditor->EditorHSplitter->SideRB)
-        {
-            PropertyRect = LevelEditor->EditorHSplitter->SideRB->GetRect();
-        }
-        else
-        {
-            PropertyRect = FRect{ 0, 0, static_cast<float>(Width), static_cast<float>(Height) };
-        }
-    }
-    else if (this->WindowType == WT_Sub)
-    {
-        SAssetViewer* AssetViewer = GEngineLoop.GetAssetViewer();
-        if (AssetViewer && AssetViewer->CenterAndRightVSplitter && AssetViewer->CenterAndRightVSplitter->SideRB)
-        {
-            PropertyRect = AssetViewer->CenterAndRightVSplitter->SideRB->GetRect();
-        }
-        else
-        {
-            PropertyRect = FRect{ 0, 0, static_cast<float>(Width), static_cast<float>(Height) };
-        }
-    }
 
+    SLevelEditor* LevelEditor = GEngineLoop.GetLevelEditor();
+    if (LevelEditor && LevelEditor->EditorHSplitter && LevelEditor->EditorHSplitter->SideRB)
+    {
+        PropertyRect = LevelEditor->EditorHSplitter->SideRB->GetRect();
+    }
+    else
+    {
+        PropertyRect = FRect{ 0, 0, static_cast<float>(Width), static_cast<float>(Height) };
+    }
+    
     float PanelPosX = PropertyRect.TopLeftX;
     float PanelPosY = PropertyRect.TopLeftY;
     float PanelWidth = PropertyRect.Width;
@@ -610,6 +597,68 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             ImGui::EndCombo();
         }
 
+        TArray<UClass*> AnimClasses;
+        GetChildOfClass(UAnimInstance::StaticClass(), AnimClasses);
+        
+        if (ImGui::BeginCombo("AnimInstance", "None", ImGuiComboFlags_None))
+        {
+            for (auto* AnimInstance : AnimClasses)
+            {
+                if (ImGui::Selectable(GetData(AnimInstance->GetName()), false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
+                    SkeletalComp->SetAnimationInstance(Instance);
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        
+        TArray<FString> animNames;
+        {
+            std::lock_guard<std::mutex> lock(FFbxLoader::AnimMapMutex);
+            for (auto const& [name, entry] : FFbxLoader::AnimMap)
+            {
+                if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+                {
+                    animNames.Add(name);
+                }
+            }
+        }
+        
+        if (ImGui::BeginCombo("Anim1", "NONE"))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (Instance)
+                    {
+                        Instance->Anim1 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        if (ImGui::BeginCombo("Anim2", "NONE"))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (Instance)
+                    {
+                        Instance->Anim2 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        
+
         if (ImGui::Button("Preview"))
         {
             UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
@@ -618,7 +667,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                 USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh();
                 if (SkeletalMesh)
                 {
-                    for (auto Actor : Engine->EditorPreviewWorld->GetActiveLevel()->Actors)
+                    for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.SkeletalMeshViewerAppWnd)->GetActiveLevel()->Actors)
                     {
                         if (Actor && Actor->IsA<AItemActor>())
                         {
@@ -631,6 +680,27 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             GEngineLoop.Show(GEngineLoop.SkeletalMeshViewerAppWnd);
         }
 
+        if (ImGui::Button("Animation"))
+        {
+            UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+            if (Engine)
+            {
+                USkeletalMesh* SkeletalMesh = SkeletalComp->GetSkeletalMesh();
+                if (SkeletalMesh)
+                {
+                    for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.AnimationViewerAppWnd)->GetActiveLevel()->Actors)
+                    {
+                        if (Actor && Actor->IsA<AItemActor>())
+                        {
+                            USkeletalMeshComponent* PreviewSkeletalMeshComponent = Cast<AItemActor>(Actor)->GetComponentByClass<USkeletalMeshComponent>();
+                            PreviewSkeletalMeshComponent->SetSkeletalMesh(SkeletalMesh);
+                        }
+                    }
+                }
+            }
+            GEngineLoop.Show(GEngineLoop.AnimationViewerAppWnd);
+        }
+
         if (ImGui::Button("Apply"))
         {
             UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
@@ -638,7 +708,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             {
                 //if (SkeletalMesh)
                 {
-                    for (auto Actor : Engine->EditorPreviewWorld->GetActiveLevel()->Actors)
+                    for (auto Actor : Engine->GetPreviewWorld(GEngineLoop.SkeletalMeshViewerAppWnd)->GetActiveLevel()->Actors)
                     {
                         if (Actor && Actor->IsA<AItemActor>())
                         {
@@ -1557,6 +1627,11 @@ void PropertyEditorPanel::RenderCreateMaterialView()
 
 void PropertyEditorPanel::OnResize(HWND hWnd)
 {
+    if (hWnd != Handle)
+    {
+        return;
+    }
+    
     RECT ClientRect;
     GetClientRect(hWnd, &ClientRect);
     Width = static_cast<FLOAT>(ClientRect.right - ClientRect.left);

@@ -1,7 +1,8 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
-#include "Animation/AnimTypes.h"
+#include "Container/Array.h"
+#include "AnimTypes.h"
 
 class UAnimDataModel;
 
@@ -36,15 +37,15 @@ public:
     void SetLooping(bool bIsLooping) { bLoop = bIsLooping; }
     bool IsLooping() const { return bLoop; }
 
-    void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent*>& OutActiveNotifies) const;
-    void GetAnimNotifiesFromDeltaPositions(const TArray<FAnimNotifyEvent>& Notifies, float PreviousPosition, float CurrentPosition, TArray<const FAnimNotifyEvent*>& OutNotifies) const;
+    void GetAnimNotifies(const float& StartTime, const float& DeltaTime, bool bAllowLooping, TArray<FAnimNotifyEvent>& OutActiveNotifies) const;
+    void GetAnimNotifiesFromDeltaPositions(const TArray<FAnimNotifyEvent>& Notifies, float PreviousPosition, float CurrentPosition, TArray<FAnimNotifyEvent>& OutNotifies) const;
 
 
 public:
     FString Name;
     UAnimDataModel* DataModel;
 
-    TArray<struct FAnimNotifyEvent> Notifies;
+    TArray<FAnimNotifyEvent> Notifies;
 
     UPROPERTY
     (float, SequenceLength)

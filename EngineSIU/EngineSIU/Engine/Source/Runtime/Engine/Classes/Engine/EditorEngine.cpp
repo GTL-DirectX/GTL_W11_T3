@@ -1,6 +1,5 @@
 #include "EditorEngine.h"
 
-#include "World/World.h"
 #include "Level.h"
 #include "Actors/Cube.h"
 #include "Actors/DirectionalLightActor.h"
@@ -45,7 +44,7 @@ void UEditorEngine::Init()
     }
     LoadLevel("Saved/AutoSaves.scene");
     AssetManager->LoadEntireAssets();
-    StartPreviewWorld(nullptr);
+    // StartPreviewWorld(nullptr);
 }
 
 void UEditorEngine::Release()
@@ -128,7 +127,7 @@ void UEditorEngine::StartPIE()
     // WorldList.Add(GetWorldContextFromWorld(PIEWorld));
 }
 
-void UEditorEngine::BindEssentialObjects()
+void UEditorEngine::BindEssentialObjects() const
 {
     // TODO: 플레이어 컨트롤러가 먼저 만들어져야 함.
     //실수로 안만들면 넣어주기
@@ -183,52 +182,69 @@ void UEditorEngine::EndPIE()
     ActiveWorld = EditorWorld;
 }
 
-void UEditorEngine::StartPreviewWorld(UMeshComponent* TargetMesh)
+UWorld* UEditorEngine::StartPreviewWorld(HWND hWnd)
 {
-    // PreviewWorld는 AcitveWorld가 되면 안됨.
-    // 함수 떄문에 ActiveWorld로 변경하였으면 다시 돌려놔야 함.
-    if (EditorPreviewWorld)
+    std::unique_ptr<UWorld> PreviewWorld(UWorld::CreateWorld(this, EWorldType::EditorPreview, FString("EditorPreviewWorld")));
+
+    if (!PreviewWorld)
     {
-        UE_LOG(ELogLevel::Warning, TEXT("EditorPreviewWorld already exists!"));
-        return;
+        // 생성 실패 처리
+        UE_LOG(ELogLevel::Error, TEXT("Failed to create PreviewWorld!"));
+        return nullptr;
+    }
+    
+    FWorldContext& WorldContext = CreateNewWorldContext(EWorldType::EditorPreview);
+    WorldContext.SetCurrentWorld(PreviewWorld.get());
+
+    AItemActor* Temp = PreviewWorld->SpawnActor<AItemActor>();
+    if (Temp)
+    {
+        Temp->SetActorLocation({ 0.f, 0.f, 0.f });
+        Temp->SetActorLabel(TEXT("OBJ_PREVIEW_ACTOR"));
     }
 
-    FSlateAppMessageHandler* Handler = GEngineLoop.GetAppMessageHandler();
+    PreviewWorld->SpawnActor<ADirectionalLight>();
 
-    FWorldContext& EditorPreviewWorldContext = CreateNewWorldContext(EWorldType::EditorPreview);
-
-    EditorPreviewWorld = UWorld::CreateWorld(this, EWorldType::EditorPreview, FString("EditorPreviewWorld"));
-
-    EditorPreviewWorldContext.SetCurrentWorld(EditorPreviewWorld);
-
-    AItemActor* Temp = EditorPreviewWorld->SpawnActor<AItemActor>();
-    Temp->SetActorLocation({ 0.f, 0.f, 0.f });
-    Temp->SetActorLabel(TEXT("OBJ_PREVIEW_ACTOR"));
-
-    EditorPreviewWorld->SpawnActor<ADirectionalLight>();
-
-    // 임시로 ActiveWorld 변경
+    // Swap active world for binding.
     UWorld* CurrentWorld = ActiveWorld;
-    
-    // BindEssentialObjects()는 ActiveWorld기준임.  
-    ActiveWorld = EditorPreviewWorld;
+    ActiveWorld = PreviewWorld.get();
     BindEssentialObjects();
-
     ActiveWorld = CurrentWorld;
+
+    // Transfer of ownership
+    PreviewWorldMap.Emplace(hWnd, std::move(PreviewWorld));
+
+    return PreviewWorldMap[hWnd].get();
 }
 
-void UEditorEngine::EndPreviewWorld()
+void UEditorEngine::EndPreviewWorld(HWND hWnd)
 {
-    if (EditorPreviewWorld)
+    auto World = PreviewWorldMap.Find(hWnd);
+    
+    if (UWorld* WorldToRemove = World->get())
     {
-        WorldList.Remove(GetWorldContextFromWorld(EditorPreviewWorld));
-        EditorPreviewWorld->Release();
-        GUObjectArray.MarkRemoveObject(EditorPreviewWorld);
-        EditorPreviewWorld = nullptr;
+        WorldList.Remove(GetWorldContextFromWorld(WorldToRemove));
+        WorldToRemove->Release();
+        GUObjectArray.MarkRemoveObject(WorldToRemove);
+
+        PreviewWorldMap.Remove(hWnd);
 
         DeselectActor(GetSelectedActor());
         DeselectComponent(GetSelectedComponent());
     }
+}
+
+UWorld* UEditorEngine::GetPreviewWorld(HWND hWnd)
+{
+    auto World = PreviewWorldMap.Find(hWnd);
+
+    if (World == nullptr)
+    {
+        UWorld* NewWorld = StartPreviewWorld(hWnd);
+        return NewWorld;
+    }
+
+    return World->get();
 }
 
 FWorldContext& UEditorEngine::GetEditorWorldContext(/*bool bEnsureIsGWorld*/)

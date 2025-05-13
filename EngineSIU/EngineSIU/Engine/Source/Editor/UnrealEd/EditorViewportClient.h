@@ -94,7 +94,7 @@ public:
 
     void Input();
     void UpdateEditorCameraMovement(float DeltaTime);
-    void InputKey(const FKeyEvent& InKeyEvent);
+    void InputKey(HWND hWnd, const FKeyEvent& InKeyEvent);
     void MouseMove(const FPointerEvent& InMouseEvent);
     void ResizeViewport(FRect Top, FRect Bottom, FRect Left, FRect Right);
 
