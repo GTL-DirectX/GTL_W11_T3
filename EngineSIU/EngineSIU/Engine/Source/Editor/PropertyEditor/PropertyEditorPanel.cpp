@@ -241,22 +241,22 @@ void PropertyEditorPanel::RenderForSceneComponent(USceneComponent* SceneComponen
                 ImGuiInspector::DrawFieldEditor(Field, Object);
                 ImGui::Spacing();
             });
-        //FVector Location = SceneComponent->GetRelativeLocation();
-        //FRotator Rotation = SceneComponent->GetRelativeRotation();
-        //FVector Scale = SceneComponent->GetRelativeScale3D();
+        /*FVector Location = SceneComponent->GetRelativeLocation();
+        FRotator Rotation = SceneComponent->GetRelativeRotation();
+        FVector Scale = SceneComponent->GetRelativeScale3D();
 
-        //FImGuiWidget::DrawVec3Control("Location", Location, 0, 85);
-        //ImGui::Spacing();
+        FImGuiWidget::DrawVec3Control("Location", Location, 0, 85);
+        ImGui::Spacing();
 
-        //FImGuiWidget::DrawRot3Control("Rotation", Rotation, 0, 85);
-        //ImGui::Spacing();
+        FImGuiWidget::DrawRot3Control("Rotation", Rotation, 0, 85);
+        ImGui::Spacing();
 
-        //FImGuiWidget::DrawVec3Control("Scale", Scale, 0, 85);
-        //ImGui::Spacing();
+        FImGuiWidget::DrawVec3Control("Scale", Scale, 0, 85);
+        ImGui::Spacing();
 
-        //SceneComponent->SetRelativeLocation(Location);
-        //SceneComponent->SetRelativeRotation(Rotation);
-        //SceneComponent->SetRelativeScale3D(Scale);
+        SceneComponent->SetRelativeLocation(Location);
+        SceneComponent->SetRelativeRotation(Rotation);
+        SceneComponent->SetRelativeScale3D(Scale);*/
 
         std::string CoordiButtonLabel;
         if (Player->GetCoordMode() == ECoordMode::CDM_WORLD)

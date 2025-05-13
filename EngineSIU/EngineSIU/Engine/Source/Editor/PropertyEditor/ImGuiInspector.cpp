@@ -67,7 +67,7 @@ namespace ImGuiInspector
             TField<FRotator>* FR = dynamic_cast<TField<FRotator>*>(Field);
             FRotator R = FR->GetValue(ObjPtr);
             FImGuiWidget::DrawRot3Control(*Field->Name, R, 0, 85);
-            //FR->SetValue(ObjPtr, R);
+            FR->SetValue(ObjPtr, R);
             if (auto* SC = Cast<USceneComponent>(ObjPtr))
             {
                 SC->SetRelativeRotation(R);

@@ -17,6 +17,13 @@ public:
         , Flags(InFlags)
     {
     }
+    virtual UField* Clone() const
+    {
+        // 기본 UField 복사
+        return new UField(Name, Offset, Size, PropType, Flags);
+    }
+
+
     virtual ~UField() {}
 
     UField*             Next;     // 링크드 리스트 다음 노드
@@ -24,7 +31,7 @@ public:
     int64               Offset;   // offsetof(ThisClass, Var)
     uint32              Size;     // sizeof(Type)
     EPropertyType       PropType;   // 값의 타입
-    EPropertyFlags      Flags;      // ← 추가된 플래그
+    EPropertyFlags      Flags;      
 };
 
 template<typename T>
@@ -35,6 +42,11 @@ public:
         EPropertyType InPropType, EPropertyFlags InFlags)
         : UField(InName, InOffset, InSize, InPropType, InFlags)
     {
+    }
+
+    virtual UField* Clone() const override
+    {
+        return new TField<T>(Name, Offset, Size, PropType, Flags);
     }
 
     virtual ~TField() override {}
@@ -95,6 +107,7 @@ public:
             InFunc(Field);
         }
     }
+    void CopyParentFields();
 private:
     UField* HeadField;
 };
@@ -170,6 +183,8 @@ public:
 
     void RegisterField(UField* Field);
 
+    void CopyParentFields();
+
 protected:
     virtual UObject* CreateDefaultObject();
 
@@ -185,6 +200,8 @@ private:
     UObject* ClassDefaultObject = nullptr;
 
     TArray<FProperty> Properties;
+
+    bool bHasCopiedParentFields = false; // 1번만 복사하도록
 };
 
 template <typename T>

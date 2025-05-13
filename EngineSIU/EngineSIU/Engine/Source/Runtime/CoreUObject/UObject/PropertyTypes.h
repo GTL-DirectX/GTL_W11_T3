@@ -34,6 +34,7 @@ enum class EPropertyType : uint8
     Struct,                        // 사용자 정의 구조체 타입
     Rotator,
     Vector,
+    Color,                         // 색상 타입 (FColor)
 };
 
 template <typename T>

@@ -17,17 +17,17 @@ private: \
     TClass& operator=(const TClass&) = delete; \
     TClass(TClass&&) = delete; \
     TClass& operator=(TClass&&) = delete; \
-    inline static struct TClass##_StaticClassRegistrar_ \
-    { \
-        TClass##_StaticClassRegistrar_() \
-        { \
-            UClass::GetClassMap().Add(#TClass, ThisClass::StaticClass()); \
-            AddClassToChildListMap(ThisClass::StaticClass()); \
-        } \
-    } TClass##_StaticClassRegistrar_{}; \
 public: \
     using Super = TSuperClass; \
     using ThisClass = TClass;
+    //inline static struct TClass##_StaticClassRegistrar_ \
+    //{ \
+    //    TClass##_StaticClassRegistrar_() \
+    //    { \
+    //        UClass::GetClassMap().Add(#TClass, ThisClass::StaticClass()); \
+    //        AddClassToChildListMap(ThisClass::StaticClass()); \
+    //    } \
+    //} TClass##_StaticClassRegistrar_{}; \
 
 
 // RTTI를 위한 클래스 매크로
@@ -46,7 +46,17 @@ public: \
             } \
         }; \
         return &ClassInfo; \
-    }
+    } \
+    inline static struct TClass##_StaticClassRegistrar_                 \
+    {                                                                   \
+        TClass##_StaticClassRegistrar_()                                \
+        {                                                               \
+            UClass* C = ThisClass::StaticClass();                       \
+            UClass::GetClassMap().Add(#TClass, C);                      \
+            AddClassToChildListMap(C);                                  \
+            C->CopyParentFields();  /* ← 부모 필드 복사하여 등록 */       \
+        }                                                               \
+    } TClass##_StaticClassRegistrar_{};                                 \
 
 // RTTI를 위한 추상 클래스 매크로
 #define DECLARE_ABSTRACT_CLASS(TClass, TSuperClass) \
