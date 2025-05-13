@@ -86,10 +86,10 @@ public: \
         VarName##_PropRegistrar() \
         { \
             constexpr int64 Offset = offsetof(ThisClass, VarName); \
-            constexpr EPropertyType PT = GetPropertyType<Type>(); \
             ThisClass::StaticClass()->RegisterProperty( \
                 { #VarName, sizeof(Type), Offset } \
             ); \
+            constexpr EPropertyType PT = GetPropertyType<Type>(); \
             TField<Type>* Field = new TField<Type>( \
                 FString(TEXT(#VarName)), Offset, sizeof(Type), PT \
             ); \

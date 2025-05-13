@@ -5,6 +5,7 @@
 //#include <windows.h>
 //#include <tchar.h>
 
+#include "ImGuiInspector.h"
 #include "World/World.h"
 #include "Actors/Player.h"
 #include "Components/BoxComponent.h"
@@ -233,22 +234,29 @@ void PropertyEditorPanel::RenderForSceneComponent(USceneComponent* SceneComponen
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
     if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
     {
-        FVector Location = SceneComponent->GetRelativeLocation();
-        FRotator Rotation = SceneComponent->GetRelativeRotation();
-        FVector Scale = SceneComponent->GetRelativeScale3D();
+        UObject* Object = Cast<UObject>(SceneComponent);
+        UClass* Cls = SceneComponent->GetClass();
+        Cls->ForEachField([&](UField* Field)
+            {
+                ImGuiInspector::DrawFieldEditor(Field, Object);
+                ImGui::Spacing();
+            });
+        //FVector Location = SceneComponent->GetRelativeLocation();
+        //FRotator Rotation = SceneComponent->GetRelativeRotation();
+        //FVector Scale = SceneComponent->GetRelativeScale3D();
 
-        FImGuiWidget::DrawVec3Control("Location", Location, 0, 85);
-        ImGui::Spacing();
+        //FImGuiWidget::DrawVec3Control("Location", Location, 0, 85);
+        //ImGui::Spacing();
 
-        FImGuiWidget::DrawRot3Control("Rotation", Rotation, 0, 85);
-        ImGui::Spacing();
+        //FImGuiWidget::DrawRot3Control("Rotation", Rotation, 0, 85);
+        //ImGui::Spacing();
 
-        FImGuiWidget::DrawVec3Control("Scale", Scale, 0, 85);
-        ImGui::Spacing();
+        //FImGuiWidget::DrawVec3Control("Scale", Scale, 0, 85);
+        //ImGui::Spacing();
 
-        SceneComponent->SetRelativeLocation(Location);
-        SceneComponent->SetRelativeRotation(Rotation);
-        SceneComponent->SetRelativeScale3D(Scale);
+        //SceneComponent->SetRelativeLocation(Location);
+        //SceneComponent->SetRelativeRotation(Rotation);
+        //SceneComponent->SetRelativeScale3D(Scale);
 
         std::string CoordiButtonLabel;
         if (Player->GetCoordMode() == ECoordMode::CDM_WORLD)
