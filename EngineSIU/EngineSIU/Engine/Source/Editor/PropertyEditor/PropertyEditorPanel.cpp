@@ -35,6 +35,7 @@
 #include "Viewer/SlateViewer.h"
 #include "Slate/Widgets/Layout/SSplitter.h"
 #include "Components/Material/Material.h"
+#include "Contents/MyAnimInstance.h"
 #include "Contents/Actors/ItemActor.h"
 #include "Math/JungleMath.h"
 #include "Renderer/ShadowManager.h"
@@ -568,6 +569,68 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             }
             ImGui::EndCombo();
         }
+
+        TArray<UClass*> AnimClasses;
+        GetChildOfClass(UAnimInstance::StaticClass(), AnimClasses);
+        
+        if (ImGui::BeginCombo("AnimInstance", "None", ImGuiComboFlags_None))
+        {
+            for (auto* AnimInstance : AnimClasses)
+            {
+                if (ImGui::Selectable(GetData(AnimInstance->GetName()), false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
+                    SkeletalComp->SetAnimationInstance(Instance);
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        
+        TArray<FString> animNames;
+        {
+            std::lock_guard<std::mutex> lock(FFbxLoader::AnimMapMutex);
+            for (auto const& [name, entry] : FFbxLoader::AnimMap)
+            {
+                if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+                {
+                    animNames.Add(name);
+                }
+            }
+        }
+        
+        if (ImGui::BeginCombo("Anim1", "NONE"))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (Instance)
+                    {
+                        Instance->Anim1 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        if (ImGui::BeginCombo("Anim2", "NONE"))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (Instance)
+                    {
+                        Instance->Anim2 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        
 
         if (ImGui::Button("Preview"))
         {

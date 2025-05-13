@@ -3,6 +3,7 @@
 #include "UObject/ObjectMacros.h"
 #include "AnimNotifyQueue.h"
 
+class UAnimationStateMachine;
 struct FTransform;
 class USkeletalMeshComponent;
 class UAnimSequenceBase;
@@ -42,6 +43,8 @@ public:
     void SetCurrentTime(float NewTime);
 
 protected:
+    UAnimationStateMachine* AnimSM = nullptr;
+    
     TArray<FTransform> CurrentPose;
 
     UAnimSequenceBase* Sequence = nullptr; // 본래 FAnimNode_SequencePlayer에서 소유
