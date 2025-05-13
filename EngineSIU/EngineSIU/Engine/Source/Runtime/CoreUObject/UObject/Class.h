@@ -7,13 +7,11 @@ class UField
 {
 public:
     UField(const FString& InName, int64 InOffset, uint32 InSize/*, EPropertyUIFlags InUIFlags*/)
-        : Next(nullptr)
-        , Name(InName)
-        , Offset(InOffset)
-        , Size(InSize)
+        : Next(nullptr), Name(InName), Offset(InOffset), Size(InSize)
         //, UIFlags(InUIFlags)
     {
     }
+    virtual ~UField() {}
 
     UField*             Next;     // 링크드 리스트 다음 노드
     FString             Name;     // 변수 이름
@@ -21,6 +19,30 @@ public:
     uint32              Size;     // sizeof(Type)
     //EPropertyUIFlags    UIFlags;  // Visible / Editable 결정
 };
+
+template<typename T>
+class TField : public UField
+{
+public:
+    TField(const FString& InName, int64 InOffset, uint32 InSize
+    /*, EPropertyUIFlags InUIFlags*/)
+        : UField(InName, InOffset, InSize/*, InUIFlags*/)
+    {
+    }
+
+    virtual ~TField() override {}
+
+    T GetValue(UObject* Obj) const
+    {
+        return *(T*)((uint8*)Obj + Offset);
+    }
+
+    void SetValue(UObject* Obj, const T& NewValue)
+    {
+        *(T*)((uint8*)Obj + Offset) = NewValue;
+    }
+};
+
 
 class UStruct : public UObject
 {

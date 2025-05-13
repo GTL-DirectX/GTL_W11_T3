@@ -97,7 +97,7 @@ public: \
             ThisClass::StaticClass()->RegisterProperty( \
                 { #VarName, sizeof(Type), Offset } \
             ); \
-            UField* Field = new UField( \
+            TField<Type>* Field = new TField<Type>( \
                 FString(TEXT(#VarName)), Offset, sizeof(Type) \
             ); \
             ThisClass::StaticClass()->RegisterField(Field); \
