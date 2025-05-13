@@ -79,19 +79,19 @@ public: \
  * (int, Value, = 10)
  * ```
  */
-#define UPROPERTY(Type, VarName, ...) \
+#define UPROPERTY(Flags, Type, VarName, ...) \
     Type VarName FIRST_ARG(__VA_ARGS__); \
     inline static struct VarName##_PropRegistrar \
     { \
         VarName##_PropRegistrar() \
         { \
             constexpr int64 Offset = offsetof(ThisClass, VarName); \
+            constexpr EPropertyType PT = GetPropertyType<Type>(); \
             ThisClass::StaticClass()->RegisterProperty( \
                 { #VarName, sizeof(Type), Offset } \
             ); \
-            constexpr EPropertyType PT = GetPropertyType<Type>(); \
             TField<Type>* Field = new TField<Type>( \
-                FString(TEXT(#VarName)), Offset, sizeof(Type), PT \
+            FString(TEXT(#VarName)), Offset, sizeof(Type), PT, Flags \
             ); \
             ThisClass::StaticClass()->RegisterField(Field); \
         } \

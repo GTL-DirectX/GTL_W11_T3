@@ -8,6 +8,9 @@ namespace ImGuiInspector
 {
     void DrawFieldEditor(UField* Field, UObject* ObjPtr)
     {
+        if ((Field->Flags & EditAnywhere) == 0)
+            return;
+
         switch (Field->PropType)
         {
         case EPropertyType::Int32:

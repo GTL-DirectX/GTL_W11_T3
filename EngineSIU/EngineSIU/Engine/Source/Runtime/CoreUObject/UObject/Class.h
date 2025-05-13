@@ -7,10 +7,14 @@
 class UField
 {
 public:
-    UField(const FString& InName, int64 InOffset, uint32 InSize, EPropertyType InPropType
-        /*, EPropertyUIFlags InUIFlags*/)
-        : Next(nullptr), Name(InName), Offset(InOffset), Size(InSize), PropType(InPropType)
-        //, UIFlags(InUIFlags)
+    UField(const FString& InName, int64 InOffset, uint32 InSize,
+        EPropertyType InPropType, EPropertyFlags InFlags)
+        : Next(nullptr)
+        , Name(InName)
+        , Offset(InOffset)
+        , Size(InSize)
+        , PropType(InPropType)
+        , Flags(InFlags)
     {
     }
     virtual ~UField() {}
@@ -20,16 +24,16 @@ public:
     int64               Offset;   // offsetof(ThisClass, Var)
     uint32              Size;     // sizeof(Type)
     EPropertyType       PropType;   // 값의 타입
-    //EPropertyUIFlags    UIFlags;  // Visible / Editable 결정
+    EPropertyFlags      Flags;      // ← 추가된 플래그
 };
 
 template<typename T>
 class TField : public UField
 {
 public:
-    TField(const FString& InName, int64 InOffset, uint32 InSize, EPropertyType InPropType
-    /*, EPropertyUIFlags InUIFlags*/)
-        : UField(InName, InOffset, InSize, InPropType/*, InUIFlags*/)
+    TField(const FString& InName, int64 InOffset, uint32 InSize,
+        EPropertyType InPropType, EPropertyFlags InFlags)
+        : UField(InName, InOffset, InSize, InPropType, InFlags)
     {
     }
 
