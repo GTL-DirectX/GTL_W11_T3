@@ -93,15 +93,15 @@ struct FFbxAnimSequence // 애니메이션 하나 == layer
 
 struct FFbxAnimCurveKey
 {
-    enum class EInterpolationType : uint8
+    enum class EInterpolationType
     {
-        Constant,
-        Linear,
-        Cubic
+        Constant = 0x00000002,
+        Linear = 0x00000004,
+        Cubic = 0x00000008,
     };
     float Time;
     float Value;
-    EInterpolationType Type;
+    FFbxAnimCurveKey::EInterpolationType Type;
     float ArriveTangent = 0.f;
     float LeaveTangent = 0.f;
 };
@@ -116,28 +116,28 @@ struct FFbxCurveNode
 {
     enum class ECurveChannel : uint8
     {
-        X,
-        Y,
-        Z,
-        Pitch,
-        Yaw,
-        Roll,
-        ScaleX,
-        ScaleY,
-        ScaleZ
+        TX = 0,
+        TY = 1,
+        TZ = 2,
+        RX = 3,
+        RY = 4,
+        RZ = 5,
+        SX = 6,
+        SY = 7,
+        SZ = 8,
     };
     TMap<ECurveChannel, FFbxAnimCurve> Curves;
 };
 
 struct FFbxAnimLayer
 {
-    TMap<FString, FFbxCurveNode> AnimCurves; // 애니메이션 곡선
+    TMap<FString, FFbxCurveNode> AnimCurves; // Bone Name -> CurveNode
 };
 
 // 여러개의 애니메이션
 struct FFbxAnimStack
 {
-    FString AnimationName;
+    FString Name;
     TMap<FString, FFbxAnimLayer> AnimLayers; // 하나의 애니메이션을 구성
     float FrameRate;
 };

@@ -20,10 +20,20 @@ public:
     static void Init();
     //static void LoadFBX(const FString& filename);
     //static USkeletalMesh* GetSkeletalMesh(const FString& filename);
-    static bool ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSkeletalMesh, TArray<FFbxAnimSequence*>& OutFbxSequences);
+    static bool ParseFBX(const FString& FBXFilePath, 
+        FFbxSkeletalMesh* OutFbxSkeletalMesh, 
+        TArray<FFbxAnimSequence*>& OutFbxSequences,
+        TArray<FFbxAnimStack*>& OutAnimStacks
+    );
     static void GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USkeletalMesh*& OutSkeletalMesh);
-    static void GenerateAnimations(const FFbxSkeletalMesh* InFbxSkeletal, const FFbxAnimSequence* InFbxAnim, UAnimSequence*& OutAnimSequence);
-
+    static void GenerateAnimations(
+        const FFbxSkeletalMesh* InFbxSkeletal,
+        const FFbxAnimSequence* InFbxAnimSequence,
+        //const TArray<FFbxAnimSequence*>& InFbxAnimSequences,
+        //const TArray<FFbxAnimStack*>& InFbxAnimStacks,
+        TArray<FString>& OutAnimNames,
+        TArray<UAnimDataModel*>& OutAnimData
+    );
     //static void ParseFBXAnimationOnly(
     //    const FString& filename, USkeletalMesh* skeletalMesh,
     //    TArray<UAnimSequence*>& OutSequences
@@ -54,6 +64,15 @@ private:
         FFbxSkeletalMesh* fbxObject,
         TArray<FFbxAnimSequence*>& OutSequences
     );
+    static void LoadFBXCurves(
+        FbxScene* Scene,
+        FFbxSkeletalMesh* fbxObject,
+        TArray<FFbxAnimStack*>& OutAnimStacks
+    );
+
+    static void GetKeys(FbxAnimCurve* Curve, TArray<FFbxAnimCurveKey>& OutKeys);
+
+
     //static void LoadFBXAnimations(
     //    FFbxSkeletalMesh* fbxObject,
     //    FbxScene* scene,

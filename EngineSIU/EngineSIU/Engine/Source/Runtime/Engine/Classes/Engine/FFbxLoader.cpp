@@ -79,7 +79,11 @@ void FFbxLoader::Init()
 }
 
 // .fbx -> FFbxSkeletalMesh
-bool FFbxLoader::ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSkeletalMesh, TArray<FFbxAnimSequence*>& OutFbxSequences)
+bool FFbxLoader::ParseFBX(const FString& FBXFilePath, 
+    FFbxSkeletalMesh* OutFbxSkeletalMesh, 
+    TArray<FFbxAnimSequence*>& OutFbxSequences,
+    TArray<FFbxAnimStack*>& OutAnimStacks
+)
 {
     UE_LOG(ELogLevel::Display, "Start FBX Parsing : %s", *FBXFilePath);
     // .fbx 파일을 로드/언로드 시에만 mutex를 사용
@@ -115,6 +119,10 @@ bool FFbxLoader::ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSk
         UE_LOG(ELogLevel::Warning, "Failed to parse FBX: %s", *FBXFilePath);
         return false;
     }
+    converter = new FbxGeometryConverter(Manager);
+    converter->Triangulate(scene, true);
+    delete converter;
+
     // ✨ --- 좌표계 및 단위 변환 시작 ---
     FbxGlobalSettings& settings = scene->GetGlobalSettings();
     FbxAxisSystem currentAxisSystem = settings.GetAxisSystem();
@@ -138,9 +146,6 @@ bool FFbxLoader::ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSk
         FbxSystemUnit::cm.ConvertScene(scene);
     }
     
-    converter = new FbxGeometryConverter(Manager);
-    converter->Triangulate(scene, true);
-    delete converter;
 
     LoadFBXObject(scene, OutFbxSkeletalMesh);
     OutFbxSkeletalMesh->name = FBXFilePath;
@@ -148,6 +153,7 @@ bool FFbxLoader::ParseFBX(const FString& FBXFilePath, FFbxSkeletalMesh* OutFbxSk
     // 애니메이션 정보 로드
     LoadFBXAnimations(scene, OutFbxSkeletalMesh, OutFbxSequences);
 
+    LoadFBXCurves(scene, OutFbxSkeletalMesh, OutAnimStacks);
     scene->Destroy();
     //UE_LOG(ELogLevel::Display, "FBX parsed: %s", *FBXFilePath);
     return true;
@@ -181,7 +187,7 @@ void FFbxLoader::GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USk
             memcpy(
                 renderData.RenderSections[i].Vertices[j].BoneIndices,
                 InFbxSkeletal->mesh[i].vertices[j].boneIndices,
-                sizeof(int8) * 8
+                sizeof(int) * 8
             );
             memcpy(
                 renderData.RenderSections[i].Vertices[j].BoneWeights,
@@ -236,7 +242,16 @@ void FFbxLoader::GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USk
     //ParseFBXAnimationOnly(filename, newSkeletalMesh); // 이 호출에서 애니메이션 정보만 파싱됨
 }
 
-void FFbxLoader::GenerateAnimations(const FFbxSkeletalMesh* InFbxSkeletal, const FFbxAnimSequence* InFbxAnim, UAnimSequence*& OutAnimSequence)
+// FFbxAnimSequence와 FFbxAnimStack을 이름 기준으로 매칭합니다.
+// 이름에 맞게 하나씩 UAnimDataModel을 생성합니다.
+void FFbxLoader::GenerateAnimations(
+    const FFbxSkeletalMesh* InFbxSkeletal,
+    const FFbxAnimSequence* InFbxAnim,
+    //const TArray<FFbxAnimSequence*>& InFbxAnimSequences,
+    //const TArray<FFbxAnimStack*>& InFbxAnimStacks,
+    TArray<FString>& OutAnimNames,
+    TArray<UAnimDataModel*>& OutAnimData
+)
 {
     UAnimDataModel* DataModel = FObjectFactory::ConstructObject<UAnimDataModel>(nullptr);
     DataModel->PlayLength = InFbxAnim->Duration;
@@ -264,10 +279,8 @@ void FFbxLoader::GenerateAnimations(const FFbxSkeletalMesh* InFbxSkeletal, const
         DataModel->BoneAnimationTracks.Emplace(NewTrack);
     }
 
-    OutAnimSequence = FObjectFactory::ConstructObject<UAnimSequence>(nullptr);
-    OutAnimSequence->Name = InFbxAnim->Name;
-    OutAnimSequence->SetSequenceLength(InFbxAnim->Duration);
-    OutAnimSequence->SetDataModel(DataModel);
+    OutAnimData.Add(DataModel);
+    OutAnimNames.Emplace(InFbxAnim->Name);
 }
 
 // FbxScene -> FFbxSkeletalMesh
@@ -491,6 +504,7 @@ void FFbxLoader::LoadFbxSkeleton(
     }
 }
 
+// ControlIndex -> [BoneIndex, Weight]
 void FFbxLoader::LoadSkinWeights(
     FbxNode* node,
     const TMap<FString, int>& boneNameToIndex,
@@ -588,6 +602,7 @@ void FFbxLoader::LoadFBXAnimations(FbxScene* Scene, FFbxSkeletalMesh* fbxObject,
     {
         // AnimStack(애니메이션 클립) 이름으로 AnimStack 가져오기
         FbxAnimStack* AnimStack = Scene->FindMember<FbxAnimStack>(animNames[i]->Buffer());
+        Scene->SetCurrentAnimationStack(AnimStack); // 이게 빠져있음!
         if (!AnimStack) continue;
 
         FbxTakeInfo* TakeInfo = Scene->GetTakeInfo(AnimStack->GetName());
@@ -645,6 +660,124 @@ void FFbxLoader::LoadFBXAnimations(FbxScene* Scene, FFbxSkeletalMesh* fbxObject,
             *Seq->Name,
             Seq->Duration,
             Seq->NumFrames);
+    }
+}
+
+void FFbxLoader::LoadFBXCurves(FbxScene* Scene, FFbxSkeletalMesh* fbxObject, TArray<FFbxAnimStack*>& OutAnimStacks)
+{
+    if (!Scene || !fbxObject)
+        return;
+
+    int AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
+    for (int StackIdx = 0; StackIdx < AnimStackCount; ++StackIdx)
+    {
+        FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(StackIdx);
+        if (!AnimStack) continue;
+
+        FFbxAnimStack* NewAnimStack = new FFbxAnimStack;
+
+        int AnimLayerCount = AnimStack->GetMemberCount<FbxAnimLayer>();
+        for (int LayerIdx = 0; LayerIdx < AnimLayerCount; ++LayerIdx)
+        {
+            FbxAnimLayer* AnimLayer = AnimStack->GetMember<FbxAnimLayer>(LayerIdx);
+            if (!AnimLayer) continue;
+
+            FFbxAnimLayer NewAnimLayer;
+
+            // Traverse all nodes (bones, meshes, etc)
+            FbxNode* RootNode = Scene->GetRootNode();
+            std::function<void(FbxNode*)> Traverse;
+            Traverse = [&](FbxNode* Node)
+                {
+                    if (!Node) return;
+                    FString BoneName = Node->GetName();
+
+                    FbxAnimCurve* CurveTX = Node->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
+                    FbxAnimCurve* CurveTY = Node->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y);
+                    FbxAnimCurve* CurveTZ = Node->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z);
+
+                    FbxAnimCurve* CurveRX = Node->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
+                    FbxAnimCurve* CurveRY = Node->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y);
+                    FbxAnimCurve* CurveRZ = Node->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z);
+
+                    FbxAnimCurve* CurveSX = Node->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
+                    FbxAnimCurve* CurveSY = Node->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y);
+                    FbxAnimCurve* CurveSZ = Node->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z);
+
+                    if ((CurveTX && CurveTX->KeyGetCount()) ||
+                        (CurveTY && CurveTY->KeyGetCount()) ||
+                        (CurveTZ && CurveTZ->KeyGetCount()) ||
+                        (CurveRX && CurveRX->KeyGetCount()) ||
+                        (CurveRY && CurveRY->KeyGetCount()) ||
+                        (CurveRZ && CurveRZ->KeyGetCount()) ||
+                        (CurveSX && CurveSX->KeyGetCount()) ||
+                        (CurveSY && CurveSY->KeyGetCount()) ||
+                        (CurveSZ && CurveSZ->KeyGetCount()))
+                    {
+                        FFbxAnimCurve TXCurve;
+                        if (CurveTX) FFbxLoader::GetKeys(CurveTX, TXCurve.KeyFrames);
+                        FFbxAnimCurve TYCurve;
+                        if (CurveTY) FFbxLoader::GetKeys(CurveTY, TYCurve.KeyFrames);
+                        FFbxAnimCurve TZCurve;
+                        if (CurveTZ) FFbxLoader::GetKeys(CurveTZ, TZCurve.KeyFrames);
+
+                        FFbxAnimCurve RXCurve;
+                        if (CurveRX) FFbxLoader::GetKeys(CurveRX, RXCurve.KeyFrames);
+                        FFbxAnimCurve RYCurve;
+                        if (CurveRY) FFbxLoader::GetKeys(CurveRY, RYCurve.KeyFrames);
+                        FFbxAnimCurve RZCurve;
+                        if (CurveRZ) FFbxLoader::GetKeys(CurveRZ, RZCurve.KeyFrames);
+
+                        FFbxAnimCurve SXCurve;
+                        if (CurveSX) FFbxLoader::GetKeys(CurveSX, SXCurve.KeyFrames);
+                        FFbxAnimCurve SYCurve;
+                        if (CurveSY) FFbxLoader::GetKeys(CurveSY, SYCurve.KeyFrames);
+                        FFbxAnimCurve SZCurve;
+                        if (CurveSZ) FFbxLoader::GetKeys(CurveSZ, SZCurve.KeyFrames);
+
+                        FFbxCurveNode CurveNode;
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::TX, TXCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::TY, TYCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::TZ, TZCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::RX, RXCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::RY, RYCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::RZ, RZCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::SX, SXCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::SY, SYCurve);
+                        CurveNode.Curves.Add(FFbxCurveNode::ECurveChannel::SZ, SZCurve);
+                        NewAnimLayer.AnimCurves.Add(BoneName, CurveNode);
+                    }
+
+                    for (int i = 0; i < Node->GetChildCount(); ++i)
+                        Traverse(Node->GetChild(i));
+                    return;
+                };
+            Traverse(RootNode);
+
+            NewAnimStack->Name = FString(AnimStack->GetName());
+            NewAnimStack->AnimLayers.Add(FString(AnimLayer->GetName()), NewAnimLayer);
+            NewAnimStack->FrameRate = static_cast<float>(FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode()));
+        }
+        // 프레임레이트 추출 (Unreal Engine 소스 참고)
+
+        OutAnimStacks.Add(NewAnimStack);
+    }
+}
+
+void FFbxLoader::GetKeys(FbxAnimCurve* Curve, TArray<FFbxAnimCurveKey>& OutKeys)
+{
+    int KeyCount = Curve->KeyGetCount();
+    OutKeys.SetNum(KeyCount);
+    for (int k = 0; k < KeyCount; ++k)
+    {
+        FbxAnimCurveKey FbxKey = Curve->KeyGet(k);
+        FFbxAnimCurveKey Key;
+        Key.Time = static_cast<float>(FbxKey.GetTime().GetSecondDouble());
+        Key.Value = FbxKey.GetValue();
+        Key.Type = static_cast<FFbxAnimCurveKey::EInterpolationType>(FbxKey.GetInterpolation());
+        Key.ArriveTangent = FbxKey.GetDataFloat(FbxAnimCurveDef::eRightSlope);
+        Key.LeaveTangent = FbxKey.GetDataFloat(FbxAnimCurveDef::eNextLeftSlope);
+        OutKeys[k] = Key;
     }
 }
 
@@ -951,7 +1084,7 @@ void FFbxLoader::LoadFBXMesh(
             }
 
             // indices process
-            std::stringstream ss;
+           std::stringstream ss;
             ss << GetData(convertPos.ToString()) << '|' << GetData(convertNormal.ToString()) << '|' << GetData(convertUV.ToString());
             FString key = ss.str();
             uint32 index;
@@ -1274,3 +1407,4 @@ FTransform FFbxLoader::FTransformFromFbxMatrix(const FbxAMatrix& Matrix)
     return FTransform(Translation, Rotation, Scale);
 }
 
+    
