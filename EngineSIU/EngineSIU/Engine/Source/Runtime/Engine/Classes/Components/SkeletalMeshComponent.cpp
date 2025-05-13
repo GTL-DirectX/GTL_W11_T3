@@ -402,3 +402,12 @@ void USkeletalMeshComponent::Play(bool bLooping) const
         UE_LOG(ELogLevel::Warning, TEXT("Play: No animation sequence set in AnimSingleNodeInstance for %s."), *GetName());
     }
 }
+
+void USkeletalMeshComponent::SetAnimationInstance(UAnimInstance* NewAnimInstance)
+{
+    if (AnimScriptInstance != NewAnimInstance && NewAnimInstance != nullptr)
+    {
+        AnimScriptInstance = NewAnimInstance;
+        NewAnimInstance->InitializeAnimation(this);
+    }
+}
