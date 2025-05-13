@@ -30,7 +30,7 @@ public:
         const FFbxSkeletalMesh* InFbxSkeletal,
         const FFbxAnimSequence* InFbxAnimSequence,
         FString& OutAnimName,
-        UAnimSequenceBase*& OutAnimSequence
+        UAnimSequence*& OutAnimSequence
         //const TArray<FFbxAnimSequence*>& InFbxAnimSequences,
         //const TArray<FFbxAnimStack*>& InFbxAnimStacks,
         //TArray<FString>& OutAnimNames,

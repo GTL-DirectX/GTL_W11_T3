@@ -99,7 +99,7 @@ USkeletalMesh* FFbxManager::GetSkeletalMesh(const FString& filename)
     return nullptr;
 }
 
-UAnimSequenceBase* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
+UAnimSequence* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
 {
     {
         FSpinLockGuard Lock(AnimMapLock);
@@ -303,14 +303,14 @@ void FFbxManager::ConvertFunc()
                 MeshMap[FileName].Mesh = SkeletalMesh;
 
                 TArray<FFbxAnimSequence*> FbxSequences = FbxAnimMap[FileName];
-                TArray<UAnimSequenceBase*> AnimSequences;
+                TArray<UAnimSequence*> AnimSequences;
                 TArray<FString> AnimNames;
                 for (const FFbxAnimSequence* FbxSequence : FbxSequences)
                 {
                     // 애니메이션을 생성
                     if (FbxSequence)
                     {
-                        UAnimSequenceBase* AnimSequence = nullptr;
+                        UAnimSequence* AnimSequence = nullptr;
                         FString AnimName;
                         FFbxLoader::GenerateAnimations(FbxMesh, FbxSequence, AnimName, AnimSequence);
                         AnimSequences.Add(AnimSequence);
@@ -319,7 +319,7 @@ void FFbxManager::ConvertFunc()
                 }
                 {
                     FSpinLockGuard Lock(AnimMapLock);
-                    for (UAnimSequenceBase* AnimSeq : AnimSequences)
+                    for (UAnimSequence* AnimSeq : AnimSequences)
                     {
                         if (AnimSeq)
                         {

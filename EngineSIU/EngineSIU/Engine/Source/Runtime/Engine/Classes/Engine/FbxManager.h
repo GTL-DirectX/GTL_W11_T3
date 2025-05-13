@@ -38,7 +38,7 @@ public:
     struct AnimEntry
     {
         LoadState State; // 항상 Completed가 될것임
-        UAnimSequenceBase* Sequence;
+        UAnimSequence* Sequence;
     };
 
     inline static FSpinLock MeshMapLock; // MeshEntry의 Map에 접근할 때 쓰는 스핀락 : map 접근에는 mutex사용안함
@@ -49,7 +49,7 @@ public:
     static void Load(const FString& filename, bool bPrioritized = false);
 
     static USkeletalMesh* GetSkeletalMesh(const FString& filename);
-    static UAnimSequenceBase* GetAnimSequenceByName(const FString& SeqName);
+    static UAnimSequence* GetAnimSequenceByName(const FString& SeqName);
     static const TMap<FString, MeshEntry>& GetSkeletalMeshes();
     static const TMap<FString, AnimEntry>& GetAnimSequences();
     static bool IsPriorityQueueDone();

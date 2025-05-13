@@ -616,10 +616,10 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         
         TArray<FString> animNames;
         {
-            std::lock_guard<std::mutex> lock(FFbxLoader::AnimMapMutex);
-            for (auto const& [name, entry] : FFbxLoader::AnimMap)
+            FSpinLockGuard Lock(FFbxManager::AnimMapLock);
+            for (auto const& [name, entry] : FFbxManager::GetAnimSequences())
             {
-                if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+                if (entry.State == FFbxManager::LoadState::Completed && entry.Sequence != nullptr)
                 {
                     animNames.Add(name);
                 }
@@ -635,7 +635,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                     UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (Instance)
                     {
-                        Instance->Anim1 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                        Instance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
                     }
                 }
             }
@@ -651,7 +651,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                     UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (Instance)
                     {
-                        Instance->Anim2 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                        Instance->Anim2 = FFbxManager::GetAnimSequenceByName(animNames[i]);
                     }
                 }
             }

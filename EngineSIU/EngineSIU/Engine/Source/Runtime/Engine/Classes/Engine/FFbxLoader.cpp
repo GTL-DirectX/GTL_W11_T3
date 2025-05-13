@@ -248,7 +248,7 @@ void FFbxLoader::GenerateAnimations(
     const FFbxSkeletalMesh* InFbxSkeletal,
     const FFbxAnimSequence* InFbxAnim,
     FString& OutAnimName,
-    UAnimSequenceBase*& OutAnimSequence
+    UAnimSequence*& OutAnimSequence
     //const TArray<FFbxAnimSequence*>& InFbxAnimSequences,
     //const TArray<FFbxAnimStack*>& InFbxAnimStacks,
     //TArray<FString>& OutAnimNames,
@@ -281,7 +281,7 @@ void FFbxLoader::GenerateAnimations(
         DataModel->BoneAnimationTracks.Emplace(NewTrack);
     }
 
-    UAnimSequenceBase* AnimSequence = FObjectFactory::ConstructObject<UAnimSequenceBase>(nullptr);
+    UAnimSequence* AnimSequence = FObjectFactory::ConstructObject<UAnimSequence>(nullptr);
     AnimSequence->SetDataModel(DataModel);
     AnimSequence->SetName(InFbxAnim->Name);
     AnimSequence->SetSequenceLength(InFbxAnim->Duration);
