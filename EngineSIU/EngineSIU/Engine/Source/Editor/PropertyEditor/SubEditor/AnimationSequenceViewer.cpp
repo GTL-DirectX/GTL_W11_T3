@@ -123,6 +123,7 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
     
     if (ImGui::BeginNeoSequencer("Sequencer", &CurrentFrameSeconds, &StartFrameSeconds, &EndFrameSeconds, {InWidth, InHeight},
                                  ImGuiNeoSequencerFlags_EnableSelection |
+                                 ImGuiNeoSequencerFlags_Selection_EnableDragging |
                                  ImGuiNeoSequencerFlags_AllowLengthChanging |
                                  ImGuiNeoSequencerFlags_Selection_EnableDeletion))
     {
@@ -256,6 +257,17 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
         if ( SelectedSkeletalMeshComponent->GetSingleNodeInstance() != nullptr)
         {
              SelectedSkeletalMeshComponent->GetSingleNodeInstance()->SetCurrentTime(CurrentFrameSeconds);
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+        {
+            UE_LOG(ELogLevel::Display, "Delete Key Clicked");
+            if (SelectedNotifyIndex >= 0 && SelectedNotifyIndex < Notifies.Num())
+            {
+                Notifies.RemoveAt(SelectedNotifyIndex);
+                SelectedNotifyIndex = -1;
+                bNeedsNotifyUpdate = true;
+            }
         }
         
         ImGui::EndNeoSequencer();

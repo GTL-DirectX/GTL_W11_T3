@@ -170,7 +170,7 @@ void SlateViewer::RegisterViewerInputDelegates()
         }
         if (ActiveViewportClient)
         {
-            ActiveViewportClient->InputKey(InKeyEvent);
+            ActiveViewportClient->InputKey(hWnd, InKeyEvent);
         }
     }));
     
@@ -187,7 +187,7 @@ void SlateViewer::RegisterViewerInputDelegates()
         }
         if (ActiveViewportClient)
         {
-            ActiveViewportClient->InputKey(InKeyEvent);
+            ActiveViewportClient->InputKey(hWnd, InKeyEvent);
         }
     }));
     
