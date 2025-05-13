@@ -29,6 +29,7 @@ void UAnimTwoNodeBlendInstance::SetAnimationAsset(UAnimSequenceBase* NewAnimToPl
 
 void UAnimTwoNodeBlendInstance::UpdateAnimation(float DeltaSeconds)
 {
+    UE_LOG(ELogLevel::Display, TEXT("DeltaSeconds : %f", DeltaSeconds));
     if (!IsPlaying() || !OwningComp || !OwningComp->GetSkeletalMesh()) {
         ResetToRefPose();
         return;
@@ -42,10 +43,11 @@ void UAnimTwoNodeBlendInstance::UpdateAnimation(float DeltaSeconds)
         BlendAlpha = FMath::Clamp(ElaspedBlendTime / BlendTime, 0.0f, 1.0f);
 
         if (BlendAlpha >= 1.0f) {
-            From = To;
-            To = FBlendState();
-            bIsBlending = false;
-            BlendAlpha = 1.0f;
+            //From = To;
+            //To = FBlendState();
+            //bIsBlending = false;
+            //BlendAlpha = 1.0f;
+            BlendAlpha = 0.0f;
             ElaspedBlendTime = 0.0f;
             // TODO 블렌딩 끝날 시 델리게이트 호출
             //OnBlendComplete.ExcuteIfBound();
@@ -54,6 +56,8 @@ void UAnimTwoNodeBlendInstance::UpdateAnimation(float DeltaSeconds)
     else {
         BlendAlpha = 1.0f;
     }
+    UE_LOG(ELogLevel::Display, TEXT("ElapsedTime : %f", ElaspedBlendTime));
+
 }
 
 const TArray<FTransform>& UAnimTwoNodeBlendInstance::EvaluateAnimation()
@@ -74,6 +78,13 @@ const TArray<FTransform>& UAnimTwoNodeBlendInstance::EvaluateAnimation()
         PoseA = RefSkeleton.RawRefBonePose;
     }
 
+    if (To.IsValid()) {
+        To.Sequence->GetDataModel()->GetPoseAtTime(To.CurrentTime, PoseB, RefSkeleton, To.Sequence->IsLooping());
+    }
+    else {
+        PoseB = RefSkeleton.RawRefBonePose;
+    }
+
     for (int32 i = 0; i < NumBones; ++i) {
         CurrentPose[i].SetTranslation(FMath::Lerp(PoseA[i].GetTranslation(), PoseB[i].GetTranslation(), BlendAlpha));
         CurrentPose[i].SetRotation(FQuat::Slerp(PoseA[i].GetRotation(), PoseB[i].GetRotation(), BlendAlpha));
@@ -81,4 +92,28 @@ const TArray<FTransform>& UAnimTwoNodeBlendInstance::EvaluateAnimation()
     }
 
     return CurrentPose;
+}
+
+UAnimSequenceBase* UAnimTwoNodeBlendInstance::GetFromSequence() const
+{
+    return From.Sequence;
+}
+
+UAnimSequenceBase* UAnimTwoNodeBlendInstance::GetToSequence() const
+{
+    return To.Sequence;
+}
+
+void UAnimTwoNodeBlendInstance::StopBlend(bool bResetPose)
+{
+    From = {};
+    To = {};
+    bIsBlending = false;
+    BlendAlpha = 0.0f;
+    ElaspedBlendTime = 0.0f;
+    SetPlaying(false);
+
+    if (bResetPose) {
+        ResetToRefPose();
+    }
 }

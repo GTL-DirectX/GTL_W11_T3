@@ -336,7 +336,7 @@ void USkeletalMeshComponent::SetAnimation(UAnimSequenceBase* NewAnimToPlay)
     // AnimationSingleNode 모드인지 확인 및 AnimScriptInstance 생성/가져오기
     //if (AnimationMode != EAnimationMode::AnimationSingleNode)
     //{
-    //    // UE_LOG(ELogLevel::Warning, TEXT("SetAnimation called but AnimationMode is not AnimationSingleNode. Forcing mode."));
+    //    UE_LOG(ELogLevel::Warning, TEXT("SetAnimation called but AnimationMode is not AnimationSingleNode. Forcing mode."));
     //    SetAnimationMode(EAnimationMode::AnimationSingleNode); // 강제로 모드 변경
     //}
 
@@ -381,28 +381,30 @@ void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMo
         AnimScriptInstance = nullptr;
     }*/
 
-    switch (InAnimationMode) {
-    case EAnimationMode::AnimationSingleNode:
-    {
-        AnimScriptInstance = FObjectFactory::ConstructObject <UAnimSingleNodeInstance>(nullptr);
-        break;
+    if (AnimationMode != InAnimationMode) {
+        switch (InAnimationMode) {
+        case EAnimationMode::AnimationSingleNode:
+        {
+            AnimScriptInstance = FObjectFactory::ConstructObject <UAnimSingleNodeInstance>(nullptr);
+            break;
+        }
+        case EAnimationMode::AnimationTwoNodeBlend:
+        {
+            AnimScriptInstance = FObjectFactory::ConstructObject<UAnimTwoNodeBlendInstance>(nullptr);
+            break;
+        }
+        default:
+            break;
+        }
+        if (AnimScriptInstance) {
+            AnimScriptInstance->InitializeAnimation(this);
+        }
+        else {
+            UE_LOG(ELogLevel::Error, TEXT("Failed to create AnimScriptInstance in SetAnimation for %s"), *GetName());
+            return;
+        }
+        AnimationMode = InAnimationMode;
     }
-    case EAnimationMode::AnimationTwoNodeBlend:
-    {
-        AnimScriptInstance = FObjectFactory::ConstructObject<UAnimTwoNodeBlendInstance>(nullptr);
-        break;
-    }
-    default:
-        break;
-    }
-    if (AnimScriptInstance) {
-        AnimScriptInstance->InitializeAnimation(this);
-    }
-    else {
-        UE_LOG(ELogLevel::Error, TEXT("Failed to create AnimScriptInstance in SetAnimation for %s"), *GetName());
-        return;
-    }
-    AnimationMode = InAnimationMode;
 }
 
 void USkeletalMeshComponent::PlayAnimation(class UAnimSequenceBase* NewAnimToPlay, bool bLooping)
@@ -442,6 +444,13 @@ void USkeletalMeshComponent::Play(bool bLooping) const
         UAnimTwoNodeBlendInstance* TwoNodeBlendInstance = GetTwoNodeBlendInstance();
         if (TwoNodeBlendInstance) {
             TwoNodeBlendInstance->SetPlaying(true);
+            if (TwoNodeBlendInstance->GetFromSequence()) {
+                TwoNodeBlendInstance->GetFromSequence()->SetLooping(bLooping);
+
+            }
+            if (TwoNodeBlendInstance->GetToSequence()) {
+                TwoNodeBlendInstance->GetToSequence()->SetLooping(bLooping);
+            }
         }
         else
         {
@@ -453,4 +462,12 @@ void USkeletalMeshComponent::Play(bool bLooping) const
         break;
     }
     
+}
+
+void USkeletalMeshComponent::StopBlendAnimation()
+{
+    UAnimTwoNodeBlendInstance* BlendInstance = GetTwoNodeBlendInstance();
+    if (BlendInstance) {
+        BlendInstance->StopBlend(true);
+    }
 }

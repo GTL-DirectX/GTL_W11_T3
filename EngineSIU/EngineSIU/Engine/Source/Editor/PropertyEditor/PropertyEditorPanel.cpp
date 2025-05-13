@@ -492,6 +492,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     {
         if (SelectedSkeleton && bCanPlay) // SelectedSkeleton 유효성 재확인
         {
+            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationSingleNode);
             UAnimSequence* animToPlay = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
             if (animToPlay)
             {
@@ -541,8 +542,9 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
         {
             UE_LOG(ELogLevel::Display, TEXT("Stop Blend animation: %s"), *SelectedAnimName);
 
-            SelectedSkeleton->PlayAnimation(nullptr, false); // null 재생으로 중지
-            SelectedSkeleton->ResetPose(); // 기본 포즈로
+            SelectedSkeleton->StopBlendAnimation();
+            //SelectedSkeleton->PlayAnimation(nullptr, false); // null 재생으로 중지
+            //SelectedSkeleton->ResetPose(); // 기본 포즈로
         }
     }
     if (SelectedSkeleton)

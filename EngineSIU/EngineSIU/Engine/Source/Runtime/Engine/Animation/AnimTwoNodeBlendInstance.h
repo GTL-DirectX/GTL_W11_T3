@@ -42,6 +42,10 @@ public:
     // From과 To의 PoseA, PoseB를 계산 후 보간하여 최종 포즈 생성(CurrentPose)
     virtual const TArray<FTransform>& EvaluateAnimation() override;
 
+    UAnimSequenceBase* GetFromSequence() const;
+    UAnimSequenceBase* GetToSequence() const;
+
+    void StopBlend(bool bResetPose = true);
 
     // TODO 전이 완료 시 델리게이트 호출
     //DECLARE_DELEGATE(FOnBlendComplete);
