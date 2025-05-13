@@ -2,12 +2,14 @@
 #include <concepts>
 #include "Object.h"
 #include "Property.h"
+#include "PropertyTypes.h"
 
 class UField
 {
 public:
-    UField(const FString& InName, int64 InOffset, uint32 InSize/*, EPropertyUIFlags InUIFlags*/)
-        : Next(nullptr), Name(InName), Offset(InOffset), Size(InSize)
+    UField(const FString& InName, int64 InOffset, uint32 InSize, EPropertyType InPropType
+        /*, EPropertyUIFlags InUIFlags*/)
+        : Next(nullptr), Name(InName), Offset(InOffset), Size(InSize), PropType(InPropType)
         //, UIFlags(InUIFlags)
     {
     }
@@ -17,6 +19,7 @@ public:
     FString             Name;     // 변수 이름
     int64               Offset;   // offsetof(ThisClass, Var)
     uint32              Size;     // sizeof(Type)
+    EPropertyType       PropType;   // 값의 타입
     //EPropertyUIFlags    UIFlags;  // Visible / Editable 결정
 };
 
@@ -24,9 +27,9 @@ template<typename T>
 class TField : public UField
 {
 public:
-    TField(const FString& InName, int64 InOffset, uint32 InSize
+    TField(const FString& InName, int64 InOffset, uint32 InSize, EPropertyType InPropType
     /*, EPropertyUIFlags InUIFlags*/)
-        : UField(InName, InOffset, InSize/*, InUIFlags*/)
+        : UField(InName, InOffset, InSize, InPropType/*, InUIFlags*/)
     {
     }
 

@@ -4,15 +4,7 @@
 #include "Class.h"
 #include "UObjectHash.h"
 
-enum EPropertyFlags : uint32
-{
-    None = 0,
-    EditAnywhere = 1 << 0,
-    BlueprintReadOnly = 1 << 1,
-    BlueprintReadWrite = 1 << 2,
-    VisibleAnywhere = 1 << 3,
-};
-using enum EPropertyFlags;
+
 
 // name을 문자열화 해주는 매크로
 #define INLINE_STRINGIFY(name) #name
@@ -94,11 +86,12 @@ public: \
         VarName##_PropRegistrar() \
         { \
             constexpr int64 Offset = offsetof(ThisClass, VarName); \
+            constexpr EPropertyType PT = GetPropertyType<Type>(); \
             ThisClass::StaticClass()->RegisterProperty( \
                 { #VarName, sizeof(Type), Offset } \
             ); \
             TField<Type>* Field = new TField<Type>( \
-                FString(TEXT(#VarName)), Offset, sizeof(Type) \
+                FString(TEXT(#VarName)), Offset, sizeof(Type), PT \
             ); \
             ThisClass::StaticClass()->RegisterField(Field); \
         } \
