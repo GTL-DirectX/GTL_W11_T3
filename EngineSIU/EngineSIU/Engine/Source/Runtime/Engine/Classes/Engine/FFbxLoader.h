@@ -29,10 +29,12 @@ public:
     static void GenerateAnimations(
         const FFbxSkeletalMesh* InFbxSkeletal,
         const FFbxAnimSequence* InFbxAnimSequence,
+        FString& OutAnimName,
+        UAnimSequenceBase*& OutAnimSequence
         //const TArray<FFbxAnimSequence*>& InFbxAnimSequences,
         //const TArray<FFbxAnimStack*>& InFbxAnimStacks,
-        TArray<FString>& OutAnimNames,
-        TArray<UAnimDataModel*>& OutAnimData
+        //TArray<FString>& OutAnimNames,
+        //TArray<UAnimDataModel*>& OutAnimData
     );
     //static void ParseFBXAnimationOnly(
     //    const FString& filename, USkeletalMesh* skeletalMesh,

@@ -247,10 +247,12 @@ void FFbxLoader::GenerateSkeletalMesh(const FFbxSkeletalMesh* InFbxSkeletal, USk
 void FFbxLoader::GenerateAnimations(
     const FFbxSkeletalMesh* InFbxSkeletal,
     const FFbxAnimSequence* InFbxAnim,
+    FString& OutAnimName,
+    UAnimSequenceBase*& OutAnimSequence
     //const TArray<FFbxAnimSequence*>& InFbxAnimSequences,
     //const TArray<FFbxAnimStack*>& InFbxAnimStacks,
-    TArray<FString>& OutAnimNames,
-    TArray<UAnimDataModel*>& OutAnimData
+    //TArray<FString>& OutAnimNames,
+    //TArray<UAnimDataModel*>& OutAnimData
 )
 {
     UAnimDataModel* DataModel = FObjectFactory::ConstructObject<UAnimDataModel>(nullptr);
@@ -279,8 +281,13 @@ void FFbxLoader::GenerateAnimations(
         DataModel->BoneAnimationTracks.Emplace(NewTrack);
     }
 
-    OutAnimData.Add(DataModel);
-    OutAnimNames.Emplace(InFbxAnim->Name);
+    UAnimSequenceBase* AnimSequence = FObjectFactory::ConstructObject<UAnimSequenceBase>(nullptr);
+    AnimSequence->SetDataModel(DataModel);
+    AnimSequence->SetName(InFbxAnim->Name);
+    AnimSequence->SetSequenceLength(InFbxAnim->Duration);
+    
+    OutAnimSequence = AnimSequence;
+    OutAnimName = InFbxAnim->Name;
 }
 
 // FbxScene -> FFbxSkeletalMesh

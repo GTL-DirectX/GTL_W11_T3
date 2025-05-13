@@ -99,7 +99,7 @@ USkeletalMesh* FFbxManager::GetSkeletalMesh(const FString& filename)
     return nullptr;
 }
 
-UAnimSequence* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
+UAnimSequenceBase* FFbxManager::GetAnimSequenceByName(const FString& SeqName)
 {
     {
         FSpinLockGuard Lock(AnimMapLock);
@@ -180,6 +180,7 @@ void FFbxManager::LoadFunc()
                 // 이 포인터는 사용이 끝나면 제거합니다.
                 FFbxSkeletalMesh* FbxMesh = new FFbxSkeletalMesh();
                 TArray<FFbxAnimSequence*> AnimSequences;
+                TArray<FFbxAnimStack*> AnimStacks;
                 FWString BinaryPath = (FileName + ".bin").ToWideString();
                 // Last Modified Time
                 auto FileTime = std::filesystem::last_write_time(FileName.ToWideString());
@@ -192,7 +193,7 @@ void FFbxManager::LoadFunc()
                 // Binary 파싱 실패. FBX 파싱 시도
                 if (!Success)
                 {
-                    Success = FFbxLoader::ParseFBX(FileName, FbxMesh, AnimSequences);
+                    Success = FFbxLoader::ParseFBX(FileName, FbxMesh, AnimSequences, AnimStacks);
                 }
 
                 // FBX 파싱 실패
@@ -302,20 +303,23 @@ void FFbxManager::ConvertFunc()
                 MeshMap[FileName].Mesh = SkeletalMesh;
 
                 TArray<FFbxAnimSequence*> FbxSequences = FbxAnimMap[FileName];
-                TArray<UAnimSequence*> AnimSequences;
+                TArray<UAnimSequenceBase*> AnimSequences;
+                TArray<FString> AnimNames;
                 for (const FFbxAnimSequence* FbxSequence : FbxSequences)
                 {
                     // 애니메이션을 생성
                     if (FbxSequence)
                     {
-                        UAnimSequence* AnimSequence = nullptr;
-                        FFbxLoader::GenerateAnimations(FbxMesh, FbxSequence, AnimSequence);
+                        UAnimSequenceBase* AnimSequence = nullptr;
+                        FString AnimName;
+                        FFbxLoader::GenerateAnimations(FbxMesh, FbxSequence, AnimName, AnimSequence);
                         AnimSequences.Add(AnimSequence);
+                        AnimNames.Add(AnimName);
                     }
                 }
                 {
                     FSpinLockGuard Lock(AnimMapLock);
-                    for (UAnimSequence* AnimSeq : AnimSequences)
+                    for (UAnimSequenceBase* AnimSeq : AnimSequences)
                     {
                         if (AnimSeq)
                         {

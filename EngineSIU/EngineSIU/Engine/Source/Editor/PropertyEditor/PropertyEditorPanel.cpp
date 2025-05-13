@@ -509,7 +509,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     {
         if (SelectedSkeleton && bCanPlay) // SelectedSkeleton 유효성 재확인
         {
-            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
+            UAnimSequenceBase* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
             if (animToPlay)
             {
                 UE_LOG(ELogLevel::Display, TEXT("Playing animation: %s"), *SelectedAnimName);
