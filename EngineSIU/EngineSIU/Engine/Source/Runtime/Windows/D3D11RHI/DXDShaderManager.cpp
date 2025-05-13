@@ -110,6 +110,8 @@ void FDXDShaderManager::UpdateShaderIfOutdated(const std::wstring Key, const std
 // 리로드 대상이 될 모든 Shader 등록 함수 
 void FDXDShaderManager::RegisterShaderForReload(std::wstring Key, std::wstring FilePath, std::string EntryPoint, bool IsVertexShader, D3D_SHADER_MACRO* Defines, D3D11_INPUT_ELEMENT_DESC* Layout, uint32 LayoutSize)
 {
+    static std::mutex Mutex;
+    std::lock_guard<std::mutex> Lock(Mutex);
     FShaderReloadInfo Info{ Key, FilePath, EntryPoint, IsVertexShader };
 
     if (Defines)
