@@ -252,6 +252,16 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     
     AnimSM->ProcessState();
     
+    if (UAnimSequenceBase* GetSequence = AnimSM->GetCurrentAnimationSequence())
+    {
+        if (Sequence != GetSequence)
+        {
+            CurrentTime = 0.0f;
+        }
+        
+        Sequence = GetSequence;
+        bPlaying = true; // 아마도 BeginPlay 시 호출해야할 듯?
+    }
 }
 
 bool UAnimInstance::HandleNotify(const FAnimNotifyEvent& NotifyEvent)

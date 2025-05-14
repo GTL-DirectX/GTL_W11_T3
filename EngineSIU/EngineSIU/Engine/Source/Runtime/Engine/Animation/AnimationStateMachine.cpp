@@ -34,18 +34,44 @@ void UAnimationStateMachine::ProcessState()
 {
     for (auto& Transition : Transitions)
     {
-        if (!Transition.bIsBlending &&
-            Transition.FromState->GetStateName() == CurrentState &&
-            Transition.Condition())
+        // if (!Transition.bIsBlending &&
+        //     Transition.FromState->GetStateName() == CurrentState &&
+        //     Transition.Condition())
+        // {
+        //     Transition.bIsBlending = true;
+        //     Transition.ElapsedTime = 0.f;
+        //     PendingTransition = &Transition;
+        //     //SetStateInternal(Transition.ToState->GetStateName());
+        //     //CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
+        if (Transition.FromState->GetStateName() == CurrentState && Transition.CanTransition() && !bTransitionState)
         {
-            Transition.bIsBlending = true;
-            Transition.ElapsedTime = 0.f;
-            PendingTransition = &Transition;
-            //SetStateInternal(Transition.ToState->GetStateName());
-            //CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
+            SetStateInternal(Transition.ToState->GetStateName());
+            CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
+            FromAnimationSequence = Transition.FromState->GetLinkAnimationSequence();
+            bTransitionState = true;
             break;
         }
     }
+}
+
+void UAnimationStateMachine::ClearTransitions()
+{
+    Transitions.Empty();
+}
+
+void UAnimationStateMachine::GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo)
+{
+    if (!bTransitionState)
+    {
+        OutFrom = nullptr;
+        OutTo = nullptr;
+        return;
+    }
+    
+    OutFrom = FromAnimationSequence;
+    OutTo = CurrentAnimationSequence;
+    
+    bTransitionState = false;
 }
 
 UAnimSequenceBase* UAnimationStateMachine::GetCurrentAnimationSequence() const
