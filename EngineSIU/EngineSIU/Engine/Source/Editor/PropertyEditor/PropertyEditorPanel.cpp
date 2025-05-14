@@ -46,6 +46,9 @@
 #include "LuaScripts/LuaScriptFileUtils.h"
 #include "imgui/imgui_bezier.h"
 #include "imgui/imgui_curve.h"
+#include <Animation/AnimNode_State.h>
+#include "Animation/AnimationStateMachine.h"
+#include <Contents/PreviewAnimInstance.h>
 
 #define USE_UPROPERTY_IMGUI false
 
@@ -456,14 +459,25 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
         }
     }
 
-    const char* preview_value = (SelectedAnimIndex != -1 && SelectedAnimIndex < animNames.Num()) ? *animNames[SelectedAnimIndex] : "None";
+    static std::vector<std::string> AnimNameAnsiList;
+    static std::vector<const char*> AnimNameAnsiPtrs;
+
+    AnimNameAnsiList.clear();
+    AnimNameAnsiPtrs.clear();
+
+    for (const auto& Name : animNames) {
+        AnimNameAnsiList.emplace_back(Name.ToAnsiString());
+        AnimNameAnsiPtrs.push_back(AnimNameAnsiList.back().c_str());
+    }
+
+    const char* preview_value = (SelectedAnimIndex >= 0 && SelectedAnimIndex < AnimNameAnsiPtrs.size()) ? AnimNameAnsiPtrs[SelectedAnimIndex] : "None";
 
     if (ImGui::BeginCombo("Animations", preview_value))
     {
         for (int i = 0; i < animNames.Num(); ++i)
         {
             const bool is_selected = (SelectedAnimIndex == i);
-            if (ImGui::Selectable(*animNames[i], is_selected))
+            if (ImGui::Selectable(AnimNameAnsiPtrs[i], is_selected))
             {
                 SelectedAnimIndex = i;
                 SelectedAnimName = animNames[i]; // 선택된 애니메이션 이름 업데이트
@@ -484,7 +498,9 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     {
         if (SelectedSkeleton && bCanPlay) // SelectedSkeleton 유효성 재확인
         {
-            UAnimSequenceBase* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
+            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
+            //UAnimSequenceBase* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
             if (animToPlay)
             {
                 UE_LOG(ELogLevel::Display, TEXT("Playing animation: %s"), *SelectedAnimName);
@@ -508,6 +524,36 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
             SelectedSkeleton->ResetPose(); // 기본 포즈로
         }
     }
+
+    if (ImGui::Button("Play Blend Animation", ImVec2(120, 0)))
+    {
+        if (SelectedSkeleton)
+        {
+            UE_LOG(ELogLevel::Display, TEXT("Playing Blend animation: %s"), *SelectedAnimName);
+
+            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName
+(SelectedAnimName);
+            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTwoNodeBlend);
+            SelectedSkeleton->PlayAnimation(animToPlay, true);
+        }
+        else {
+            UE_LOG(ELogLevel::Warning, TEXT("Could not find or load animation: %s"), *SelectedAnimName);
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Stop Blend Animation", ImVec2(120, 0)))
+    {
+        if (SelectedSkeleton)
+        {
+            UE_LOG(ELogLevel::Display, TEXT("Stop Blend animation: %s"), *SelectedAnimName);
+
+            SelectedSkeleton->StopBlendAnimation();
+            //SelectedSkeleton->PlayAnimation(nullptr, false); // null 재생으로 중지
+            //SelectedSkeleton->ResetPose(); // 기본 포즈로
+        }
+    }
     if (SelectedSkeleton)
     {
         UAnimSingleNodeInstance* SingleNodeInstance = SelectedSkeleton->GetSingleNodeInstance();
@@ -527,10 +573,104 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     ImGui::Spacing();
     ImGui::Separator();
 
+    const char* preview_valueB = (SelectedAnimIndexB >= 0 && SelectedAnimIndexB < AnimNameAnsiPtrs.size()) ? *animNames[SelectedAnimIndexB] : "None";
+    if (ImGui::BeginCombo("From AnimationsB", preview_valueB))
+    {
+        for (int i = 0; i < animNames.Num(); ++i)
+        {
+            const bool is_selected = (SelectedAnimIndexB == i);
+            if (ImGui::Selectable(AnimNameAnsiPtrs[i], is_selected))
+            {
+                SelectedAnimIndexB = i;
+                SelectedAnimNameB = animNames[i]; // 선택된 애니메이션 이름 업데이트
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::Button("Play Transiiton Animation", ImVec2(120, 0)))
+    {
+        if (SelectedSkeleton)
+        {
+           
+            UAnimSingleNodeInstance* NodeA = SelectedSkeleton->GetSingleNodeInstance();
+
+            
+            UAnimSequence* animToPlayB = FFbxManager::GetAnimSequenceByName
+            (SelectedAnimNameB);
+
+            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTransition);
+            SelectedSkeleton->PlayTransitionAnimation(NodeA->GetCurrentSequence(), NodeA->GetCurrentTime(), animToPlayB, 0.0f);
+        }
+        else {
+            UE_LOG(ELogLevel::Warning, TEXT("Could not find or load animation: %s"), *SelectedAnimName);
+        }
+    }
+
 
 }
-
-void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalComp)
+//void PropertyEditorPanel::DrawStateMachineDebugControls(USkeletalMeshComponent* SkeletalComp)
+//{
+//    UAnimInstance* AnimInst = SkeletalComp->GetAnimationInstance();
+//    if (!AnimInst || !AnimInst->GetAnimSM()) return;
+//    UAnimationStateMachine* SM = AnimInst->GetAnimSM();
+//    
+//    ImGui::Separator();
+//    if (!ImGui::TreeNodeEx("StateMachine Editor", ImGuiTreeNodeFlags_Framed)) return;
+//
+//    // 트랜지션 및 리스트 노드 준비
+//    // -- Nodes --
+//    TArray<UAnimNode_State*> NodesRef = SM->GetStates();
+//    // -- Transitions--
+//    TArray<FAnimTransition> TransitionsRef = SM->GetTransitions();
+//    
+//    TArray<UAnimNode_State*> Nodes = SM->GetStates();
+//    
+//    if (ImGui::TreeNodeEx("States", ImGuiTreeNodeFlags_DefaultOpen)) {
+//        for (int i = 0; i < NodesRef.Num(); ++i) {
+//            UAnimNode_State* Node = NodesRef[i];
+//            ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
+//                | ImGuiTreeNodeFlags_SpanAvailWidth
+//                | ((SM->GetCurrentState() == Node->GetStateName()) ? ImGuiTreeNodeFlags_Selected : 0);
+//            if (ImGui::TreeNodeEx((void*)(intptr_t)i, nodeFlags, "State %d: %s", i, Node->GetStateNameFName().ToString())) {
+//                ImGui::Text("Anim : %s", *Node->GetLinkAnimationSequence()->GetName());
+//
+//                static int animIdx = 0;
+//                static std::vector<UAnimSequenceBase*> seqList= 
+//            }
+//        }
+//    }
+//    for (auto& T : SM->GetTransitions()) {
+//        Nodes.AddUnique(T.FromState);
+//        Nodes.AddUnique(T.ToState);
+//    }
+//
+//    for (auto* Node : Nodes) {
+//        ImGui::Text("State: %s", *Node->GetLinkAnimationSequence()->GetName());
+//    }
+//
+//    static char newStateName[64] = "";
+//    ImGui::InputText("New State Name", newStateName, IM_ARRAYSIZE(newStateName));
+//    // 시퀀스 선택 콤보박스 ( 간단 예시 )
+//    static int seqIdx = -1;
+//    static TArray<UAnimSequenceBase*> seqList;
+//    TArray<std::string> seqNames;
+//    for (auto S : seqList) {
+//        seqNames.Add(S->GetName().ToAnsiString());
+//    }
+//    /*if (ImGui::Combo("Link Sequence", &seqIdx, seqNames.GetData()->ToAnsiString(), seqNames.Num())) {}
+//    if (ImGui::Button("Add State") && seqIdx >= 0) {
+//        UAnimNode_State* NewNode = FObjectFactory::ConstructObject<UAnimNode_State>(AnimInst);
+//        NewNode->Initialize(FName(newStateName), seqList[seqIdx]);
+//        strcpy_s(newStateName, "");
+//    }*/
+//
+//}
+void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalComp)
 {
     DrawAnimationControls(SkeletalComp);
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -544,7 +684,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         {
             PreviewName = SkeletalMesh->GetObjectName();
         }
-        
+
         const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
 
         if (ImGui::BeginCombo("##SkeletalMesh", GetData(PreviewName), ImGuiComboFlags_None))
@@ -585,18 +725,40 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             ImGui::EndCombo();
         }
 
+        static int SelectedAnimInstanceIndex = -1;
+        static std::string SelectedAnimInstanceLabel = "None";
+
         TArray<UClass*> AnimClasses;
         GetChildOfClass(UAnimInstance::StaticClass(), AnimClasses);
-        
-        if (ImGui::BeginCombo("AnimInstance", "None", ImGuiComboFlags_None))
+
+        if (SelectedAnimInstanceIndex >= 0 && SelectedAnimInstanceIndex < AnimClasses.Num())
         {
-            for (auto* AnimInstance : AnimClasses)
+            SelectedAnimInstanceLabel = AnimClasses[SelectedAnimInstanceIndex]->GetName().ToAnsiString();
+        }
+
+        if (ImGui::BeginCombo("AnimInstance", SelectedAnimInstanceLabel.c_str()))
+        {
+            for (int i = 0; i < AnimClasses.Num(); ++i)
             {
-                if (ImGui::Selectable(GetData(AnimInstance->GetName()), false))
+                const bool is_selected = (SelectedAnimInstanceIndex == i);
+                if (ImGui::Selectable(AnimClasses[i]->GetName().ToAnsiString().c_str(), is_selected))
                 {
-                    ULuaAnimInstance* Instance = Cast<ULuaAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
+                    SelectedAnimInstanceIndex = i;
+                    if (i == 5) {
+                        if (UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine)))
+                        {
+                            SkeletalComp->SetAnimationInstance(Instance);
+                        }
+                    }
+                    else if (i == 1) {
+                        if (UPreviewAnimInstance* Instance = Cast<UPreviewAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine))) {
+                            SkeletalComp->SetAnimationInstance(Instance);
+                        }
+                    }
+                    ULuaAnimInstance* Instance = Cast<ULuaAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine));
                     SkeletalComp->SetAnimationInstance(Instance);
                 }
+                if (is_selected) ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
         }
@@ -606,40 +768,53 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         {
             FString BasePath = FString(L"LuaScripts\\");
             LuaDisplayPath = SkeletalComp->GetAnimationInstance()->GetDisplayName();
-            
-            if (ImGui::Button("Create Lua"))
+
+            if (Cast<ULuaAnimInstance>(SkeletalComp->GetAnimationInstance()))
             {
                 FString LuaFilePath = SkeletalComp->GetAnimationInstance()->GetScriptPath();
-                std::filesystem::path FilePath = std::filesystem::path(GetData(LuaFilePath));
-
-                try
+                if (ImGui::Button("Edit Lua"))
                 {
-                    std::filesystem::path Dir = FilePath.parent_path();
-                    if (!std::filesystem::exists(Dir))
-                    {
-                        std::filesystem::create_directories(Dir);
-                    }
+                    std::wstring ws = (BasePath + LuaDisplayPath).ToWideString();
+                    LuaScriptFileUtils::OpenLuaScriptFile(ws.c_str());
+                }
+            }
+            else
+            {
+                if (ImGui::Button("Create Lua"))
+                {
+                    FString LuaFilePath = SkeletalComp->GetAnimationInstance()->GetScriptPath();
+                    std::filesystem::path FilePath = std::filesystem::path(GetData(LuaFilePath));
 
-                    std::ifstream luaTemplateFile("LuaScripts/template_asm.lua");
 
-                    std::ofstream file(FilePath);
-                    if (file.is_open())
+                    try
                     {
-                        if (luaTemplateFile.is_open())
+                        std::filesystem::path Dir = FilePath.parent_path();
+                        if (!std::filesystem::exists(Dir))
                         {
-                            file << luaTemplateFile.rdbuf();
+                            std::filesystem::create_directories(Dir);
                         }
-                        // 생성 완료
-                        file.close();
+
+                        std::ifstream luaTemplateFile("LuaScripts/template_asm.lua");
+
+                        std::ofstream file(FilePath);
+                        if (file.is_open())
+                        {
+                            if (luaTemplateFile.is_open())
+                            {
+                                file << luaTemplateFile.rdbuf();
+                            }
+                            // 생성 완료
+                            file.close();
+                        }
+                        else
+                        {
+                            MessageBoxA(nullptr, "Failed to Create Script File for writing: ", "Error", MB_OK | MB_ICONERROR);
+                        }
                     }
-                    else
+                    catch (const std::filesystem::filesystem_error& e)
                     {
                         MessageBoxA(nullptr, "Failed to Create Script File for writing: ", "Error", MB_OK | MB_ICONERROR);
                     }
-                }
-                catch (const std::filesystem::filesystem_error& e)
-                {
-                    MessageBoxA(nullptr, "Failed to Create Script File for writing: ", "Error", MB_OK | MB_ICONERROR);
                 }
             }
             
@@ -667,8 +842,16 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                 }
             }
         }
-        
-        if (ImGui::BeginCombo("Anim1", "NONE"))
+
+        static int SelectedAnim1Index = -1;
+        static std::string SelectedAnim1Label = "NONE";
+
+        if (SelectedAnim1Index >= 0 && SelectedAnim1Index < animNames.Num())
+        {
+            SelectedAnim1Label = animNames[SelectedAnim1Index].ToAnsiString();
+        }
+
+        if (ImGui::BeginCombo("Anim1", SelectedAnim1Label.c_str()))
         {
             for (int i = 0; i < animNames.Num(); ++i)
             {
@@ -678,13 +861,22 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                     if (Instance)
                     {
                         Instance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                        Instance->SetCurrentSequence(Instance->Anim1, 0.f);
                     }
                 }
             }
             ImGui::EndCombo();
         }
 
-        if (ImGui::BeginCombo("Anim2", "NONE"))
+        static int SelectedAnim2Index = -1;
+        static std::string SelectedAnim2Label = "NONE";
+
+        if (SelectedAnim2Index >= 0 && SelectedAnim2Index < animNames.Num())
+        {
+            SelectedAnim2Label = animNames[SelectedAnim2Index].ToAnsiString();
+        }
+
+        if (ImGui::BeginCombo("Anim2", SelectedAnim2Label.c_str()))
         {
             for (int i = 0; i < animNames.Num(); ++i)
             {
@@ -699,7 +891,42 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             }
             ImGui::EndCombo();
         }
-        
+
+        UPreviewAnimInstance* Instance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
+        if (Instance) {
+            UAnimationStateMachine* StateMachine = Instance->GetAnimSM();
+            if (StateMachine) {
+                TArray<FAnimTransition>& Transitions = StateMachine->GetTransitions();
+                
+                for (int i = 0; i < Transitions.Num(); ++i)
+                {
+                    FAnimTransition& Transition = Transitions[i];
+
+                    FString LabelPrefix = FString::Printf(TEXT("Transition %d"), i);
+                    std::string LabelID = *LabelPrefix; // 예: "Transition 0"
+
+                    ImGui::Separator();
+                    ImGui::Text("%s", LabelID.c_str());
+
+                    // Blend Duration 슬라이더
+                    float BlendValue = Transition.Duration;
+                    std::string BlendLabel = "Blend Duration##" + LabelID;
+                    if (ImGui::SliderFloat(BlendLabel.c_str(), &BlendValue, 0.0f, 10.0f, "%.2f"))
+                    {
+                        Transition.Duration = BlendValue;
+                    }
+
+                    // 조건 체크박스 (예시: Idle → Walk만 있는 경우라면 단일 ID로 처리해도 됨)
+                    std::string CondLabel = "Condition##" + LabelID;
+                    bool bCondition = Instance->bIdle_Walk;
+                    if (ImGui::Checkbox(CondLabel.c_str(), &bCondition))
+                    {
+                        Instance->bIdle_Walk = bCondition;
+                    }
+                }
+
+            }
+        }
 
         if (ImGui::Button("Preview"))
         {

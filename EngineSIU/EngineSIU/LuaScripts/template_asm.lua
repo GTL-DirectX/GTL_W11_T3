@@ -5,7 +5,7 @@ States = {
 Transitions = {
     {
         From = "Entry",
-        To = "Input first state name",
+        To = "Entry", -- Input first state name
         Condition = function()
             return true
         end
