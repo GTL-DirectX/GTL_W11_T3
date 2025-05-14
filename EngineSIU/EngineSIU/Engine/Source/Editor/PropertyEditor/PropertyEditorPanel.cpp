@@ -600,6 +600,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             }
             ImGui::EndCombo();
         }
+        
         FString LuaDisplayPath;
         if (SkeletalComp->GetAnimationInstance())
         {
@@ -641,8 +642,17 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
                     MessageBoxA(nullptr, "Failed to Create Script File for writing: ", "Error", MB_OK | MB_ICONERROR);
                 }
             }
-
-            ImGui::InputText("Script File", GetData(LuaDisplayPath), IM_ARRAYSIZE(LuaDisplayPath));
+            
+            static char LuaScriptTextBuffer[128] = { 0 };
+    
+            std::string NotifyNameStr = GetData(LuaDisplayPath);
+            strncpy(LuaScriptTextBuffer, NotifyNameStr.c_str(), sizeof(LuaScriptTextBuffer));
+            LuaScriptTextBuffer[sizeof(LuaScriptTextBuffer) - 1] = '\0'; // null-termination 보장
+    
+            if (ImGui::InputText("Script File", LuaScriptTextBuffer, IM_ARRAYSIZE(LuaScriptTextBuffer), ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                LuaDisplayPath = LuaScriptTextBuffer;
+            }
         }
         
         
