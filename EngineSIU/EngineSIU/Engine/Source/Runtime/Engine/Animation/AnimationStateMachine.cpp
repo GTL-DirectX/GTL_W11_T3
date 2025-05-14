@@ -2,6 +2,17 @@
 
 #include "AnimSequenceBase.h"
 
+void UAnimationStateMachine::AddTransition(FName FromStateName, FName ToStateName, const std::function<bool()>& Condition, float Duration)
+{
+    FAnimTransition T;
+    T.FromState = StateContainer[FromStateName.GetComparisonIndex()];
+    T.ToState = StateContainer[ToStateName.GetComparisonIndex()];
+    T.Condition = Condition;
+    T.Duration = Duration;
+
+    Transitions.Add(T);
+}
+
 void UAnimationStateMachine::AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration)
 {
     FAnimTransition NewTransition;
@@ -39,7 +50,7 @@ void UAnimationStateMachine::ProcessState()
 {
     for (const auto& Transition : Transitions)
     {
-        if (Transition.FromState->GetStateName() == CurrentState && Transition.CanTransition() && !bTransitionState)
+        if (Transition.FromState->GetStateName() == CurrentState && Transition.CanTransition())
         {
             SetStateInternal(Transition.ToState->GetStateName());
             CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
@@ -55,7 +66,15 @@ void UAnimationStateMachine::ClearTransitions()
     Transitions.Empty();
 }
 
-void UAnimationStateMachine::GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo)
+void UAnimationStateMachine::ClearStates()
+{
+    CurrentAnimationSequence = nullptr;
+    FromAnimationSequence = nullptr;
+    CurrentState = NAME_None;
+    StateContainer.Empty();
+}
+
+void UAnimationStateMachine::GetAnimationsForBlending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo)
 {
     if (!bTransitionState)
     {

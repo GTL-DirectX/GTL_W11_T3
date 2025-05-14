@@ -9,5 +9,5 @@ void UAnimNode_State::Initialize(FName InStateName, UAnimSequenceBase* InLinkAni
 
 UAnimSequenceBase* UAnimNode_State::GetLinkAnimationSequence() const
 {
-    return LinkAnimationSequence ? LinkAnimationSequence : GetLinkAnimationSequenceFunc();
+    return LinkAnimationSequence;
 }

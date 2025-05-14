@@ -1,7 +1,10 @@
 #pragma once
+#include <filesystem>
+
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
 #include "AnimNotifyQueue.h"
+#include "sol/sol.hpp"
 
 class UAnimationStateMachine;
 struct FTransform;
@@ -41,6 +44,30 @@ public:
     USkeletalMeshComponent* GetSkelMeshComponent();
     float GetCurrentTime() const { return CurrentTime; }
     void SetCurrentTime(float NewTime);
+
+public:
+    void InitializedLua();
+    void LoadStateMachineFromLua();
+
+    FString GetDisplayName() const { return ScriptDisplayName; }
+    FString GetScriptPath() const { return ScriptPath; }
+    
+protected:
+    virtual void SetLuaFunction();
+    
+protected:
+    bool CheckFileModified();
+    void ReloadScript();
+    
+protected:
+    /** Lua */
+    sol::state LuaState;
+    FString ScriptPath;
+    FString ScriptDisplayName;
+
+    bool bIsValidScript = false;
+    
+    std::filesystem::file_time_type LastWriteTime;
 
 protected:
     UAnimationStateMachine* AnimSM = nullptr;

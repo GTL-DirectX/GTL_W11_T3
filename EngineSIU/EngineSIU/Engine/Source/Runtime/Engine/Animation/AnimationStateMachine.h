@@ -33,6 +33,14 @@ public:
     UAnimationStateMachine() = default;
 
 public:
+    /**
+     * Set the transition to FName.
+     */
+    void AddTransition(FName FromStateName, FName ToStateName, const std::function<bool()>& Condition, float Duration = 0.2f);
+
+    /**
+     * Set the transition to UAnimNode_State.
+     */
     void AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration = 0.2f);
 
     void AddState(UAnimNode_State* State);
@@ -45,18 +53,21 @@ public:
 
     void ClearTransitions();
 
+    void ClearStates();
+
     /**
      * 
      * OutFrom : 현재 재생되고 있는 애님 시퀀스
      * OutTo : 변경될 애님 시퀀스
      */
-    void GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo);
+    void GetAnimationsForBlending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo);
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
     FORCEINLINE bool GetTransitionState() const { return bTransitionState; }
     
     UAnimSequenceBase* GetCurrentAnimationSequence() const;
-    
+
+    FORCEINLINE TMap<uint32, UAnimNode_State*>& GetStateContainer() { return StateContainer; }
 private:
  
     /** FName comparison index by state name */

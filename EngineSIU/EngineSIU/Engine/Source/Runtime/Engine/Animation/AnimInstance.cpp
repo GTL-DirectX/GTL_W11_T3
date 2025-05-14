@@ -12,6 +12,10 @@
 #include "UObject/Casts.h"
 #include "AnimTypes.h"
 #include "AnimNotifies/AnimNotifyState.h"
+#include "Engine/FbxManager.h"
+#include "LuaScripts/LuaScriptFileUtils.h"
+#include "World/World.h"
+#include "sol/sol.hpp"
 
 UAnimInstance::UAnimInstance()
     : Sequence(nullptr)
@@ -25,6 +29,20 @@ UAnimInstance::UAnimInstance()
 void UAnimInstance::InitializeAnimation(USkeletalMeshComponent* InOwningComponent)
 {
     OwningComp = InOwningComponent;
+
+    if (ScriptPath.IsEmpty()) {
+        bool bSuccess = LuaScriptFileUtils::MakeScriptPathAndDisplayName(
+            L"template_asm.lua",
+            L"ASM_Template",
+            OwningComp->GetOwner()->GetName().ToWideString(),
+            ScriptPath,
+            ScriptDisplayName
+        );
+        if (!bSuccess) {
+            UE_LOG(ELogLevel::Error, TEXT("Failed to create script from template"));
+        }
+    }
+    
     if (AnimSM == nullptr)
     {
         AnimSM = FObjectFactory::ConstructObject<UAnimationStateMachine>(this);
@@ -137,6 +155,105 @@ void UAnimInstance::SetCurrentTime(float NewTime)
     }
 }
 
+void UAnimInstance::InitializedLua()
+{
+    LuaState.open_libraries(sol::lib::base);
+    SetLuaFunction();
+    LoadStateMachineFromLua();
+}
+
+void UAnimInstance::LoadStateMachineFromLua()
+{
+    try {
+        LuaState.script_file((*ScriptPath));
+        bIsValidScript = true;
+        const std::wstring FilePath = ScriptPath.ToWideString();
+        LastWriteTime = std::filesystem::last_write_time(FilePath);
+    }
+    catch (const sol::error& err) {
+        UE_LOG(ELogLevel::Error, TEXT("Lua Initialization error: %s"), err.what());
+    }
+
+    sol::table States = LuaState["States"];
+    for (auto&& Pair : States.pairs())
+    {
+        auto tbl = Pair.second.as<sol::table>();
+        
+        FString Name = std::string(tbl["Name"].get<std::string>());
+        FString AnimSequenceName = std::string(tbl["Sequence"].get<std::string>());
+
+        UAnimSequence* NewSequence = FFbxManager::GetAnimSequenceByName(AnimSequenceName);
+        UAnimNode_State* NewState = FObjectFactory::ConstructObject<UAnimNode_State>(AnimSM);
+        NewState->Initialize(FName(Name), NewSequence);
+        
+        AnimSM->AddState(NewState);
+    }
+
+    sol::table Transitions = LuaState["Transitions"];
+    for (auto&& Pair : Transitions.pairs())
+    {
+        auto tbl = Pair.second.as<sol::table>();
+
+        FString From = std::string(tbl["From"].get<std::string>());
+        FString To = std::string(tbl["To"].get<std::string>());
+        sol::function Condition = tbl["Condition"];
+        float Duration = tbl.get_or("Duration", 0.2f);
+
+        AnimSM->AddTransition(FName(From), FName(To), [Condition]() { return Condition(); }, Duration);
+    }
+
+    AnimSM->SetState(FName("Entry"));
+}
+
+void UAnimInstance::SetLuaFunction()
+{
+    // Example
+    // LuaState.set_function("IsKeyPressed", [&]() { return false; });
+}
+
+bool UAnimInstance::CheckFileModified()
+{
+    if (ScriptPath.IsEmpty())
+    {
+        return false;
+    }
+
+    try {
+        std::wstring FilePath = ScriptPath.ToWideString();
+        const auto FileTime = std::filesystem::last_write_time(FilePath);
+
+        if (FileTime > LastWriteTime) {
+            LastWriteTime = FileTime;
+            return true;
+        }
+    }
+    catch (const std::exception& e) {
+        UE_LOG(ELogLevel::Error, TEXT("Failed to check lua script file"));
+    }
+    return false;
+}
+
+void UAnimInstance::ReloadScript()
+{
+    sol::table PersistentData;
+    if (bIsValidScript && LuaState["PersistentData"].valid()) {
+        PersistentData = LuaState["PersistentData"];
+    }
+
+    if (AnimSM)
+    {
+        AnimSM->ClearTransitions();
+        AnimSM->ClearStates();
+    }
+    
+    LuaState = sol::state();
+    InitializedLua();
+
+    if (PersistentData.valid()) {
+        LuaState["PersistentData"] = PersistentData;
+    }
+}
+
 void UAnimInstance::NativeInitializeAnimation()
 {
 }
@@ -146,6 +263,16 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     if (AnimSM == nullptr)
     {
         return;
+    }
+
+    if (CheckFileModified()) {
+        try {
+            ReloadScript();
+            UE_LOG(ELogLevel::Display, TEXT("Lua script reloaded"));
+        }
+        catch (const sol::error& e) {
+            UE_LOG(ELogLevel::Error, TEXT("Failed to reload lua script"));
+        }
     }
     
     AnimSM->ProcessState();

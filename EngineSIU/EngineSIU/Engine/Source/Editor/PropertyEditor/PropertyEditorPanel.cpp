@@ -35,6 +35,7 @@
 #include "Viewer/SlateViewer.h"
 #include "Slate/Widgets/Layout/SSplitter.h"
 #include "Components/Material/Material.h"
+#include "Contents/LuaAnimInstance.h"
 #include "Contents/MyAnimInstance.h"
 #include "Contents/Actors/ItemActor.h"
 #include "Math/JungleMath.h"
@@ -593,13 +594,57 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             {
                 if (ImGui::Selectable(GetData(AnimInstance->GetName()), false))
                 {
-                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
+                    ULuaAnimInstance* Instance = Cast<ULuaAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
                     SkeletalComp->SetAnimationInstance(Instance);
                 }
             }
             ImGui::EndCombo();
         }
+        FString LuaDisplayPath;
+        if (SkeletalComp->GetAnimationInstance())
+        {
+            FString BasePath = FString(L"LuaScripts\\");
+            LuaDisplayPath = SkeletalComp->GetAnimationInstance()->GetDisplayName();
+            
+            if (ImGui::Button("Create Lua"))
+            {
+                FString LuaFilePath = SkeletalComp->GetAnimationInstance()->GetScriptPath();
+                std::filesystem::path FilePath = std::filesystem::path(GetData(LuaFilePath));
 
+                try
+                {
+                    std::filesystem::path Dir = FilePath.parent_path();
+                    if (!std::filesystem::exists(Dir))
+                    {
+                        std::filesystem::create_directories(Dir);
+                    }
+
+                    std::ifstream luaTemplateFile("LuaScripts/template_asm.lua");
+
+                    std::ofstream file(FilePath);
+                    if (file.is_open())
+                    {
+                        if (luaTemplateFile.is_open())
+                        {
+                            file << luaTemplateFile.rdbuf();
+                        }
+                        // 생성 완료
+                        file.close();
+                    }
+                    else
+                    {
+                        MessageBoxA(nullptr, "Failed to Create Script File for writing: ", "Error", MB_OK | MB_ICONERROR);
+                    }
+                }
+                catch (const std::filesystem::filesystem_error& e)
+                {
+                    MessageBoxA(nullptr, "Failed to Create Script File for writing: ", "Error", MB_OK | MB_ICONERROR);
+                }
+            }
+
+            ImGui::InputText("Script File", GetData(LuaDisplayPath), IM_ARRAYSIZE(LuaDisplayPath));
+        }
+        
         
         TArray<FString> animNames;
         {
