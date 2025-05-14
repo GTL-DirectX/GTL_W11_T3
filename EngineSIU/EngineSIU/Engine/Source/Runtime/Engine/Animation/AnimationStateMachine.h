@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "AnimNode_State.h"
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
@@ -17,6 +17,9 @@ struct FAnimTransition
     /** Blend Setting */
     float Duration = 0.2f;
 
+    bool bIsBlending = false;
+    float ElapsedTime = 0.f;
+
     /** Transition condition */
     bool CanTransition() const
     {
@@ -32,6 +35,8 @@ class UAnimationStateMachine : public UObject
 public:
     UAnimationStateMachine() = default;
 
+    FAnimTransition* PendingTransition = nullptr;
+
 public:
     void AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration = 0.2f);
 
@@ -43,6 +48,8 @@ public:
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
     UAnimSequenceBase* GetCurrentAnimationSequence() const;
+
+    
     
 private:
  
@@ -54,4 +61,6 @@ private:
 
     /** Transition list */
     TArray<FAnimTransition> Transitions;
+
+    
 };

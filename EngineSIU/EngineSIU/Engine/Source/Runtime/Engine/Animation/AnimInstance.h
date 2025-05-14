@@ -42,12 +42,22 @@ public:
     float GetCurrentTime() const { return CurrentTime; }
     void SetCurrentTime(float NewTime);
 
+    void SetCurrentSequence(UAnimSequenceBase* NewSeq, float NewTime);
+
 protected:
     UAnimationStateMachine* AnimSM = nullptr;
     
     TArray<FTransform> CurrentPose;
 
+    UAnimSequenceBase* PrevSequence = nullptr;
     UAnimSequenceBase* Sequence = nullptr; // 본래 FAnimNode_SequencePlayer에서 소유
+
+    float PrevTime = 0.f;
+    float NextTime = 0.f;
+
+    float BlendDuration = 0.2f;
+    float BlendElapsed = 0.f;
+    bool bInBlend = false;
 
     USkeletalMeshComponent* OwningComp;
 
@@ -58,4 +68,10 @@ protected:
 
     float CurrentTime;
     bool bPlaying;
+
+private:
+    void StartTransition();
+    void UpdateBlendTime(float DeltaSeconds);
+    void UpdateSingleAnimTime(float DeltaSeconds);
+
 };

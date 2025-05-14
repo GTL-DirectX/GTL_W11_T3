@@ -1,4 +1,4 @@
-﻿#include "AnimationStateMachine.h"
+#include "AnimationStateMachine.h"
 
 #include "AnimSequenceBase.h"
 
@@ -32,12 +32,17 @@ void UAnimationStateMachine::SetState(FName NewStateName)
 
 void UAnimationStateMachine::ProcessState()
 {
-    for (const auto& Transition : Transitions)
+    for (auto& Transition : Transitions)
     {
-        if (Transition.FromState->GetStateName() == CurrentState && Transition.Condition())
+        if (!Transition.bIsBlending &&
+            Transition.FromState->GetStateName() == CurrentState &&
+            Transition.Condition())
         {
-            SetStateInternal(Transition.ToState->GetStateName());
-            CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
+            Transition.bIsBlending = true;
+            Transition.ElapsedTime = 0.f;
+            PendingTransition = &Transition;
+            //SetStateInternal(Transition.ToState->GetStateName());
+            //CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
             break;
         }
     }

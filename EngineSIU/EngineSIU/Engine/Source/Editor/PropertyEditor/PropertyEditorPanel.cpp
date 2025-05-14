@@ -677,6 +677,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                     if (Instance)
                     {
                         Instance->Anim1 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                        Instance->SetCurrentSequence(Instance->Anim1, 0.f);
                     }
                 }
             }

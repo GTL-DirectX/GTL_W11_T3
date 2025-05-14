@@ -49,35 +49,60 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
     TriggerAnimNotifies(DeltaSeconds);
     NotifyQueue.Reset();
 
-    // 1. 애니메이션 시간 업데이트
-    const float RateScale = Sequence->GetRateScale();
-    CurrentTime += DeltaSeconds * RateScale;
+    //// 1. 애니메이션 시간 업데이트
+    //const float RateScale = Sequence->GetRateScale();
+    //CurrentTime += DeltaSeconds * RateScale;
 
-    const float SequenceLength = Sequence->GetPlayLength();
-    const bool bLooping = Sequence->IsLooping();
-
-    if (bLooping)
-    {
-        CurrentTime = FMath::Fmod(CurrentTime, SequenceLength);
-        if (CurrentTime < 0.0f)
-        {
-            CurrentTime = SequenceLength - FMath::Fmod(-CurrentTime, SequenceLength);
-        }
-    }
-    else // 루핑이 아닐 때
-    {
-        if (CurrentTime >= SequenceLength)
-        {
-            CurrentTime = SequenceLength; // 마지막 프레임에서 멈춤, 재생 종료
-            SetPlaying(false);
-        }
-        else if (CurrentTime < 0.0f) // 음수 시간 처리 (RateScale이 음수일 경우)
-        {
-            CurrentTime = 0.0f;
-            SetPlaying(false);
-        }
+    if (AnimSM->PendingTransition) {
+        StartTransition();
     }
 
+    if (bInBlend) {
+        UpdateBlendTime(DeltaSeconds);
+    }
+
+    else {
+        if (Sequence) {
+            CurrentTime += DeltaSeconds * Sequence->GetRateScale();
+
+            // FIXING : 제거해도 되는 부분 확인하기
+            if (UAnimSequenceBase* GetSequence = AnimSM->GetCurrentAnimationSequence())
+            {
+                if (Sequence != GetSequence)
+                {
+                    CurrentTime = 0.0f;
+                }
+
+                Sequence = AnimSM->GetCurrentAnimationSequence();
+                bPlaying = true;
+            }
+
+            const float SequenceLength = Sequence->GetPlayLength();
+            const bool bLooping = Sequence->IsLooping();
+
+            if (bLooping)
+            {
+                CurrentTime = FMath::Fmod(CurrentTime, SequenceLength);
+                if (CurrentTime < 0.0f)
+                {
+                    CurrentTime = SequenceLength - FMath::Fmod(-CurrentTime, SequenceLength);
+                }
+            }
+            else // 루핑이 아닐 때
+            {
+                if (CurrentTime >= SequenceLength)
+                {
+                    CurrentTime = SequenceLength; // 마지막 프레임에서 멈춤, 재생 종료
+                    SetPlaying(false);
+                }
+                else if (CurrentTime < 0.0f) // 음수 시간 처리 (RateScale이 음수일 경우)
+                {
+                    CurrentTime = 0.0f;
+                    SetPlaying(false);
+                }
+            }
+        }
+    }
 }
 
 const TArray<FTransform>& UAnimInstance::EvaluateAnimation()
@@ -92,21 +117,37 @@ const TArray<FTransform>& UAnimInstance::EvaluateAnimation()
     FReferenceSkeleton RefSkeleton;
     SkelMesh->GetRefSkeleton(RefSkeleton);
 
-    if (CurrentPose.Num() != RefSkeleton.GetRawBoneNum())
-    {
-        CurrentPose.SetNum(RefSkeleton.GetRawBoneNum());
+    if (bInBlend && PrevSequence) {
+        TArray<FTransform> PoseA, PoseB;
+        UAnimDataModel* DataModelA = PrevSequence->GetDataModel();
+        UAnimDataModel* DataModelB = Sequence->GetDataModel();
+        DataModelA->GetPoseAtTime(PrevTime, PoseA, RefSkeleton, PrevSequence->IsLooping());
+        DataModelB->GetPoseAtTime(NextTime, PoseB, RefSkeleton, Sequence->IsLooping());
+
+        // 보간
+        float Alpha = BlendElapsed / BlendDuration;
+        CurrentPose.SetNum(PoseA.Num());
+        for (int i = 0; i < PoseA.Num(); ++i)
+            CurrentPose[i].Blend(PoseA[i], PoseB[i], Alpha);
     }
+    
+    else {
+        if (CurrentPose.Num() != RefSkeleton.GetRawBoneNum())
+        {
+            CurrentPose.SetNum(RefSkeleton.GetRawBoneNum());
+        }
 
-    UAnimDataModel* DataModel = Sequence->GetDataModel();
-    const float SequenceLength = Sequence->GetPlayLength();
+        UAnimDataModel* DataModel = Sequence->GetDataModel();
+        const float SequenceLength = Sequence->GetPlayLength();
 
-    if (!DataModel || SequenceLength < 0.f)
-    {
-        ResetToRefPose();
-        return CurrentPose;
+        if (!DataModel || SequenceLength < 0.f)
+        {
+            ResetToRefPose();
+            return CurrentPose;
+        }
+
+        DataModel->GetPoseAtTime(CurrentTime, CurrentPose, RefSkeleton, Sequence->IsLooping());
     }
-
-    DataModel->GetPoseAtTime(CurrentTime, CurrentPose, RefSkeleton, Sequence->IsLooping());
     return CurrentPose;
 
 }
@@ -137,6 +178,67 @@ void UAnimInstance::SetCurrentTime(float NewTime)
     }
 }
 
+void UAnimInstance::SetCurrentSequence(UAnimSequenceBase* NewSeq, float NewTime)
+{
+    Sequence = NewSeq;
+    NextTime = NewTime;
+}
+
+void UAnimInstance::StartTransition()
+{
+    // 전이 시작
+    auto& Transition = AnimSM->PendingTransition;
+    // 전이 시 PrevSequence가 직전 상태 Sequence인 경우만 가정
+    PrevSequence = Transition->FromState->GetLinkAnimationSequence();
+    PrevTime = CurrentTime;
+    Sequence = Transition->ToState->GetLinkAnimationSequence();
+    NextTime = 0.f;
+    BlendDuration = Transition->Duration;
+    BlendElapsed = 0.f;
+    bInBlend = true;
+    Transition->bIsBlending = false;
+    AnimSM->PendingTransition = nullptr;
+}
+
+void UAnimInstance::UpdateBlendTime(float DeltaSeconds)
+{
+    BlendElapsed = FMath::Min(BlendElapsed + DeltaSeconds, BlendDuration);
+    float BlendAlpha = BlendElapsed / BlendDuration;
+
+    // blend 완료 시점
+    if (BlendAlpha >= 1.f) {
+        bInBlend = false;
+        PrevSequence = nullptr;
+        CurrentTime = NextTime;     // 다음 시퀀스로 전환된 시간 사용
+    }
+    else {
+        // 전이 중에는 두 시퀀스 시간도 함게 갱신
+        PrevTime += DeltaSeconds * (PrevSequence->GetRateScale());
+        NextTime += DeltaSeconds * (Sequence->GetRateScale());
+    }
+}
+
+void UAnimInstance::UpdateSingleAnimTime(float DeltaSeconds)
+{
+    if (Sequence) {
+        CurrentTime += DeltaSeconds * Sequence->GetRateScale();
+
+        // FIXING : 제거해도 되는 부분 확인하기
+        if (UAnimSequenceBase* GetSequence = AnimSM->GetCurrentAnimationSequence())
+        {
+            if (Sequence != GetSequence)
+            {
+                CurrentTime = 0.0f;
+            }
+
+            Sequence = AnimSM->GetCurrentAnimationSequence();
+            bPlaying = true;
+        }
+    }
+}
+
+
+
 void UAnimInstance::NativeInitializeAnimation()
 {
 }
@@ -150,16 +252,6 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     
     AnimSM->ProcessState();
     
-    if (UAnimSequenceBase* GetSequence = AnimSM->GetCurrentAnimationSequence())
-    {
-        if (Sequence != GetSequence)
-        {
-            CurrentTime = 0.0f;
-        }
-        
-        Sequence = AnimSM->GetCurrentAnimationSequence();
-        bPlaying = true;
-    }
 }
 
 bool UAnimInstance::HandleNotify(const FAnimNotifyEvent& NotifyEvent)
