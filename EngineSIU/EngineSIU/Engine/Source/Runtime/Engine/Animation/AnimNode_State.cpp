@@ -16,6 +16,8 @@ UAnimSequenceBase* UAnimNode_State::GetLinkAnimationSequence() const
 void UAnimNode_State::SetLinkAnimationSequence(UAnimSequenceBase* NewAnim)
 {
     LinkAnimationSequence = NewAnim;
+}
+
 void UAnimNode_State::GetProperties(TMap<FString, FString>& OutProperties) const
 {
     OutProperties.Add(TEXT("UAnimNode_State::StateName"), StateName.ToString());
