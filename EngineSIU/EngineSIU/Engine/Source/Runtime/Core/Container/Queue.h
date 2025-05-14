@@ -1,11 +1,12 @@
-﻿#pragma once
+#pragma once
 #include <deque>
 #include "ContainerAllocator.h"
-
+#include "Core/Misc/Spinlock.h"
 
 /**
  * 템플릿 기반으로 구현된 큐 자료 구조입니다. 내부적으로 std::deque을 이용하여 구현됩니다.
  * FIFO(선입선출) 방식으로 요소를 관리하며 동적 크기를 지원합니다.
+ * 05/12 : Spinlock으로 thread-safe하게 변경.
  *
  * @tparam T 큐가 저장할 요소의 타입
  * @tparam Allocator 요소를 관리할 메모리 할당자
@@ -20,10 +21,19 @@ public:
 
 private:
     ContainerType ContainerPrivate;
+    mutable FSpinLock ContainerLock; // 큐에 대한 스핀락
 
 public:
-    ContainerType& GetContainerPrivate() { return ContainerPrivate; }
-    const ContainerType& GetContainerPrivate() const { return ContainerPrivate; }
+    ContainerType& GetContainerPrivate()
+    { 
+        FSpinLockGuard Lock(ContainerLock);
+        return ContainerPrivate; 
+    }
+    const ContainerType& GetContainerPrivate() const 
+    {
+        FSpinLockGuard Lock(ContainerLock);
+        return ContainerPrivate;
+    }
 
     /** 기본 생성자. 비어 있는 큐를 생성합니다. */
     TQueue() = default;
@@ -46,6 +56,7 @@ public:
      */
     bool Enqueue(const ElementType& Item)
     {
+        FSpinLockGuard Lock(ContainerLock);
         ContainerPrivate.push_back(Item);
         return true; // std::deque::push_back은 성공 시 void 반환, 실패 시 예외. 여기서는 bool 반환 스타일 유지
     }
@@ -58,6 +69,7 @@ public:
      */
     bool Enqueue(ElementType&& Item)
     {
+        FSpinLockGuard Lock(ContainerLock);
         ContainerPrivate.push_back(std::move(Item));
         return true;
     }
@@ -73,6 +85,7 @@ public:
     template <typename... ArgsType>
     bool Emplace(ArgsType&&... Args)
     {
+        FSpinLockGuard Lock(ContainerLock);
         ContainerPrivate.emplace_back(std::forward<ArgsType>(Args)...);
         return true;
     }
@@ -86,7 +99,8 @@ public:
      */
     bool Dequeue(ElementType& OutItem)
     {
-        if (IsEmpty())
+        FSpinLockGuard Lock(ContainerLock);
+        if (ContainerPrivate.empty())
         {
             return false;
         }
@@ -105,7 +119,8 @@ public:
 	 */
 	bool Dequeue()
 	{
-		if (IsEmpty())
+        FSpinLockGuard Lock(ContainerLock);
+        if (ContainerPrivate.empty())
 		{
 			return false;
 		}
@@ -122,7 +137,8 @@ public:
      */
     bool Peek(ElementType& OutItem) const
     {
-        if (IsEmpty())
+        FSpinLockGuard Lock(ContainerLock);
+        if (ContainerPrivate.empty())
         {
             return false;
         }
@@ -140,7 +156,8 @@ public:
 	 */
 	ElementType* Peek()
 	{
-		if (IsEmpty())
+        FSpinLockGuard Lock(ContainerLock);
+        if (ContainerPrivate.empty())
 		{
 			return nullptr;
 		}
@@ -155,7 +172,8 @@ public:
 	 */
 	const ElementType* Peek() const
 	{
-		if (IsEmpty())
+        FSpinLockGuard Lock(ContainerLock);
+        if (IsEmpty())
 		{
 			return nullptr;
 		}
@@ -165,7 +183,8 @@ public:
     /** 큐의 맨 앞에서 요소를 제거합니다. (값을 반환하지 않음) */
     bool Pop()
     {
-        if (IsEmpty())
+        FSpinLockGuard Lock(ContainerLock);
+        if (ContainerPrivate.empty())
         {
             return false;
         }
@@ -181,12 +200,14 @@ public:
      */
     [[nodiscard]] bool IsEmpty() const
     {
+        FSpinLockGuard Lock(ContainerLock);
         return ContainerPrivate.empty();
     }
 
     /** 큐의 모든 요소를 제거합니다. */
     void Empty()
     {
+        FSpinLockGuard Lock(ContainerLock);
         ContainerPrivate.clear();
     }
 
@@ -197,6 +218,7 @@ public:
      */
     SizeType Num() const
     {
+        FSpinLockGuard Lock(ContainerLock);
         return ContainerPrivate.size();
     }
 };

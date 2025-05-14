@@ -3,7 +3,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/AssetManager.h"
 #include "Engine/FbxObject.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 #include "UObject/Casts.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "GameFramework/Actor.h"
@@ -73,9 +73,8 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
     {
         if (*SkeletalMeshPath != TEXT("None"))
         {
-            if (UAssetManager::Get().AddAsset(StringToWString(SkeletalMeshPath->ToAnsiString())))
+            if (USkeletalMesh* MeshToSet = FFbxManager::GetSkeletalMesh(*SkeletalMeshPath))
             {
-                USkeletalMesh* MeshToSet = FFbxLoader::GetSkeletalMesh(SkeletalMeshPath->ToAnsiString());
                 SetSkeletalMesh(MeshToSet);
                 UE_LOG(ELogLevel::Display, TEXT("Set SkeletalMesh '%s' for %s"), **SkeletalMeshPath, *GetName());
             }
@@ -400,5 +399,14 @@ void USkeletalMeshComponent::Play(bool bLooping) const
     else
     {
         UE_LOG(ELogLevel::Warning, TEXT("Play: No animation sequence set in AnimSingleNodeInstance for %s."), *GetName());
+    }
+}
+
+void USkeletalMeshComponent::SetAnimationInstance(UAnimInstance* NewAnimInstance)
+{
+    if (AnimScriptInstance != NewAnimInstance && NewAnimInstance != nullptr)
+    {
+        AnimScriptInstance = NewAnimInstance;
+        NewAnimInstance->InitializeAnimation(this);
     }
 }

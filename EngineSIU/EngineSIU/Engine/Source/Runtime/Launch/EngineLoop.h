@@ -66,6 +66,7 @@ public:
     bool IsVisible(const HWND hWnd) const { return IsWindowVisible(hWnd); }
 
     FGPUTimingManager GPUTimingManager;
+    FGPUMemoryManager GPUMemoryManager;
     FEngineProfiler EngineProfiler;
 
 private:

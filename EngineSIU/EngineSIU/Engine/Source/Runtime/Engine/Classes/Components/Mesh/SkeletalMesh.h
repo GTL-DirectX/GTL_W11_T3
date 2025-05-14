@@ -22,7 +22,7 @@ public:
     void GetRefSkeleton(FReferenceSkeleton& OutRefSkeleton) const;
     void GetInverseBindPoseMatrices(TArray<FMatrix>& OutMatrices) const;
 
-        void SetCPUSkinned(bool bInCPUSkinned);
+    void SetCPUSkinned(bool bInCPUSkinned);
     bool GetCPUSkinned() const;
 
     //ObjectName은 경로까지 포함

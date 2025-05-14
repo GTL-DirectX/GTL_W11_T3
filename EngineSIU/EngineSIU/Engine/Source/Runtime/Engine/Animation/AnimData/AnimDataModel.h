@@ -20,7 +20,7 @@ public:
     float PlayLength;
     FFrameRate FrameRate;
     int32 NumberOfFrames;
-    int32 NumberOfKeys;
+    int32 NumberOfKeys; // ???
 
 
     FAnimationCurveData CurveData;

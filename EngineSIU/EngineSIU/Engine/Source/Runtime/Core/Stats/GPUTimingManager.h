@@ -2,6 +2,7 @@
 
 #define _TCHAR_DEFINED
 #include <d3d11.h>
+#include <dxgi1_4.h>   // IDXGIAdapter3
 #include <wrl/client.h> // For Microsoft::WRL::ComPtr
 
 #include "StatDefine.h"
@@ -87,4 +88,23 @@ private:
     const uint32 MAX_QUERIES_PER_FRAME = 16; // Example limit
 
     uint64 FrameCounter = 0; // To track result freshness
+};
+
+class FGPUMemoryManager
+{
+public:
+    FGPUMemoryManager() = default;
+    ~FGPUMemoryManager() = default;
+    // Non-copyable/movable due to singleton-like usage pattern
+    FGPUMemoryManager(const FGPUMemoryManager&) = delete;
+    FGPUMemoryManager& operator=(const FGPUMemoryManager&) = delete;
+    FGPUMemoryManager(FGPUMemoryManager&&) = delete;
+    FGPUMemoryManager& operator=(FGPUMemoryManager&&) = delete;
+
+    void Initialize(ID3D11Device* Device);
+    bool bSupported = false;
+    UINT64 GetMemoryUsage() const;
+
+private:
+    IDXGIAdapter3* DXGIAdapter3 = nullptr;
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
+#include "Core/Misc/Spinlock.h"
 
 enum class EAssetType : uint8
 {
@@ -12,11 +13,17 @@ enum class EAssetType : uint8
 
 struct FAssetInfo
 {
+    enum class LoadState : int8
+    {
+        Loading,
+        Completed,
+        Failed
+    };
     FName AssetName;      // Asset의 이름
     FName PackagePath;    // Asset의 패키지 경로
     EAssetType AssetType; // Asset의 타입
     uint32 Size;          // Asset의 크기 (바이트 단위)
-    bool IsLoaded = true;
+    LoadState State;      // 로드 상태
 
     FString GetFullPath() const { return PackagePath.ToString() / AssetName.ToString(); }
 };
@@ -47,14 +54,25 @@ public:
     void InitAssetManager();
 
     const TMap<FName, FAssetInfo>& GetAssetRegistry();
-    bool AddAsset(std::wstring filePath) const;
+    bool AddAsset(FString filePath);
 
     //void LoadAssetsOnScene();
     void LoadEntireAssets();
 
-    void RegisterAsset(std::wstring filePath) const;
+    void RegisterAsset(FString filePath, FAssetInfo::LoadState State);
+
+    void RemoveAsset(FString filePath);
 
 private:
-
     void OnLoaded(const FString& filename);
+
+    void OnFailed(const FString& filename);
+
+    bool AddAssetInternal(const FName& AssetName, const FAssetInfo& AssetInfo);
+
+    bool SetAssetInternal(const FName& AssetName, const FAssetInfo& AssetInfo);
+
+    bool ContainsInternal(const FName& AssetName);
+
+    FSpinLock RegistryLock; // AssetRegistry에 접근할 때 쓰는 스핀락
 };
