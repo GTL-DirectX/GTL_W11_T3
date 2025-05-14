@@ -484,7 +484,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
         if (SelectedSkeleton && bCanPlay) // SelectedSkeleton 유효성 재확인
         {
             SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-            UAnimSequence* animToPlay = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
+            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
             //UAnimSequenceBase* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
             if (animToPlay)
             {
@@ -516,7 +516,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
         {
             UE_LOG(ELogLevel::Display, TEXT("Playing Blend animation: %s"), *SelectedAnimName);
 
-            UAnimSequence* animToPlay = FFbxLoader::GetAnimSequenceByName
+            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName
 (SelectedAnimName);
             SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTwoNodeBlend);
             SelectedSkeleton->PlayAnimation(animToPlay, true);
@@ -585,7 +585,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
             UAnimSingleNodeInstance* NodeA = SelectedSkeleton->GetSingleNodeInstance();
 
             
-            UAnimSequence* animToPlayB = FFbxLoader::GetAnimSequenceByName
+            UAnimSequence* animToPlayB = FFbxManager::GetAnimSequenceByName
             (SelectedAnimNameB);
 
             SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTransition);
@@ -691,7 +691,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                     UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (Instance)
                     {
-                        Instance->Anim1 = FFbxLoader::GetAnimSequenceByName(animNames[i]);
+                        Instance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
                         Instance->SetCurrentSequence(Instance->Anim1, 0.f);
                     }
                 }
