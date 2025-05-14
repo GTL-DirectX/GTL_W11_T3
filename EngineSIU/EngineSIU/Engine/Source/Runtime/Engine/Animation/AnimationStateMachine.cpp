@@ -13,6 +13,11 @@ void UAnimationStateMachine::AddTransition(UAnimNode_State* FromState, UAnimNode
     Transitions.Add(NewTransition);
 }
 
+void UAnimationStateMachine::AddState(UAnimNode_State* State)
+{
+    StateContainer[State->GetStateName()] = State;
+}
+
 void UAnimationStateMachine::SetStateInternal(uint32 NewState)
 {
     CurrentState = NewState;

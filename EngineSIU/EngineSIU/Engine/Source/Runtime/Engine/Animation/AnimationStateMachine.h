@@ -35,6 +35,8 @@ public:
 public:
     void AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration = 0.2f);
 
+    void AddState(UAnimNode_State* State);
+    
     void SetState(FName NewStateName);
 
     void SetStateInternal(uint32 NewState);
@@ -54,4 +56,7 @@ private:
 
     /** Transition list */
     TArray<FAnimTransition> Transitions;
+
+    /** State Container */
+    TMap<uint32, UAnimNode_State*> StateContainer;
 };
