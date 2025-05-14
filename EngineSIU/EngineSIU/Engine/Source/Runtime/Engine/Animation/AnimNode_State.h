@@ -22,6 +22,10 @@ public:
     }
     UAnimSequenceBase* GetLinkAnimationSequence() const;
     void SetLinkAnimationSequence(UAnimSequenceBase* NewAnim);
+
+    void GetProperties(TMap<FString, FString>& OutProperties) const;
+    void SetProperties(const TMap<FString, FString>& InProperties);
+    
 private:
     /** State Name */
     FName StateName;

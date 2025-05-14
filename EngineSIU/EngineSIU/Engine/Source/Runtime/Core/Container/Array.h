@@ -6,6 +6,7 @@
 
 #include "ContainerAllocator.h"
 #include "Serialization/Archive.h"
+#include "Core/Misc/Char.h"
 
 
 template <typename T, typename Allocator = FDefaultAllocator<T>>
@@ -190,6 +191,11 @@ public:
     bool IsValidIndex(uint32 ElementIndex) const;
 
     ElementType Pop();
+
+    FString ToString() const;
+
+    bool InitFromString(const FString& InSourceString);
+
 };
 
 
@@ -592,6 +598,75 @@ typename TArray<T, Allocator>::ElementType TArray<T, Allocator>::Pop()
     ElementType Element = ContainerPrivate.back();
     ContainerPrivate.pop_back();
     return Element;
+}
+
+template<typename T, typename Allocator>
+inline FString TArray<T, Allocator>::ToString() const
+{
+    FString OutString = FString::Printf("@@TARRAY_START@@");
+
+    for (const T& Elem : ContainerPrivate)
+    {
+        FString ElememtString = FString::Printf("%s@@TARRAY_SEP@@", *Elem.ToString());
+        OutString += ElememtString;
+    }
+    OutString.RemoveFromEnd(TEXT("@@TARRAY_SEP@@"));
+    OutString += FString::Printf("@@TARRAY_END@@");
+
+    return OutString;
+}
+
+template<typename T, typename Allocator>
+inline bool TArray<T, Allocator>::InitFromString(const FString& InString)
+{
+    static_assert(!std::is_pointer<T>::value, "TArray::InitFromString does not support pointer element types!");
+
+    Empty();
+
+    const FString StartMarker = TEXT("@@TARRAY_START@@");
+    const FString EndMarker = TEXT("@@TARRAY_END@@");
+    const FString ElemSep = TEXT("@@TARRAY_SEP@@");
+
+    int32 StartIdx = InString.Find(StartMarker, ESearchCase::CaseSensitive);
+    int32 EndIdx = InString.Find(EndMarker, ESearchCase::CaseSensitive);
+
+    if (StartIdx == INDEX_NONE || EndIdx == INDEX_NONE || StartIdx >= EndIdx)
+    {
+        return false;
+    }
+
+    int32 ContentStart = StartIdx + StartMarker.Len();
+    int32 ContentLen = EndIdx - ContentStart;
+    FString Content = InString.Mid(ContentStart, ContentLen);
+
+    // 분리
+    int32 CurrIdx = 0;
+    while (CurrIdx < Content.Len())
+    {
+        int32 SepIdx = Content.Find(ElemSep, ESearchCase::CaseSensitive, ESearchDir::FromStart, CurrIdx);
+        FString ElemStr;
+        if (SepIdx == INDEX_NONE)
+        {
+            ElemStr = Content.Mid(CurrIdx);
+            CurrIdx = Content.Len();
+        }
+        else
+        {
+            ElemStr = Content.Mid(CurrIdx, SepIdx - CurrIdx);
+            CurrIdx = SepIdx + ElemSep.Len();
+        }
+
+        if (!ElemStr.IsEmpty())
+        {
+            T Elem;
+            if (!Elem.InitFromString(ElemStr))
+            {
+                return false;
+            }
+            Add(std::move(Elem));
+        }
+    }
+    return true;
 }
 
 template <typename ElementType, typename Allocator>

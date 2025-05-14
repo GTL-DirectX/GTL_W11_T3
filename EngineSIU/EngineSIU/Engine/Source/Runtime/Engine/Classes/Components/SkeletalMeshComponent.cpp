@@ -57,6 +57,21 @@ UObject* USkeletalMeshComponent::Duplicate(UObject* InOuter)
 void USkeletalMeshComponent::GetProperties(TMap<FString, FString>& OutProperties) const
 {
     Super::GetProperties(OutProperties);
+
+    // UAnimInstance는 USeketalMeshComponent와 1대1로 대응
+    // 그 아래의 변수도 모두 unique함
+    // 따라서 여기서 저장
+    // 이후 UObject를 저장한다면 나중에 변경 필요.
+    if (AnimScriptInstance)
+    {
+        OutProperties.Add(TEXT("USkeletalMeshComponent::AnimScriptInstance_ClassName"),
+            AnimScriptInstance->GetClass()->GetName());
+        AnimScriptInstance->GetProperties(OutProperties);
+    }
+    else
+    {
+        OutProperties.Add(TEXT("AnimScriptInstance"), TEXT("None"));
+    }
         
     if (SkeletalMesh != nullptr)
     {
@@ -67,6 +82,12 @@ void USkeletalMeshComponent::GetProperties(TMap<FString, FString>& OutProperties
     {
         OutProperties.Add(TEXT("SkeletalMeshPath"), TEXT("None"));
     }
+
+    OutProperties.Add(TEXT("CurrentPosePath"), CurrentPose.ToString());
+    OutProperties.Add(TEXT("SelectedBoneIndex"), FString::Printf(TEXT("%d"), SelectedBoneIndex));
+    OutProperties.Add(TEXT("AnimationMode"), FString::Printf(TEXT("%d"), AnimationMode));
+    OutProperties.Add(TEXT("bEnableAnimation"), FString::Printf(TEXT("%d"), bEnableAnimation));
+    OutProperties.Add(TEXT("CurrentAnimTime"), FString::Printf(TEXT("%f"), CurrentAnimTime));
 }
 
 void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InProperties)
@@ -94,6 +115,61 @@ void USkeletalMeshComponent::SetProperties(const TMap<FString, FString>& InPrope
             SetSkeletalMesh(nullptr);
             UE_LOG(ELogLevel::Display, TEXT("Set SkeletalMesh to None for %s"), *GetName());
         }
+    }
+
+    const FString* TempStr = nullptr;
+    if (!AnimScriptInstance)
+    {
+        TempStr = InProperties.Find(TEXT("USkeletalMeshComponent::AnimScriptInstance_ClassName"));
+        if (TempStr)
+        {
+            UClass** AnimClass = UClass::GetClassMap().Find(*TempStr);
+            if (AnimClass)
+            {
+                AnimScriptInstance = Cast<UAnimInstance>(FObjectFactory::ConstructObject(*AnimClass, this));
+            }
+            else
+            {
+                UE_LOG(ELogLevel::Warning, TEXT("Could not find AnimScriptInstance class '%s' for %s"), **TempStr, *GetName());
+                return;
+            }
+        }
+        if (AnimScriptInstance)
+        {
+            AnimScriptInstance->InitializeAnimation(this); // UAnimInstance 초기화
+            AnimScriptInstance->SetProperties(InProperties);
+        }
+        else
+        {
+            UE_LOG(ELogLevel::Error, TEXT("Failed to create AnimScriptInstance in SetAnimation for %s"), *GetName());
+            return;
+        }
+    }
+
+    TempStr = InProperties.Find(TEXT("CurrentPosePath"));
+    if (TempStr)
+    {
+        CurrentPose.InitFromString(*TempStr);
+    }
+    TempStr = InProperties.Find(TEXT("SelectedBoneIndex"));
+    if (TempStr)
+    {
+        SelectedBoneIndex = FString::ToInt(*TempStr);
+    }
+    TempStr = InProperties.Find(TEXT("AnimationMode"));
+    if (TempStr)
+    {
+        AnimationMode = static_cast<EAnimationMode::Type>(FString::ToInt(*TempStr));
+    }
+    TempStr = InProperties.Find(TEXT("bEnableAnimation"));
+    if (TempStr)
+    {
+        bEnableAnimation = FString::ToInt(*TempStr);
+    }
+    TempStr = InProperties.Find(TEXT("CurrentAnimTime"));
+    if (TempStr)
+    {
+        CurrentAnimTime = FString::ToFloat(*TempStr);
     }
 }
 

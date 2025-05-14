@@ -218,6 +218,8 @@ public:
      */
     bool RemoveFromStart(const FString& InPrefix, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase);
 
+    bool RemoveFromEnd(const FString& InSuffix, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase);
+
     void Reserve(int32 CharacterCount);
     void Resize(int32 CharacterCount);
 
@@ -273,6 +275,34 @@ public:
      * @return 포맷팅된 새로운 FString 객체.
      */
     static FString Printf(const ElementType* Format, ...);
+
+    static bool ParseValueString(const FString& Source, const FString& Key, FString& OutValueString);
+
+    static FString TrimStartAndEnd(const FString& InString);
+
+    FString TrimStartAndEnd() const;
+
+    bool StartsWith(const FString& Prefix) const
+    {
+        return PrivateString.starts_with(Prefix.PrivateString);
+    }
+    bool EndsWith(const FString& Suffix) const
+    {
+        return PrivateString.ends_with(Suffix.PrivateString);
+    }
+
+    bool Split(const FString& Separator, FString& OutLeft, FString& OutRight, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase) const;
+
+    FString ToString() const {
+        return *this;
+    }
+    
+    bool InitFromString(const FString& InSourceString)
+    {
+        *this = InSourceString;
+        return true;
+    }
+
 };
 
 template <typename Number>

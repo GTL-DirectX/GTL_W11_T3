@@ -423,6 +423,37 @@ bool FString::RemoveFromStart(const FString& InPrefix, ESearchCase::Type SearchC
     return false; // Prefix not found at the start
 }
 
+bool FString::RemoveFromEnd(const FString& InSuffix, ESearchCase::Type SearchCase)
+{
+    const int32 SuffixLen = InSuffix.Len();
+    const int32 MyLen = Len();
+    if (SuffixLen == 0 || SuffixLen > MyLen)
+    {
+        return false; // Cannot remove an empty or longer suffix
+    }
+    // Check if the string actually ends with the suffix
+    bool bEndsWithSuffix;
+    if (SearchCase == ESearchCase::CaseSensitive)
+    {
+        bEndsWithSuffix = (PrivateString.compare(MyLen - SuffixLen, SuffixLen, *InSuffix) == 0);
+    }
+    else // ESearchCase::IgnoreCase
+    {
+        bEndsWithSuffix = std::ranges::equal(
+            PrivateString.end() - SuffixLen, PrivateString.end(),
+            InSuffix.PrivateString.begin(), InSuffix.PrivateString.end(),
+            [](ElementType a, ElementType b) { return FCString::ToLower(a) == FCString::ToLower(b); }
+        );
+    }
+    if (bEndsWithSuffix)
+    {
+        // If it ends with the suffix, remove it using erase or assign with substr
+        PrivateString.erase(MyLen - SuffixLen, SuffixLen);
+        return true;
+    }
+    return false; // No match found
+}
+
 // Printf 함수 구현
 FString FString::Printf(const ElementType* Format, ...)
 {
@@ -489,6 +520,71 @@ FString FString::Printf(const ElementType* Format, ...)
             // if (BufferSize > SOME_MAX_LIMIT) { return FString{}; }
         }
     }
+}
+
+bool FString::ParseValueString(const FString& Source, const FString& Key, FString& OutValueString)
+{
+    int32 KeyIdx = Source.Find(Key, ESearchCase::IgnoreCase);
+    if (KeyIdx == INDEX_NONE) return false;
+
+    int32 ValueStart = KeyIdx + Key.Len();
+
+    // 다음 콤마(,)를 값의 끝으로 간주 (없으면 문자열 끝까지)
+    int32 ValueEnd = Source.Find(TEXT(","), ESearchCase::IgnoreCase, ESearchDir::FromStart, ValueStart);
+
+    if (ValueEnd == INDEX_NONE)
+    {
+        OutValueString = Source.Mid(ValueStart).TrimStartAndEnd();
+    }
+    else
+    {
+        OutValueString = Source.Mid(ValueStart, ValueEnd - ValueStart).TrimStartAndEnd();
+    }
+    return true;
+}
+
+FString FString::TrimStartAndEnd(const FString& InString)
+{
+    auto IsSpace = [](TCHAR c) {
+        // C++ 표준 라이브러리의 iswspace 사용
+        return std::iswspace(static_cast<wint_t>(c));
+        };
+
+    int32 Start = 0;
+    while (Start < InString.Len() && IsSpace(InString[Start]))
+    {
+        ++Start;
+    }
+
+    int32 End = InString.Len() - 1;
+    while (End >= Start && IsSpace(InString[End]))
+    {
+        --End;
+    }
+
+    if (Start > End)
+    {
+        return FString(); // 모든 문자가 공백이면 빈 문자열 반환
+    }
+
+    return InString.Mid(Start, End - Start + 1);
+}
+
+FString FString::TrimStartAndEnd() const
+{
+    return TrimStartAndEnd(*this);
+}
+
+inline bool FString::Split(const FString& Separator, FString& OutLeft, FString& OutRight, ESearchCase::Type SearchCase) const
+{
+    int32 SeparatorIndex = Find(Separator, SearchCase);
+    if (SeparatorIndex != INDEX_NONE)
+    {
+        OutLeft = Mid(0, SeparatorIndex);
+        OutRight = Mid(SeparatorIndex + Separator.Len());
+        return true;
+    }
+    return false;
 }
 
 FString operator/(const FString& Lhs, const FString& Rhs)

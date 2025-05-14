@@ -3,6 +3,8 @@
 #include "Math/Quat.h"
 #include "Math/Vector.h"
 #include "UObject/ObjectMacros.h"
+#include "Core/Misc/Parse.h"
+
 
 class UAnimNotifyState;
 /* [참고] UAnimNotify: 한 프레임에서 한 번만 발생하는 이벤트 */ 
@@ -22,7 +24,7 @@ struct FAnimNotifyEvent
     /* Notify 종료 보정을 위한 시간 오프셋 : 종료가 너무 늦거나 빠르게 되는 것을 조절 */
     float EndTriggerTimeOffset = 0.f;
 
-    FName NotifyName;
+    FName NotifyName = FName("None");
 
     UAnimNotifyState* NotifyStateClass = nullptr;
 
@@ -32,6 +34,9 @@ struct FAnimNotifyEvent
     float GetTriggerTime() const;
     float GetEndTriggerTime() const;
     bool IsStateNotify() const;
+
+    FString ToString() const;
+    bool InitFromString(const FString& InSourceString);
 };
 
 /**
@@ -83,6 +88,47 @@ struct FRawAnimSequenceTrack
     }
 
     static constexpr uint32 SingleKeySize = sizeof(FVector) + sizeof(FQuat) + sizeof(FVector);
+
+    FString ToString() const
+    {
+        return FString::Printf(TEXT("PosKeys=%s RotKeys=%s ScaleKeys=%s"),
+            *PosKeys.ToString(),
+            *RotKeys.ToString(),
+            *ScaleKeys.ToString());
+    }
+
+    bool InitFromString(const FString& InString)
+    {
+        FString PosKeysMarker = TEXT("PosKeys=");
+        FString RotKeysMarker = TEXT("RotKeys=");
+        FString ScaleKeysMarker = TEXT("ScaleKeys=");
+
+        int32 PosStart = InString.Find(PosKeysMarker, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+        int32 RotStart = InString.Find(RotKeysMarker, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+        int32 ScaleStart = InString.Find(ScaleKeysMarker, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+
+        if (PosStart == INDEX_NONE || RotStart == INDEX_NONE || ScaleStart == INDEX_NONE)
+            return false;
+
+        // PosKeys 부분 추출
+        int32 PosValueStart = PosStart + PosKeysMarker.Len();
+        FString PosString = InString.Mid(PosValueStart, RotStart - PosValueStart).TrimStartAndEnd();
+
+        // RotKeys 부분 추출
+        int32 RotValueStart = RotStart + RotKeysMarker.Len();
+        FString RotString = InString.Mid(RotValueStart, ScaleStart - RotValueStart).TrimStartAndEnd();
+
+        // ScaleKeys 부분 추출 (끝까지)
+        int32 ScaleValueStart = ScaleStart + ScaleKeysMarker.Len();
+        FString ScaleString = InString.Mid(ScaleValueStart).TrimStartAndEnd();
+
+        // 각각의 키 값을 파싱 (아래 ParseFromString 함수는 각 타입에 맞게 직접 구현 필요)
+        bool Success = PosKeys.InitFromString(PosString);
+        Success |= RotKeys.InitFromString(RotString);
+        Success |= ScaleKeys.InitFromString(ScaleString);
+
+        return Success;
+    }
 };
 
 
@@ -91,4 +137,32 @@ struct FBoneAnimationTrack
     FRawAnimSequenceTrack InternalTrackData;
     int32 BoneTreeIndex = INDEX_NONE;
     FName Name;
+
+    FString ToString() const
+    {
+        return FString::Printf(TEXT("BoneTreeIndex=%d, Name=%s, TrackData=%s"), BoneTreeIndex, *Name.ToString(), *InternalTrackData.ToString());
+    }
+
+    bool InitFromString(const FString& InSourceString)
+    {
+        // BoneTreeIndex와 Name은 FParse::Value 사용 (구분자는 =로 통일)
+        if (!FParse::Value(*InSourceString, TEXT("BoneTreeIndex="), BoneTreeIndex))
+            return false;
+
+        if (!FParse::Value(*InSourceString, TEXT("Name="), Name))
+            return false;
+
+        // TrackData= 뒤의 문자열만 추출
+        const FString TrackDataKey = TEXT("TrackData=");
+        int32 TrackDataStart = InSourceString.Find(TrackDataKey, ESearchCase::CaseSensitive);
+        if (TrackDataStart == INDEX_NONE)
+            return false;
+
+        // TrackData= 바로 뒤부터 끝까지
+        FString TrackDataString = InSourceString.Mid(TrackDataStart + TrackDataKey.Len());
+        TrackDataString = TrackDataString.TrimStartAndEnd();
+
+        // InternalTrackData 파싱
+        return InternalTrackData.InitFromString(TrackDataString);
+    }
 };
