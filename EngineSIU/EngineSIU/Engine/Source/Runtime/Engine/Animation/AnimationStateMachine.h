@@ -42,8 +42,19 @@ public:
     void SetStateInternal(uint32 NewState);
 
     void ProcessState();
+
+    void ClearTransitions();
+
+    /**
+     * 
+     * OutFrom : 현재 재생되고 있는 애님 시퀀스
+     * OutTo : 변경될 애님 시퀀스
+     */
+    void GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo);
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
+    FORCEINLINE bool GetTransitionState() const { return bTransitionState; }
+    
     UAnimSequenceBase* GetCurrentAnimationSequence() const;
     
 private:
@@ -54,9 +65,15 @@ private:
     /** Current playing animation sequence */
     UAnimSequenceBase* CurrentAnimationSequence = nullptr;
 
+    /** Anim waiting for transfer */
+    UAnimSequenceBase* FromAnimationSequence = nullptr;
+
     /** Transition list */
     TArray<FAnimTransition> Transitions;
 
     /** State Container */
     TMap<uint32, UAnimNode_State*> StateContainer;
+    
+    /** true when a state transition occurs */
+    bool bTransitionState = false;
 };

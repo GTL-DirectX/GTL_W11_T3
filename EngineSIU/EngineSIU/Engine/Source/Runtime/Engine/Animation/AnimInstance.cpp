@@ -157,8 +157,8 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
             CurrentTime = 0.0f;
         }
         
-        Sequence = AnimSM->GetCurrentAnimationSequence();
-        bPlaying = true;
+        Sequence = GetSequence;
+        bPlaying = true; // 아마도 BeginPlay 시 호출해야할 듯?
     }
 }
 

@@ -39,13 +39,35 @@ void UAnimationStateMachine::ProcessState()
 {
     for (const auto& Transition : Transitions)
     {
-        if (Transition.FromState->GetStateName() == CurrentState && Transition.Condition())
+        if (Transition.FromState->GetStateName() == CurrentState && Transition.CanTransition() && !bTransitionState)
         {
             SetStateInternal(Transition.ToState->GetStateName());
             CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
+            FromAnimationSequence = Transition.FromState->GetLinkAnimationSequence();
+            bTransitionState = true;
             break;
         }
     }
+}
+
+void UAnimationStateMachine::ClearTransitions()
+{
+    Transitions.Empty();
+}
+
+void UAnimationStateMachine::GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo)
+{
+    if (!bTransitionState)
+    {
+        OutFrom = nullptr;
+        OutTo = nullptr;
+        return;
+    }
+    
+    OutFrom = FromAnimationSequence;
+    OutTo = CurrentAnimationSequence;
+    
+    bTransitionState = false;
 }
 
 UAnimSequenceBase* UAnimationStateMachine::GetCurrentAnimationSequence() const
