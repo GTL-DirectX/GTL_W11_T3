@@ -737,26 +737,19 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
 
         if (ImGui::BeginCombo("AnimInstance", ComboLabel, ImGuiComboFlags_None))
         {
-            for (int i = 0; i < AnimClasses.Num(); ++i)
+            for (auto* AnimInstance : AnimClasses)
             {
-                const bool is_selected = (SelectedAnimInstanceIndex == i);
-                if (ImGui::Selectable(AnimClasses[i]->GetName().ToAnsiString().c_str(), is_selected))
+                FString UnrealName = AnimInstance ? AnimInstance->GetName() : TEXT("None");
+                const char* ItemName = !UnrealName.IsEmpty() ? *UnrealName : "None";
+                bool bIsSelected = (CurrentInstance && (AnimInstance == CurrentInstance->GetClass()));
+
+                if (ImGui::Selectable(ItemName, bIsSelected))
                 {
-                    SelectedAnimInstanceIndex = i;
-                    // TODO : 인덱스에 따른 클래스 생성 하드 코딩 수정
-                    if (i == 6) {
-                        if (UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine)))
-                        {
-                            SkeletalComp->SetAnimationInstance(Instance);
-                        }
-                    }
-                    else if (i == 5) {
-                        if (UPreviewAnimInstance* Instance = Cast<UPreviewAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine))) {
-                            SkeletalComp->SetAnimationInstance(Instance);
-                        }
-                    }
+                    UAnimInstance* Instance = Cast<UAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
+                    SkeletalComp->SetAnimationInstance(Instance);
+
                 }
-                if (is_selected) ImGui::SetItemDefaultFocus();
+                if (bIsSelected) ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
         }
