@@ -744,6 +744,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                 if (ImGui::Selectable(AnimClasses[i]->GetName().ToAnsiString().c_str(), is_selected))
                 {
                     SelectedAnimInstanceIndex = i;
+                    // TODO : 인덱스에 따른 클래스 생성 하드 코딩 수정
                     if (i == 5) {
                         if (UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine)))
                         {
@@ -851,18 +852,24 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
             SelectedAnim1Label = animNames[SelectedAnim1Index].ToAnsiString();
         }
 
-        if (ImGui::BeginCombo("Anim1", SelectedAnim1Label.c_str()))
+        if (ImGui::BeginCombo("Idle - Anim1", SelectedAnim1Label.c_str()))
         {
             for (int i = 0; i < animNames.Num(); ++i)
             {
                 if (ImGui::Selectable(*animNames[i], false))
                 {
-                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
-                    if (Instance)
+                    UMyAnimInstance* MyAnimInstance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (MyAnimInstance)
                     {
-                        Instance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
-                        Instance->SetCurrentSequence(Instance->Anim1, 0.f);
+                        MyAnimInstance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                        MyAnimInstance->SetCurrentSequence(MyAnimInstance->Anim1, 0.f);
                     }
+                    else if (PreviewAnimInstance) {
+                        PreviewAnimInstance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                        PreviewAnimInstance->SetCurrentSequence(PreviewAnimInstance->Anim1, 0.f);
+                    }
+                    
                 }
             }
             ImGui::EndCombo();
@@ -876,17 +883,46 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
             SelectedAnim2Label = animNames[SelectedAnim2Index].ToAnsiString();
         }
 
-        if (ImGui::BeginCombo("Anim2", SelectedAnim2Label.c_str()))
+        if (ImGui::BeginCombo("Walk - Anim2", SelectedAnim2Label.c_str()))
         {
             for (int i = 0; i < animNames.Num(); ++i)
             {
                 if (ImGui::Selectable(*animNames[i], false))
                 {
-                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
-                    if (Instance)
+                    UMyAnimInstance* MyAnimInstance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (MyAnimInstance)
                     {
-                        Instance->Anim2 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                        MyAnimInstance->Anim2 = FFbxManager::GetAnimSequenceByName(animNames[i]);
                     }
+                    else if (PreviewAnimInstance) {
+                        PreviewAnimInstance->Anim2 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        static int SelectedAnim3Index = -1;
+        static std::string SelectedAnim3Label = "NONE";
+
+        if (SelectedAnim3Index >= 0 && SelectedAnim3Index < animNames.Num())
+        {
+            SelectedAnim3Label = animNames[SelectedAnim3Index].ToAnsiString();
+        }
+
+        if (ImGui::BeginCombo("Jump - Anim3", SelectedAnim3Label.c_str()))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* MyAnimInstance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (PreviewAnimInstance) {
+                        PreviewAnimInstance->Anim3 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                    }
+
                 }
             }
             ImGui::EndCombo();
@@ -900,28 +936,34 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                 
                 for (int i = 0; i < Transitions.Num(); ++i)
                 {
+
                     FAnimTransition& Transition = Transitions[i];
 
-                    FString LabelPrefix = FString::Printf(TEXT("Transition %d"), i);
-                    std::string LabelID = *LabelPrefix; // 예: "Transition 0"
+                    // From/To 이름 추출
+                    FString FromName = (Transition.FromState) ? Transition.FromState->GetStateNameFName().ToString() : TEXT("None");
+                    FString ToName = (Transition.ToState) ? Transition.ToState->GetStateNameFName().ToString() : TEXT("None");
+
+                    FString LabelPrefix = FString::Printf(TEXT("%s -> %s"), *FromName, *ToName);
+                    std::string LabelID = *LabelPrefix;
+
 
                     ImGui::Separator();
-                    ImGui::Text("%s", LabelID.c_str());
+                    ImGui::Text("Transition: %s", LabelID.c_str());
 
                     // Blend Duration 슬라이더
                     float BlendValue = Transition.Duration;
                     std::string BlendLabel = "Blend Duration##" + LabelID;
-                    if (ImGui::SliderFloat(BlendLabel.c_str(), &BlendValue, 0.0f, 10.0f, "%.2f"))
+                    if (ImGui::DragFloat(BlendLabel.c_str(), &BlendValue, 0.01f, 0.0f, 10.0f, "%.2f"))
                     {
                         Transition.Duration = BlendValue;
                     }
 
                     // 조건 체크박스 (예시: Idle → Walk만 있는 경우라면 단일 ID로 처리해도 됨)
                     std::string CondLabel = "Condition##" + LabelID;
-                    bool bCondition = Instance->bIdle_Walk;
+                    bool bCondition = Instance->bTransition[i];
                     if (ImGui::Checkbox(CondLabel.c_str(), &bCondition))
                     {
-                        Instance->bIdle_Walk = bCondition;
+                        Instance->bTransition[i] = bCondition;
                     }
                 }
 

@@ -19,9 +19,14 @@ public:
     /** Hard Coding */
     UAnimSequenceBase* Anim1 = nullptr;
     UAnimSequenceBase* Anim2 = nullptr;
+    UAnimSequenceBase* Anim3 = nullptr;
 
 
-    bool bIdle_Walk = false;
+    // 0 : Idle->Walk 1 : Walk->Idle 2 : Walk -> Jump,  3 : Jump - > Walk, 4 : Idle->Jump , 5 : Jump->Idle
+    TArray<uint8> bTransition = {false, false, false, false, false, false};
+    
+
+
 
     
 };
