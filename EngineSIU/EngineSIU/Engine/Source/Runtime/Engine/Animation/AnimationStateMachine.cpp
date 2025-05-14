@@ -54,7 +54,7 @@ void UAnimationStateMachine::ProcessState()
             PendingTransition = &Transition;
 
             SetStateInternal(Transition.ToState->GetStateName());
-
+            CurrentState = Transition.ToState->GetStateName();
             CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
             FromAnimationSequence = Transition.FromState->GetLinkAnimationSequence();
             

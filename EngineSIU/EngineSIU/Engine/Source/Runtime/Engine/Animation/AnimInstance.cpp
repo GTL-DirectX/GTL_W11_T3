@@ -153,10 +153,6 @@ void UAnimInstance::PrepareTransition()
     AnimSM->PendingTransition = nullptr;
 }
 
-
-
-
-
 void UAnimInstance::UpdateBlendTime(float DeltaSeconds)
 {
     BlendElapsed = FMath::Min(BlendElapsed + DeltaSeconds, BlendDuration);
