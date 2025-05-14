@@ -5,14 +5,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/FObjLoader.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 
 AItemActor::AItemActor()
 {
     MeshComponent = AddComponent<USkeletalMeshComponent>(FName("MeshComponent_0"));
-    
-    // auto mesh = FFbxLoader::GetSkeletalMesh("Contents/dragon/Dragon 2.5_fbx.fbx");
-    // MeshComponent->SetSkeletalMesh(mesh);
 }
 
 void AItemActor::PostSpawnInitialize()

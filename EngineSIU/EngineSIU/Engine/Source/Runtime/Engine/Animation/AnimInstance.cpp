@@ -1,5 +1,6 @@
 #include "AnimInstance.h"
 
+#include "AnimationStateMachine.h"
 #include "AnimSequenceBase.h"
 #include "AnimData/AnimDataModel.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -18,17 +19,25 @@ UAnimInstance::UAnimInstance()
     , CurrentTime(0.0f)
     , bPlaying(false)
 {
+    
 }
 
 void UAnimInstance::InitializeAnimation(USkeletalMeshComponent* InOwningComponent)
 {
     OwningComp = InOwningComponent;
+    if (AnimSM == nullptr)
+    {
+        AnimSM = FObjectFactory::ConstructObject<UAnimationStateMachine>(this);
+    }
     NativeInitializeAnimation();
 }
 
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
+    // 업데이트 전 네이티브 먼저 실행
+    NativeUpdateAnimation(DeltaSeconds);
+    
     if (!bPlaying || !Sequence || !OwningComp || !OwningComp->GetSkeletalMesh())
     {
         // 재생 중이 아니거나, 필요한 정보가 없으면 현재 OutPose를 변경하지 않거나 참조 포즈로 설정
@@ -37,7 +46,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
     }
 
     // 사용자 확장 영역 - 커스텀 변수 또는 입력 값 설정
-    NativeUpdateAnimation(DeltaSeconds);
     TriggerAnimNotifies(DeltaSeconds);
     NotifyQueue.Reset();
 
@@ -135,6 +143,23 @@ void UAnimInstance::NativeInitializeAnimation()
 
 void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
+    if (AnimSM == nullptr)
+    {
+        return;
+    }
+    
+    AnimSM->ProcessState();
+    
+    if (UAnimSequenceBase* GetSequence = AnimSM->GetCurrentAnimationSequence())
+    {
+        if (Sequence != GetSequence)
+        {
+            CurrentTime = 0.0f;
+        }
+        
+        Sequence = AnimSM->GetCurrentAnimationSequence();
+        bPlaying = true;
+    }
 }
 
 bool UAnimInstance::HandleNotify(const FAnimNotifyEvent& NotifyEvent)

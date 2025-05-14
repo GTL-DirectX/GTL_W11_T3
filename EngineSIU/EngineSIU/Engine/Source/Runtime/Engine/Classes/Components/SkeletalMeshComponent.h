@@ -45,6 +45,9 @@ public:
     void SetAnimationMode(EAnimationMode::Type AnimationSingleNode);
     void PlayAnimation(class UAnimSequenceBase* NewAnimToPlay, bool bLooping);
     void Play(bool bLooping) const;
+
+    void SetAnimationInstance(UAnimInstance* NewAnimInstance);
+    UAnimInstance* GetAnimationInstance() const { return AnimScriptInstance; }
 public:
     int SelectedBoneIndex = -1;
     TArray<FTransform> CurrentPose;

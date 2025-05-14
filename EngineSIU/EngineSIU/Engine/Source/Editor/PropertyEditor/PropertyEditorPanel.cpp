@@ -27,7 +27,7 @@
 #include "Components/SphereComponent.h"
 #include "Engine/AssetManager.h"
 #include "Engine/FbxObject.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -35,6 +35,7 @@
 #include "Viewer/SlateViewer.h"
 #include "Slate/Widgets/Layout/SSplitter.h"
 #include "Components/Material/Material.h"
+#include "Contents/MyAnimInstance.h"
 #include "Contents/Actors/ItemActor.h"
 #include "Math/JungleMath.h"
 #include "Renderer/ShadowManager.h"
@@ -380,10 +381,8 @@ void PropertyEditorPanel::RenderForStaticMesh(UStaticMeshComponent* StaticMeshCo
         FString PreviewName = FString("None");
         if (UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh())
         {
-            if (FStaticMeshRenderData* RenderData = StaticMesh->GetRenderData())
-            {
-                PreviewName = RenderData->DisplayName;
-            }
+            const FStaticMeshRenderData& RenderData = StaticMesh->GetRenderData();
+            PreviewName = RenderData.DisplayName;
         }
 
         const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
@@ -392,14 +391,33 @@ void PropertyEditorPanel::RenderForStaticMesh(UStaticMeshComponent* StaticMeshCo
         {
             for (const auto& Asset : Assets)
             {
-                if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
+                if (Asset.Value.AssetType == EAssetType::StaticMesh)
                 {
-                    FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
-                    UStaticMesh* StaticMesh = FObjManager::GetStaticMesh(MeshName.ToWideString());
-                    if (StaticMesh)
+                    FString Label = Asset.Value.AssetName.ToString();
+
+                    bool bIsLoaded = (Asset.Value.State == FAssetInfo::LoadState::Completed);
+                    bool bIsFailed = (Asset.Value.State == FAssetInfo::LoadState::Failed);
+                    bool bIsLoading = (Asset.Value.State == FAssetInfo::LoadState::Loading);
+
+                    // 상태별로 이름 뒤에 태그 추가
+                    if (bIsLoading) Label += TEXT(" (Loading)");
+                    else if (bIsFailed) Label += TEXT(" (Failed)");
+
+                    if (!bIsLoaded)
+                        ImGui::BeginDisabled(); // 선택 불가하게 만듦
+
+                    if (ImGui::Selectable(*Label, false) && bIsLoaded)
                     {
-                        StaticMeshComp->SetStaticMesh(StaticMesh);
+                        FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
+                        UStaticMesh* StaticMesh = FObjManager::GetStaticMesh(MeshName);
+                        if (StaticMesh)
+                        {
+                            StaticMeshComp->SetStaticMesh(StaticMesh);
+                        }
                     }
+
+                    if (!bIsLoaded)
+                        ImGui::EndDisabled();
                 }
             }
             ImGui::EndCombo();
@@ -427,10 +445,10 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
 
     TArray<FString> animNames;
     {
-        std::lock_guard<std::mutex> lock(FFbxLoader::AnimMapMutex);
-        for (auto const& [name, entry] : FFbxLoader::AnimMap)
+        FSpinLockGuard Lock(FFbxManager::AnimMapLock);
+        for (auto const& [name, entry] : FFbxManager::GetAnimSequences())
         {
-            if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+            if (entry.State == FFbxManager::LoadState::Completed && entry.Sequence != nullptr)
             {
                 animNames.Add(name);
             }
@@ -465,7 +483,7 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     {
         if (SelectedSkeleton && bCanPlay) // SelectedSkeleton 유효성 재확인
         {
-            UAnimSequence* animToPlay = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
+            UAnimSequenceBase* animToPlay = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
             if (animToPlay)
             {
                 UE_LOG(ELogLevel::Display, TEXT("Playing animation: %s"), *SelectedAnimName);
@@ -534,27 +552,99 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
             {
                 if (Asset.Value.AssetType == EAssetType::SkeletalMesh)
                 {
-                    if (Asset.Value.IsLoaded)
+                    FString Label = Asset.Value.AssetName.ToString();
+
+                    bool bIsLoaded = (Asset.Value.State == FAssetInfo::LoadState::Completed);
+                    bool bIsLoading = (Asset.Value.State == FAssetInfo::LoadState::Loading);
+                    bool bIsFailed = (Asset.Value.State == FAssetInfo::LoadState::Failed);
+
+                    // 상태에 따라 라벨에 태그 추가
+                    if (bIsLoading)
+                        Label += TEXT(" (Loading)");
+                    else if (bIsFailed)
+                        Label += TEXT(" (Failed)");
+
+                    if (!bIsLoaded)
+                        ImGui::BeginDisabled();  // 선택 비활성화
+
+                    if (ImGui::Selectable(*Label, false) && bIsLoaded)
                     {
-                        if (ImGui::Selectable(GetData(Asset.Value.AssetName.ToString()), false))
+                        FString MeshName = Asset.Value.GetFullPath();
+                        USkeletalMesh* SkeletalMesh = FFbxManager::GetSkeletalMesh(MeshName.ToWideString());
+                        if (SkeletalMesh)
                         {
-                            //FString MeshName = Asset.Value.PackagePath.ToString() + "/" + Asset.Value.AssetName.ToString();
-                            FString MeshName = Asset.Value.GetFullPath();
-                            USkeletalMesh* SkeletalMesh = FFbxLoader::GetSkeletalMesh(MeshName.ToWideString());
-                            if (SkeletalMesh)
-                            {
-                                SkeletalComp->SetSkeletalMesh(SkeletalMesh);
-                            }
+                            SkeletalComp->SetSkeletalMesh(SkeletalMesh);
                         }
                     }
-                    else
+
+                    if (!bIsLoaded)
+                        ImGui::EndDisabled();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        TArray<UClass*> AnimClasses;
+        GetChildOfClass(UAnimInstance::StaticClass(), AnimClasses);
+        
+        if (ImGui::BeginCombo("AnimInstance", "None", ImGuiComboFlags_None))
+        {
+            for (auto* AnimInstance : AnimClasses)
+            {
+                if (ImGui::Selectable(GetData(AnimInstance->GetName()), false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(FObjectFactory::ConstructObject(AnimInstance, GEngine));
+                    SkeletalComp->SetAnimationInstance(Instance);
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        
+        TArray<FString> animNames;
+        {
+            FSpinLockGuard Lock(FFbxManager::AnimMapLock);
+            for (auto const& [name, entry] : FFbxManager::GetAnimSequences())
+            {
+                if (entry.State == FFbxManager::LoadState::Completed && entry.Sequence != nullptr)
+                {
+                    animNames.Add(name);
+                }
+            }
+        }
+        
+        if (ImGui::BeginCombo("Anim1", "NONE"))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (Instance)
                     {
-                        FString Path = Asset.Value.GetFullPath();
+                        Instance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
                     }
                 }
             }
             ImGui::EndCombo();
         }
+
+        if (ImGui::BeginCombo("Anim2", "NONE"))
+        {
+            for (int i = 0; i < animNames.Num(); ++i)
+            {
+                if (ImGui::Selectable(*animNames[i], false))
+                {
+                    UMyAnimInstance* Instance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
+                    if (Instance)
+                    {
+                        Instance->Anim2 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        
 
         if (ImGui::Button("Preview"))
         {
@@ -1286,7 +1376,7 @@ void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp
 
     if (ImGui::TreeNodeEx("SubMeshes", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
     {
-        const auto Subsets = StaticMeshComp->GetStaticMesh()->GetRenderData()->MaterialSubsets;
+        const auto Subsets = StaticMeshComp->GetStaticMesh()->GetRenderData().MaterialSubsets;
         for (uint32 i = 0; i < Subsets.Num(); ++i)
         {
             std::string temp = "subset " + std::to_string(i);
@@ -1391,7 +1481,25 @@ void PropertyEditorPanel::RenderMaterialView(UMaterial* Material)
     {
         const FVector NewColor = { EmissiveColorPick[0], EmissiveColorPick[1], EmissiveColorPick[2] };
         Material->SetEmissive(NewColor);
+    } 
+    
+    TArray<FTextureInfo>& Textures = Material->GetMaterialInfo().TextureInfos;
+    ImGui::Text("Texture Diffuse : %s", Textures[0].TexturePath.c_str());
+    ImGui::Text("Texture Specular : %s", Textures[1].TexturePath.c_str());
+    ImGui::Text("Texture Normal : %s", Textures[2].TexturePath.c_str());
+    ImGui::Text("Texture Emissive : %s", Textures[3].TexturePath.c_str());
+    ImGui::Text("Texture Alpha : %s", Textures[4].TexturePath.c_str());
+    ImGui::Text("Texture Ambient : %s", Textures[5].TexturePath.c_str());
+    ImGui::Text("Texture Shininess : %s", Textures[6].TexturePath.c_str());
+    ImGui::Text("Texture Metallic : %s", Textures[7].TexturePath.c_str());
+    ImGui::Text("Texture Roughness : %s", Textures[8].TexturePath.c_str());
+
+
+    for (const auto& Texture : Textures)
+    {
+        ImGui::Text("Texture : %s", Texture.TexturePath.c_str());
     }
+
 
     ImGui::Spacing();
     ImGui::Separator();

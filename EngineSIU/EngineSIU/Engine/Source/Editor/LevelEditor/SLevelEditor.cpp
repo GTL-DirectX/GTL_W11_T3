@@ -833,7 +833,7 @@ void SLevelEditor::RegisterEditorInputDelegates()
         {
             return;
         }
-        ActiveViewportClient->InputKey(InKeyEvent);
+        ActiveViewportClient->InputKey(hWnd, InKeyEvent);
     }));
 
     InputDelegatesHandles.Add(Handler->OnKeyUpDelegate.AddLambda([this](HWND hWnd, const FKeyEvent& InKeyEvent)
@@ -847,7 +847,7 @@ void SLevelEditor::RegisterEditorInputDelegates()
         {
             return;
         }
-        ActiveViewportClient->InputKey(InKeyEvent);
+        ActiveViewportClient->InputKey(hWnd, InKeyEvent);
     }));
 }
 
