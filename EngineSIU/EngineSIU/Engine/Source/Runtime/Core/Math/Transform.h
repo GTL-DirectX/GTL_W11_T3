@@ -170,6 +170,10 @@ public:
         Rotation.Normalize();
     }
 
+    FString ToString() const;
+
+    bool InitFromString(const FString& InSourceString);
+
     FORCEINLINE void Blend(const FTransform& A, const FTransform& B, float Alpha)
     {
         // 위치 선형 보간

@@ -730,18 +730,20 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
 
         TArray<UClass*> AnimClasses;
         GetChildOfClass(UAnimInstance::StaticClass(), AnimClasses);
+        
+        UAnimInstance* CurrentInstance = SkeletalComp->GetAnimationInstance();
+        FString CurrentName = CurrentInstance ? CurrentInstance->GetClass()->GetName() : TEXT("None");
+        const char* ComboLabel = !CurrentName.IsEmpty() ? *CurrentName : "None";
 
-        if (SelectedAnimInstanceIndex >= 0 && SelectedAnimInstanceIndex < AnimClasses.Num())
+        if (ImGui::BeginCombo("AnimInstance", ComboLabel, ImGuiComboFlags_None))
         {
-            SelectedAnimInstanceLabel = AnimClasses[SelectedAnimInstanceIndex]->GetName().ToAnsiString();
-        }
-
-        if (ImGui::BeginCombo("AnimInstance", SelectedAnimInstanceLabel.c_str()))
-        {
-            for (int i = 0; i < AnimClasses.Num(); ++i)
+            for (auto* AnimInstance : AnimClasses)
             {
-                const bool is_selected = (SelectedAnimInstanceIndex == i);
-                if (ImGui::Selectable(AnimClasses[i]->GetName().ToAnsiString().c_str(), is_selected))
+                FString UnrealName = AnimInstance ? AnimInstance->GetName() : TEXT("None");
+                const char* ItemName = !UnrealName.IsEmpty() ? *UnrealName : "None";
+                bool bIsSelected = (CurrentInstance && (AnimInstance == CurrentInstance->GetClass()));
+
+                if (ImGui::Selectable(ItemName, bIsSelected))
                 {
                     SelectedAnimInstanceIndex = i;
                     // TODO : 인덱스에 따른 클래스 생성 하드 코딩 수정
@@ -759,7 +761,8 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                     ULuaAnimInstance* Instance = Cast<ULuaAnimInstance>(FObjectFactory::ConstructObject(AnimClasses[i], GEngine));
                     SkeletalComp->SetAnimationInstance(Instance);
                 }
-                if (is_selected) ImGui::SetItemDefaultFocus();
+                if (bIsSelected)
+                    ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
         }
@@ -822,7 +825,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
             static char LuaScriptTextBuffer[128] = { 0 };
     
             std::string NotifyNameStr = GetData(LuaDisplayPath);
-            strncpy(LuaScriptTextBuffer, NotifyNameStr.c_str(), sizeof(LuaScriptTextBuffer));
+            strncpy_s(LuaScriptTextBuffer, NotifyNameStr.c_str(), sizeof(LuaScriptTextBuffer));
             LuaScriptTextBuffer[sizeof(LuaScriptTextBuffer) - 1] = '\0'; // null-termination 보장
     
             if (ImGui::InputText("Script File", LuaScriptTextBuffer, IM_ARRAYSIZE(LuaScriptTextBuffer), ImGuiInputTextFlags_EnterReturnsTrue))
@@ -858,6 +861,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
             {
                 if (ImGui::Selectable(*animNames[i], false))
                 {
+                    SelectedAnim1Index = i;
                     UMyAnimInstance* MyAnimInstance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
                     UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (MyAnimInstance)
@@ -889,6 +893,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
             {
                 if (ImGui::Selectable(*animNames[i], false))
                 {
+                    SelectedAnim2Index = i;
                     UMyAnimInstance* MyAnimInstance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
                     UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (MyAnimInstance)
@@ -917,6 +922,7 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
             {
                 if (ImGui::Selectable(*animNames[i], false))
                 {
+                    SelectedAnim3Index = i;
                     UMyAnimInstance* MyAnimInstance = Cast<UMyAnimInstance>(SkeletalComp->GetAnimationInstance());
                     UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (PreviewAnimInstance) {
@@ -1167,7 +1173,7 @@ void PropertyEditorPanel::RenderForDirectionalLightComponent(UDirectionalLightCo
         const uint32& NumCascades = FEngineLoop::Renderer.ShadowManager->GetNumCasCades();
         for (uint32 i = 0; i < NumCascades; ++i)
         {
-            ImGui::Image(reinterpret_cast<ImTextureID>(FEngineLoop::Renderer.ShadowManager->GetDirectionalShadowCascadeDepthRHI()->ShadowSRVs[i]), ImVec2(200, 200));
+           //ImGui::Image(reinterpret_cast<ImTextureID>(FEngineLoop::Renderer.ShadowManager->GetDirectionalShadowCascadeDepthRHI()->ShadowSRVs[i]), ImVec2(200, 200));
             //ImGui::SameLine();
         }
         ImGui::TreePop();

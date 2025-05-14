@@ -21,6 +21,9 @@ public:
         return StateName;
     }
     UAnimSequenceBase* GetLinkAnimationSequence() const;
+
+    void GetProperties(TMap<FString, FString>& OutProperties) const;
+    void SetProperties(const TMap<FString, FString>& InProperties);
     
 private:
     /** State Name */

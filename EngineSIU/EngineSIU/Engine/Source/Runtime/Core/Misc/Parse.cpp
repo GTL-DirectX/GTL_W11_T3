@@ -5,6 +5,7 @@
 #include "Container/CString.h"
 #include "Math/MathUtility.h"
 #include "Runtime/CoreUObject/UObject/NameTypes.h"
+#include "Container/String.h"
 
 
 bool FParse::Value(const TCHAR* Stream, const TCHAR* Match, TCHAR* Value, int32 MaxLen, bool bShouldStopOnSeparator, const TCHAR** OptStreamGotTo)
@@ -221,30 +222,29 @@ bool FParse::Value(const TCHAR* Stream, const TCHAR* Match, int32& Value)
     return true;
 }
 
-// bool FParse::Value(const TCHAR* Stream, const TCHAR* Match, FString& Value, bool bShouldStopOnSeparator, const TCHAR** OptStreamGotTo)
-// {
-//     if (!Stream)
-//     {
-//         return false;
-//     }
-//
-//     int32 StreamLen = FCString::Strlen(Stream);
-//     if (StreamLen > 0)
-//     {
-//         TArray<TCHAR, TInlineAllocator<4096>> ValueCharArray;
-//         ValueCharArray.AddUninitialized(StreamLen + 1);
-//         ValueCharArray[0] = TCHAR('\0');
-//
-//         if( FParse::Value(Stream, Match, ValueCharArray.GetData(), ValueCharArray.Num(), bShouldStopOnSeparator, OptStreamGotTo) )
-//         {
-//             Value = FString(ValueCharArray.GetData());
-//             return true;
-//         }
-//     }
-//
-//     return false;
-// }
+ //bool FParse::Value(const TCHAR* Stream, const TCHAR* Match, FString& Value, bool bShouldStopOnSeparator, const TCHAR** OptStreamGotTo)
+ //{
+ //    if (!Stream)
+ //    {
+ //        return false;
+ //    }
 
+ //    int32 StreamLen = FCString::Strlen(Stream);
+ //    if (StreamLen > 0)
+ //    {
+ //        TArray<TCHAR, TInlineAllocator<4096>> ValueCharArray;
+ //        ValueCharArray.AddUninitialized(StreamLen + 1);
+ //        ValueCharArray[0] = TCHAR('\0');
+
+ //        if( FParse::Value(Stream, Match, ValueCharArray.GetData(), ValueCharArray.Num(), bShouldStopOnSeparator, OptStreamGotTo) )
+ //        {
+ //            Value = FString(ValueCharArray.GetData());
+ //            return true;
+ //        }
+ //    }
+
+ //    return false;
+ //}
 
 bool FParse::Bool(const TCHAR* Stream, const TCHAR* Match, bool& OnOff)
 {
