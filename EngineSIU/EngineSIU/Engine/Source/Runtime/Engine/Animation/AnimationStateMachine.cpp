@@ -1,6 +1,19 @@
-﻿#include "AnimationStateMachine.h"
+#include "AnimationStateMachine.h"
 
 #include "AnimSequenceBase.h"
+#include "Animation/AnimNode_State.h"
+
+void UAnimationStateMachine::AddState(UAnimNode_State* NewState)
+{
+    if (NewState && !States.Contains(NewState)) {
+        States.Add(NewState);
+        if (States.Num() == 1)
+        {
+            CurrentState = NewState->GetStateName();
+            CurrentAnimationSequence = NewState->GetLinkAnimationSequence();
+        }
+    }
+}
 
 void UAnimationStateMachine::AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration)
 {
@@ -32,15 +45,47 @@ void UAnimationStateMachine::SetState(FName NewStateName)
 
 void UAnimationStateMachine::ProcessState()
 {
-    for (const auto& Transition : Transitions)
+    for (auto& Transition : Transitions)
     {
-        if (Transition.FromState->GetStateName() == CurrentState && Transition.Condition())
+        if (Transition.FromState->GetStateName() == CurrentState && Transition.CanTransition() && !bTransitionState)
         {
+            bTransitionState = true;
+            Transition.ElapsedTime = 0.f;
+            PendingTransition = &Transition;
+
             SetStateInternal(Transition.ToState->GetStateName());
+            CurrentState = Transition.ToState->GetStateName();
             CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
+            FromAnimationSequence = Transition.FromState->GetLinkAnimationSequence();
+            
             break;
         }
     }
+}
+
+void UAnimationStateMachine::ClearTransitions()
+{
+    Transitions.Empty();
+}
+
+void UAnimationStateMachine::ClearStates()
+{
+    States.Empty();
+}
+
+void UAnimationStateMachine::GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo)
+{
+    if (!bTransitionState)
+    {
+        OutFrom = nullptr;
+        OutTo = nullptr;
+        return;
+    }
+    
+    OutFrom = FromAnimationSequence;
+    OutTo = CurrentAnimationSequence;
+    
+    //bTransitionState = false;
 }
 
 UAnimSequenceBase* UAnimationStateMachine::GetCurrentAnimationSequence() const

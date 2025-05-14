@@ -204,6 +204,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Source\Contents\PreviewAnimInstance.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\ImGuiInspector.cpp" />
     <ClCompile Include="Engine\Source\Contents\MyAnimInstance.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
@@ -213,6 +214,8 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimSequenceBase.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTransitionInstance.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTwoNodeBlendInstance.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTypes.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Character.cpp" />
     <ClCompile Include="Engine\Source\Contents\Actors\Fish.cpp" />
@@ -275,7 +278,9 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Core\Stats\Stats.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\ActorEditor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimData\AnimDataModel.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimInstance.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimInstance.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Actors\AmbientLightActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Actors\CapsuleActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Actors\Cube.cpp" />
@@ -491,6 +496,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Source\Contents\PreviewAnimInstance.h" />
     <ClInclude Include="Engine\Source\Editor\PropertyEditor\ImGuiInspector.h" />
     <ClInclude Include="Engine\Source\Runtime\CoreUObject\Template\IsArray.h" />
     <ClInclude Include="Engine\Source\Runtime\CoreUObject\UObject\PropertyTypes.h" />
@@ -500,6 +506,9 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState_SlowMotion.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimTransitionInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimTwoNodeBlendInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Asset\AnimationAsset.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Character.h" />
     <ClInclude Include="Engine\Source\Contents\Actors\Fish.h" />
@@ -590,7 +599,9 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Core\Traits\IsCharType.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimCurveTypes.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimData\AnimDataModel.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimInstance.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimSequence.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimSequenceBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimSingleNodeInstance.h" />

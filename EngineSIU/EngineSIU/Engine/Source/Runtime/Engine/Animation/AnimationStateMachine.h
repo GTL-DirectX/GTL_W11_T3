@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "AnimNode_State.h"
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
@@ -17,6 +17,8 @@ struct FAnimTransition
     /** Blend Setting */
     float Duration = 0.2f;
 
+    float ElapsedTime = 0.f;
+
     /** Transition condition */
     bool CanTransition() const
     {
@@ -32,7 +34,11 @@ class UAnimationStateMachine : public UObject
 public:
     UAnimationStateMachine() = default;
 
+    FAnimTransition* PendingTransition = nullptr;
+
 public:
+
+    void AddState(UAnimNode_State* NewState);
     void AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration = 0.2f);
 
     void SetState(FName NewStateName);
@@ -40,10 +46,32 @@ public:
     void SetStateInternal(uint32 NewState);
 
     void ProcessState();
+
+    void ClearTransitions();
+
+    void ClearStates();
+    /**
+     * 
+     * OutFrom : 현재 재생되고 있는 애님 시퀀스
+     * OutTo : 변경될 애님 시퀀스
+     */
+    void GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo);
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
-    UAnimSequenceBase* GetCurrentAnimationSequence() const;
+
+    FORCEINLINE bool GetTransitionState() const { return bTransitionState; }
+    FORCEINLINE void SetTransitionState(bool NewState) { bTransitionState = NewState; }
     
+    UAnimSequenceBase* GetCurrentAnimationSequence() const;
+
+    void SetCurrentAnimationSequence(UAnimSequenceBase* NewAnim) { CurrentAnimationSequence = NewAnim; };
+
+    FORCEINLINE TArray<FAnimTransition>& GetTransitions() { return Transitions; }
+
+    FORCEINLINE const TArray<UAnimNode_State*>& GetStates() const { return States; }
+    
+
+   
 private:
  
     /** FName comparison index by state name */
@@ -52,6 +80,15 @@ private:
     /** Current playing animation sequence */
     UAnimSequenceBase* CurrentAnimationSequence = nullptr;
 
+    /** Anim waiting for transfer */
+    UAnimSequenceBase* FromAnimationSequence = nullptr;
+   
+    /** State 리스트 */
+    TArray<UAnimNode_State*> States;
+
     /** Transition list */
     TArray<FAnimTransition> Transitions;
+
+    /** true when a state transition occurs */
+    bool bTransitionState = false;
 };

@@ -1,37 +1,21 @@
 {
     "Actors": [
         {
-            "ActorClass": "AActor",
-            "ActorID": "AActor_175",
-            "ActorLabel": "OBJ_SPHERE_175",
-            "ActorTickInEditor": "false",
+            "ActorClass": "AItemActor",
+            "ActorID": "AItemActor_210",
+            "ActorLabel": "OBJ_COIN_210",
+            "ActorTickInEditor": "true",
             "Components": [
                 {
                     "ComponentClass": "USceneComponent",
-                    "ComponentID": "USceneComponent_7",
-                    "Properties": {
-                        "AttachParentID": "USceneComponent_176",
-                        "ComponentClass": "USceneComponent",
-                        "ComponentName": "USceneComponent_7",
-                        "ComponentOwner": "AActor_175",
-                        "ComponentOwnerClass": "AActor",
-                        "RelativeLocation": "X=0.000 Y=0.000 Z=1.800",
-                        "RelativeRotation": "Pitch=-0.000 Yaw=0.000 Roll=-0.000",
-                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
-                        "bAutoActive": "true",
-                        "bIsActive": "true"
-                    }
-                },
-                {
-                    "ComponentClass": "USceneComponent",
-                    "ComponentID": "USceneComponent_176",
+                    "ComponentID": "USceneComponent_211",
                     "Properties": {
                         "AttachParentID": "nullptr",
                         "ComponentClass": "USceneComponent",
-                        "ComponentName": "USceneComponent_176",
-                        "ComponentOwner": "AActor_175",
-                        "ComponentOwnerClass": "AActor",
-                        "RelativeLocation": "X=0.000 Y=0.000 Z=8.500",
+                        "ComponentName": "USceneComponent_211",
+                        "ComponentOwner": "AItemActor_210",
+                        "ComponentOwnerClass": "AItemActor",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=8.700",
                         "RelativeRotation": "Pitch=-0.000 Yaw=0.000 Roll=-0.000",
                         "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
                         "bAutoActive": "true",
@@ -39,80 +23,27 @@
                     }
                 },
                 {
-                    "ComponentClass": "USphereComp",
-                    "ComponentID": "USphereComp_177",
-                    "Properties": {
-                        "AABB_max": "X=1.000 Y=1.000 Z=1.000",
-                        "AABB_min": "X=-1.000 Y=-1.000 Z=-1.000",
-                        "AttachParentID": "nullptr",
-                        "ComponentClass": "USphereComp",
-                        "ComponentName": "USphereComp_177",
-                        "ComponentOwner": "AActor_175",
-                        "ComponentOwnerClass": "AActor",
-                        "RelativeLocation": "X=4.953 Y=0.000 Z=8.256",
-                        "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=-0.000",
-                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
-                        "StaticMeshPath": "Contents/Sphere.obj",
-                        "bAutoActive": "true",
-                        "bIsActive": "true",
-                        "m_Type": "USphereComp"
-                    }
-                }
-            ],
-            "RootComponentID": "USceneComponent_176"
-        },
-        {
-            "ActorClass": "AActor",
-            "ActorID": "AActor_177",
-            "ActorLabel": "OBJ_TEXT_177",
-            "ActorTickInEditor": "false",
-            "Components": [
-                {
-                    "ComponentClass": "USceneComponent",
-                    "ComponentID": "USceneComponent_178",
-                    "Properties": {
-                        "AttachParentID": "UTextComponent_179",
-                        "ComponentClass": "USceneComponent",
-                        "ComponentName": "USceneComponent_178",
-                        "ComponentOwner": "AActor_177",
-                        "ComponentOwnerClass": "AActor",
-                        "RelativeLocation": "X=0.000 Y=0.000 Z=-1.047",
-                        "RelativeRotation": "Pitch=-0.000 Yaw=0.000 Roll=-0.000",
-                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
-                        "bAutoActive": "true",
-                        "bIsActive": "true"
-                    }
-                },
-                {
-                    "ComponentClass": "UTextComponent",
-                    "ComponentID": "UTextComponent_179",
+                    "ComponentClass": "USkeletalMeshComponent",
+                    "ComponentID": "MeshComponent_0",
                     "Properties": {
                         "AABB_max": "X=0.000 Y=0.000 Z=0.000",
                         "AABB_min": "X=0.000 Y=0.000 Z=0.000",
                         "AttachParentID": "nullptr",
-                        "BufferKey": "Assets/Texture/font.png",
-                        "ColumnCount": "106",
-                        "ComponentClass": "UTextComponent",
-                        "ComponentName": "UTextComponent_179",
-                        "ComponentOwner": "AActor_177",
-                        "ComponentOwnerClass": "AActor",
-                        "FinalIndexU": "0.000000",
-                        "FinalIndexV": "0.000000",
-                        "QuadHeight": "2.000000",
-                        "QuadSize": "2",
-                        "QuadWidth": "2.000000",
-                        "RelativeLocation": "X=4.732 Y=0.000 Z=6.161",
+                        "ComponentClass": "USkeletalMeshComponent",
+                        "ComponentName": "MeshComponent_0",
+                        "ComponentOwner": "AItemActor_210",
+                        "ComponentOwnerClass": "AItemActor",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=0.000",
                         "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=0.000",
                         "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
-                        "RowCount": "106",
-                        "Text": "Default",
+                        "SkeletalMeshPath": "Contents/dragon/Dragon_Baked_Actions_fbx_7.4_binary.fbx",
                         "bAutoActive": "true",
                         "bIsActive": "true",
-                        "m_Type": "UTextComponent"
+                        "m_Type": ""
                     }
                 }
             ],
-            "RootComponentID": "UTextComponent_179"
+            "RootComponentID": "USceneComponent_211"
         }
     ],
     "NextUUID": 0,
