@@ -866,8 +866,20 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                         MyAnimInstance->SetCurrentSequence(MyAnimInstance->Anim1, 0.f);
                     }
                     else if (PreviewAnimInstance) {
+                    
+
                         PreviewAnimInstance->Anim1 = FFbxManager::GetAnimSequenceByName(animNames[i]);
                         PreviewAnimInstance->SetCurrentSequence(PreviewAnimInstance->Anim1, 0.f);
+
+                        uint32 StateKey = FName("Idle").GetComparisonIndex();
+
+                        if (UAnimNode_State** IdleState = PreviewAnimInstance->GetAnimSM()->StateContainer.Find(StateKey))
+                        {
+                            // IdleState에 접근 가능
+                            (*IdleState)->SetLinkAnimationSequence(FFbxManager::GetAnimSequenceByName(animNames[i]));
+                        }
+
+                       
                     }
                     
                 }
@@ -897,6 +909,14 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                     }
                     else if (PreviewAnimInstance) {
                         PreviewAnimInstance->Anim2 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+
+                        uint32 StateKey = FName("Walk").GetComparisonIndex();
+
+                        if (UAnimNode_State** WalkState = PreviewAnimInstance->GetAnimSM()->StateContainer.Find(StateKey))
+                        {
+                            // IdleState에 접근 가능
+                            (*WalkState)->SetLinkAnimationSequence(FFbxManager::GetAnimSequenceByName(animNames[i]));
+                        }
                     }
                 }
             }
@@ -921,6 +941,14 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent*SkeletalC
                     UPreviewAnimInstance* PreviewAnimInstance = Cast<UPreviewAnimInstance>(SkeletalComp->GetAnimationInstance());
                     if (PreviewAnimInstance) {
                         PreviewAnimInstance->Anim3 = FFbxManager::GetAnimSequenceByName(animNames[i]);
+
+                        uint32 StateKey = FName("Jump").GetComparisonIndex();
+
+                        if (UAnimNode_State** JumpState = PreviewAnimInstance->GetAnimSM()->StateContainer.Find(StateKey))
+                        {
+                            // IdleState에 접근 가능
+                            (*JumpState)->SetLinkAnimationSequence(FFbxManager::GetAnimSequenceByName(animNames[i]));
+                        }
                     }
 
                 }

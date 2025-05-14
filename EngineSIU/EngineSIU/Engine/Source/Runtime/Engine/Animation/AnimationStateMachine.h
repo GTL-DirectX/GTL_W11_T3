@@ -78,6 +78,9 @@ public:
     void SetCurrentAnimationSequence(UAnimSequenceBase* NewAnim) { CurrentAnimationSequence = NewAnim; }
 
     FORCEINLINE TArray<FAnimTransition>& GetTransitions() { return Transitions; }
+
+    /** State Container */
+    TMap<uint32, UAnimNode_State*> StateContainer;
    
 private:
  
@@ -96,8 +99,7 @@ private:
     /** Is pending transition */
     FAnimTransition* PendingTransition;
     
-    /** State Container */
-    TMap<uint32, UAnimNode_State*> StateContainer;
+    
 
     
     /** true when a state transition occurs */

@@ -21,7 +21,7 @@ public:
         return StateName;
     }
     UAnimSequenceBase* GetLinkAnimationSequence() const;
-    
+    void SetLinkAnimationSequence(UAnimSequenceBase* NewAnim);
 private:
     /** State Name */
     FName StateName;
