@@ -34,13 +34,18 @@ void UAnimationStateMachine::ProcessState()
 {
     for (const auto& Transition : Transitions)
     {
-        if (Transition.FromState->GetStateName() == CurrentState && Transition.Condition())
+        if (Transition.FromState->GetStateName() == CurrentState && Transition.CanTransition())
         {
             SetStateInternal(Transition.ToState->GetStateName());
             CurrentAnimationSequence = Transition.ToState->GetLinkAnimationSequence();
             break;
         }
     }
+}
+
+void UAnimationStateMachine::ClearTransitions()
+{
+    Transitions.Empty();
 }
 
 UAnimSequenceBase* UAnimationStateMachine::GetCurrentAnimationSequence() const

@@ -40,6 +40,8 @@ public:
     void SetStateInternal(uint32 NewState);
 
     void ProcessState();
+
+    void ClearTransitions();
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
     UAnimSequenceBase* GetCurrentAnimationSequence() const;
