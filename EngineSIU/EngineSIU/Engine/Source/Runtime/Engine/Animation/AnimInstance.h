@@ -1,6 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
+#include "AnimNotifyQueue.h"
 
 struct FTransform;
 class USkeletalMeshComponent;
@@ -9,28 +10,48 @@ class UAnimSequenceBase;
 /*
  * 일반적인 애니메이션 블루프린트 기반의 인스턴스
  * 여러 개의 애니메이션을 소유하여 블렌드 및 상태 전이 가능 - 플레이어 캐릭터 등에 사용
+ * 시퀀스를 오물딱 조물딱 블렌드 등을 하는 요리사
+ * 즉, 애니메이션을 만들기 위해 필요한 데이터들의 집합
  */
 class UAnimInstance : public UObject
 {
     DECLARE_CLASS(UAnimInstance, UObject)
 public:
     UAnimInstance();
-    void Initialize(USkeletalMeshComponent* InOwningComponent);
+    virtual void InitializeAnimation(USkeletalMeshComponent* InOwningComponent);
 
     // 매 틱마다 애니메이션을 업데이트하고 최종 포즈를 OutPose에 반환합니다.
-    virtual void UpdateAnimation(float DeltaSeconds, TArray<FTransform>& OutPose);
+    virtual void UpdateAnimation(float DeltaSeconds);
+    virtual const TArray<FTransform>& EvaluateAnimation();
+    void ResetToRefPose();
 
+    virtual void NativeInitializeAnimation();
+    virtual void NativeUpdateAnimation(float DeltaSeconds);
+
+    /* 사용자가 오버라이딩할 Notify Handling 함수 입니다*/
+    virtual bool HandleNotify(const FAnimNotifyEvent& NotifyEvent);
+    void TriggerSingleAnimNotify(const FAnimNotifyEvent& AnimNotifyEvent);
     void TriggerAnimNotifies(float DeltaSeconds);
 
     void SetPlaying(bool bIsPlaying){ bPlaying = bIsPlaying;}
     bool IsPlaying() const { return bPlaying; }
 
+    const TArray<FTransform>& GetCurrentPose() const { return CurrentPose; }
+    USkeletalMeshComponent* GetSkelMeshComponent();
     float GetCurrentTime() const { return CurrentTime; }
+    void SetCurrentTime(float NewTime);
 
 protected:
+    TArray<FTransform> CurrentPose;
+
     UAnimSequenceBase* Sequence = nullptr; // 본래 FAnimNode_SequencePlayer에서 소유
 
-    USkeletalMeshComponent* OwningComp; 
+    USkeletalMeshComponent* OwningComp;
+
+    FAnimNotifyQueue NotifyQueue;
+
+    /* 현재 활성화 되어있는 Notify State 배열 */
+    TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
     float CurrentTime;
     bool bPlaying;

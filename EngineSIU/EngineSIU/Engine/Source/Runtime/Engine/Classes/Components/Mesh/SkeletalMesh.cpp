@@ -7,6 +7,11 @@ UObject* USkeletalMesh::Duplicate(UObject* InOuter)
     return nullptr;
 }
 
+const TArray<UMaterial*>& USkeletalMesh::GetMaterials() const
+{
+    return Materials;
+}
+
 uint32 USkeletalMesh::GetMaterialIndex(FString MaterialSlotName) const
 {
     for (uint32 materialIndex = 0; materialIndex < Materials.Num(); materialIndex++) {
@@ -25,7 +30,27 @@ void USkeletalMesh::GetUsedMaterials(TArray<UMaterial*>& OutMaterial) const
     }
 }
 
-FString USkeletalMesh::GetOjbectName() const
+void USkeletalMesh::GetRefSkeleton(FReferenceSkeleton& OutRefSkeleton) const
+{
+    OutRefSkeleton = RefSkeleton;
+}
+
+void USkeletalMesh::GetInverseBindPoseMatrices(TArray<FMatrix>& OutMatrices) const
+{
+    OutMatrices = InverseBindPoseMatrices;
+}
+
+void USkeletalMesh::SetCPUSkinned(bool bInCPUSkinned)
+{
+    bCPUSkinned = bInCPUSkinned;
+}
+
+bool USkeletalMesh::GetCPUSkinned() const
+{
+    return bCPUSkinned;
+}
+
+FString USkeletalMesh::GetObjectName() const
 {
     return RenderData.ObjectName;
 }

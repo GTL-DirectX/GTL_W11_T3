@@ -15,7 +15,7 @@
 #include "Container/StringConv.h"
 #include "Engine/AssetManager.h"
 
-#define DEBUG_DUMP_ANIMATION
+//#define DEBUG_DUMP_ANIMATION
 
 const FbxAxisSystem FFbxLoader::UnrealTargetAxisSystem(
     FbxAxisSystem::eZAxis,
@@ -323,7 +323,7 @@ USkeletalMesh* FFbxLoader::ParseSkeletalMesh(const FString& filename)
     if (InverseBindPoseMatrices.Num() > 128)
     {
         // GPU Skinning: 최대 bone 개수 128개를 넘어가면 CPU로 전환
-        newSkeletalMesh->bCPUSkinned = true;
+        newSkeletalMesh->SetCPUSkinned(true);
     }
 
     {

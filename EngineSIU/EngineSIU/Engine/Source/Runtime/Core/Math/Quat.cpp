@@ -306,6 +306,7 @@ FQuat FQuat::MakeFromEuler(const FVector& EulerDegrees)
     // 위 공식이 맞습니다.
 }
 
+/* 표준 회전 행렬의 전치행렬을 반환 */
 FMatrix FQuat::ToMatrix() const
 {
     FMatrix R;

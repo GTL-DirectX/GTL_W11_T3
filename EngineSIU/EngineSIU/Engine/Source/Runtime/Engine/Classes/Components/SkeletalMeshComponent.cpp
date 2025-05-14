@@ -18,10 +18,9 @@ void USkeletalMeshComponent::InitializeComponent()
     GetOwner()->SetActorTickInEditor(true);
 }
 
-void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
-{
-    Super::TickComponent(DeltaSeconds);
 
+void USkeletalMeshComponent::TickAnimation(float DeltaTime)
+{
     /* 애니메이션 비활성화 또는 필요한 에셋과 인스턴스 없으면 실행 안 함
      * 위 경우 CurrentPose는 이전 상태 유지하거나, ResetPose() 등으로 기본 포즈임
      */
@@ -30,7 +29,15 @@ void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
         return;
     }
 
-    AnimScriptInstance->UpdateAnimation(DeltaSeconds, CurrentPose);
+    AnimScriptInstance->UpdateAnimation(DeltaTime);
+    CurrentPose = AnimScriptInstance->EvaluateAnimation();
+}
+
+
+void USkeletalMeshComponent::TickComponent(float DeltaSeconds)
+{
+    Super::TickComponent(DeltaSeconds);
+    TickAnimation(DeltaSeconds);
 }
 
 UObject* USkeletalMeshComponent::Duplicate(UObject* InOuter)
@@ -48,7 +55,7 @@ void USkeletalMeshComponent::GetProperties(TMap<FString, FString>& OutProperties
         
     if (SkeletalMesh != nullptr)
     {
-        FString PathFString = SkeletalMesh->GetOjbectName();
+        FString PathFString = SkeletalMesh->GetObjectName();
         OutProperties.Add(TEXT("SkeletalMeshPath"), PathFString);
     }
     else
@@ -120,9 +127,7 @@ void USkeletalMeshComponent::GetSkinningMatrices(TArray<FMatrix>& OutMatrices) c
     {
         const FTransform& RefPose = BonePose[JointIndex];
         FMatrix BoneToModel = FMatrix::Identity;
-        FMatrix LocalPose = FMatrix::CreateScaleMatrix(RefPose.Scale3D.X, RefPose.Scale3D.Y, RefPose.Scale3D.Z) *
-            RefPose.Rotation.ToMatrix() *
-            FMatrix::CreateTranslationMatrix(RefPose.Translation);
+        FMatrix LocalPose = RefPose.ToMatrixWithScale();
 
         int ParentIndex = RefSkeleton.RawRefBoneInfo[JointIndex].ParentIndex;
 
@@ -133,7 +138,7 @@ void USkeletalMeshComponent::GetSkinningMatrices(TArray<FMatrix>& OutMatrices) c
         }
         else
         {
-            BoneToModel = LocalPose * CurrentPoseMatrices[ParentIndex];
+            BoneToModel = LocalPose * CurrentPoseMatrices[ParentIndex]; // colum major 기준?
         }
 
 
@@ -189,43 +194,6 @@ void USkeletalMeshComponent::GetCurrentPoseMatrices(TArray<FMatrix>& OutMatrices
         // Current pose 행렬 : j -> model space
         OutMatrices[JointIndex] = BoneToModel;
     }
-
-
-
-    //const TArray<FFbxJoint>& joints = SkeletalMesh->skeleton.joints;
-    //OutMatrices.SetNum(joints.Num());
-
-    //for (int jointIndex = 0; jointIndex < joints.Num(); ++jointIndex)
-    //{
-    //    const FFbxJoint& joint = joints[jointIndex];
-
-    //    FMatrix ModelToBone = FMatrix::Identity;
-
-    //    if (joint.parentIndex != -1)
-    //    {
-    //        if (jointIndex == SelectedBoneIndex)
-    //        {
-
-    //            FMatrix Translation = FMatrix::CreateTranslationMatrix(SelectedLocation);
-    //            FMatrix Rotation = FMatrix::CreateRotationMatrix(SelectedRotation.Roll, SelectedRotation.Pitch, SelectedRotation.Yaw);
-    //            FMatrix Scale = FMatrix::CreateScaleMatrix(SelectedScale.X, SelectedScale.Y, SelectedScale.Z);
-
-    //            ModelToBone = Scale * Rotation * Translation * joint.localBindPose * OutMatrices[joint.parentIndex];
-    //        }
-    //        else
-    //        {
-    //            ModelToBone = joint.localBindPose * OutMatrices[joint.parentIndex]; // j->p(j)->model space
-    //        }
-    //    }
-    //    else
-    //    {
-    //        ModelToBone = joint.localBindPose; // j -> model space
-    //    }
-
-    //    // 스키닝 행렬: 
-    //    const FMatrix& InverseBindPose = joint.inverseBindPose;
-    //    OutMatrices[jointIndex] = ModelToBone;
-    //}
 }
 
 TArray<int> USkeletalMeshComponent::GetChildrenOfBone(int InParentIndex) const
@@ -376,7 +344,7 @@ void USkeletalMeshComponent::SetAnimation(UAnimSequenceBase* NewAnimToPlay)
         AnimScriptInstance = FObjectFactory::ConstructObject<UAnimSingleNodeInstance>(nullptr);
         if (AnimScriptInstance) 
         {
-            AnimScriptInstance->Initialize(this); // UAnimInstance 초기화
+            AnimScriptInstance->InitializeAnimation(this); // UAnimInstance 초기화
         }
         else 
         {

@@ -1666,6 +1666,12 @@
     <ClCompile Include="Engine\Source\Runtime\Core\Math\MathSSE.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimData\AnimDataModel.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimInstance.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Character.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Pawn.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimSequenceBase.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTypes.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1719,6 +1725,10 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimCurveTypes.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Misc\FrameRate.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimSingleNodeInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Character.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Pawn.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

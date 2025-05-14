@@ -375,47 +375,10 @@ FMatrix FMatrix::GetRotationMatrix(const FRotator& InRotation)
     return CreateRotationMatrix(InRotation.Roll, InRotation.Pitch, InRotation.Yaw);
 }
 
+/* FQuat과 동일하게 Column major 회전 행렬 반환 */
 FMatrix FMatrix::GetRotationMatrix(const FQuat& InRotation)
 {
-    // 쿼터니언 요소 추출
-    const float QuatX = InRotation.X, QuatY = InRotation.Y, QuatZ = InRotation.Z, w = InRotation.W;
-
-    // 중간 계산값
-    const float xx = QuatX * QuatX;
-    float yy = QuatY * QuatY;
-    float zz = QuatZ * QuatZ;
-
-    const float xy = QuatX * QuatY;
-    float xz = QuatX * QuatZ;
-    float yz = QuatY * QuatZ;
-    const float wx = w * QuatX;
-    const float wy = w * QuatY;
-    const float wz = w * QuatZ;
-
-    // 회전 행렬 구성
-    FMatrix Result;
-
-    Result.M[0][0] = 1.0f - 2.0f * (yy + zz);
-    Result.M[0][1] = 2.0f * (xy - wz);
-    Result.M[0][2] = 2.0f * (xz + wy);
-    Result.M[0][3] = 0.0f;
-
-    Result.M[1][0] = 2.0f * (xy + wz);
-    Result.M[1][1] = 1.0f - 2.0f * (xx + zz);
-    Result.M[1][2] = 2.0f * (yz - wx);
-    Result.M[1][3] = 0.0f;
-
-    Result.M[2][0] = 2.0f * (xz - wy);
-    Result.M[2][1] = 2.0f * (yz + wx);
-    Result.M[2][2] = 1.0f - 2.0f * (xx + yy);
-    Result.M[2][3] = 0.0f;
-
-    Result.M[3][0] = 0.0f;
-    Result.M[3][1] = 0.0f;
-    Result.M[3][2] = 0.0f;
-    Result.M[3][3] = 1.0f; // 4x4 행렬이므로 마지막 값은 1
-
-    return Result;
+    return InRotation.ToMatrix(); 
 }
 
 FQuat FMatrix::ToQuat() const
