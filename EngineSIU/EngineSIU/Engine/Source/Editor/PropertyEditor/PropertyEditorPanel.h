@@ -65,7 +65,7 @@ private:
     /* Static Mesh Settings */
     void RenderForStaticMesh(UStaticMeshComponent* StaticMeshComp) const;
     void DrawAnimationControls(USkeletalMeshComponent* SkeletalComp);
-    void DrawBlendDebugControls(USkeletalMeshComponent* SkeletalComp);
+    void DrawStateMachineDebugControls(USkeletalMeshComponent* SkeletalComp);
     void RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalComp);
     void RenderForModifySkeletalBone(USkeletalMeshComponent* SkeletalMeshComponent);
 

@@ -1,6 +1,19 @@
 #include "AnimationStateMachine.h"
 
 #include "AnimSequenceBase.h"
+#include "Animation/AnimNode_State.h"
+
+void UAnimationStateMachine::AddState(UAnimNode_State* NewState)
+{
+    if (NewState && !States.Contains(NewState)) {
+        States.Add(NewState);
+        if (States.Num() == 1)
+        {
+            CurrentState = NewState->GetStateName();
+            CurrentAnimationSequence = NewState->GetLinkAnimationSequence();
+        }
+    }
+}
 
 void UAnimationStateMachine::AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration)
 {
@@ -53,6 +66,11 @@ void UAnimationStateMachine::ProcessState()
 void UAnimationStateMachine::ClearTransitions()
 {
     Transitions.Empty();
+}
+
+void UAnimationStateMachine::ClearStates()
+{
+    States.Empty();
 }
 
 void UAnimationStateMachine::GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo)

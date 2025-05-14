@@ -37,6 +37,8 @@ public:
     FAnimTransition* PendingTransition = nullptr;
 
 public:
+
+    void AddState(UAnimNode_State* NewState);
     void AddTransition(UAnimNode_State* FromState, UAnimNode_State* ToState, const std::function<bool()>& Condition, float Duration = 0.2f);
 
     void SetState(FName NewStateName);
@@ -47,6 +49,7 @@ public:
 
     void ClearTransitions();
 
+    void ClearStates();
     /**
      * 
      * OutFrom : 현재 재생되고 있는 애님 시퀀스
@@ -55,12 +58,20 @@ public:
     void GetAnimationsForPending(UAnimSequenceBase*& OutFrom, UAnimSequenceBase*& OutTo);
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
+
     FORCEINLINE bool GetTransitionState() const { return bTransitionState; }
     FORCEINLINE void SetTransitionState(bool NewState) { bTransitionState = NewState; }
+    
     UAnimSequenceBase* GetCurrentAnimationSequence() const;
 
     void SetCurrentAnimationSequence(UAnimSequenceBase* NewAnim) { CurrentAnimationSequence = NewAnim; };
+
+    FORCEINLINE TArray<FAnimTransition>& GetTransitions() { return Transitions; }
+
+    FORCEINLINE const TArray<UAnimNode_State*>& GetStates() const { return States; }
     
+
+   
 private:
  
     /** FName comparison index by state name */
@@ -71,6 +82,9 @@ private:
 
     /** Anim waiting for transfer */
     UAnimSequenceBase* FromAnimationSequence = nullptr;
+   
+    /** State 리스트 */
+    TArray<UAnimNode_State*> States;
 
     /** Transition list */
     TArray<FAnimTransition> Transitions;

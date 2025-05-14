@@ -121,6 +121,11 @@ void UAnimInstance::SetCurrentSequence(UAnimSequenceBase* NewSeq, float NewTime)
     NextTime = NewTime;
 }
 
+UAnimationStateMachine* UAnimInstance::GetAnimSM()
+{
+    return AnimSM;
+}
+
 void UAnimInstance::PrepareTransition()
 {
     if (!AnimSM->GetTransitionState()) {

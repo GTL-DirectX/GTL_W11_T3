@@ -38,11 +38,15 @@ public:
     bool IsPlaying() const { return bPlaying; }
 
     const TArray<FTransform>& GetCurrentPose() const { return CurrentPose; }
+    
     USkeletalMeshComponent* GetSkelMeshComponent();
+    
     float GetCurrentTime() const { return CurrentTime; }
     void SetCurrentTime(float NewTime);
 
     void SetCurrentSequence(UAnimSequenceBase* NewSeq, float NewTime);
+
+    UAnimationStateMachine* GetAnimSM();
 
 protected:
     UAnimationStateMachine* AnimSM = nullptr;
