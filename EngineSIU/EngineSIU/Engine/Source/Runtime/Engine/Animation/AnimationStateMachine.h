@@ -17,7 +17,6 @@ struct FAnimTransition
     /** Blend Setting */
     float Duration = 0.2f;
 
-    bool bIsBlending = false;
     float ElapsedTime = 0.f;
 
     /** Transition condition */
@@ -57,10 +56,10 @@ public:
     
     FORCEINLINE uint32 GetCurrentState() const { return CurrentState; }
     FORCEINLINE bool GetTransitionState() const { return bTransitionState; }
-    
+    FORCEINLINE void SetTransitionState(bool NewState) { bTransitionState = NewState; }
     UAnimSequenceBase* GetCurrentAnimationSequence() const;
 
-    
+    void SetCurrentAnimationSequence(UAnimSequenceBase* NewAnim) { CurrentAnimationSequence = NewAnim; };
     
 private:
  

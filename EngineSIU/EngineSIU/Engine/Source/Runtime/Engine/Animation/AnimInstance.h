@@ -7,7 +7,7 @@ class UAnimationStateMachine;
 struct FTransform;
 class USkeletalMeshComponent;
 class UAnimSequenceBase;
-
+struct FReferenceSkeleton;
 /*
  * 일반적인 애니메이션 블루프린트 기반의 인스턴스
  * 여러 개의 애니메이션을 소유하여 블렌드 및 상태 전이 가능 - 플레이어 캐릭터 등에 사용
@@ -57,7 +57,6 @@ protected:
 
     float BlendDuration = 0.2f;
     float BlendElapsed = 0.f;
-    bool bInBlend = false;
 
     USkeletalMeshComponent* OwningComp;
 
@@ -68,10 +67,13 @@ protected:
 
     float CurrentTime;
     bool bPlaying;
+    //bool bIsBlend;
 
 private:
-    void StartTransition();
+    void PrepareTransition();
     void UpdateBlendTime(float DeltaSeconds);
     void UpdateSingleAnimTime(float DeltaSeconds);
+    void EvaluateTransitionAnimation(const FReferenceSkeleton& RefSkeleton);
+    void EvaluateSingleAnimation(const FReferenceSkeleton& RefSkeleton);   
 
 };
