@@ -11,6 +11,7 @@
 #include "Stats/ProfilerStatsManager.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "UObject/UObjectIterator.h"
+#include "Renderer/SkeletalMeshRenderPass.h"
 
 
 void FStatOverlay::ToggleStat(const std::string& Command)
@@ -24,6 +25,7 @@ void FStatOverlay::ToggleStat(const std::string& Command)
     {
         bShowMemory = true;
         bShowRender = true;
+        bShowGPUMemory = true;
     }
     else if (Command == "stat light")
     {
@@ -95,6 +97,13 @@ void FStatOverlay::Render(ID3D11DeviceContext* Context, UINT Width, UINT Height)
         ImGui::Text("Spot Light: %d", GetNumOfObjectsByClass(ASpotLight::StaticClass()));
     }
 
+    if (bShowGPUMemory)
+    {
+        ImGui::SeparatorText("[ GPU Memory Usage ]\n");
+        ImGui::Text("GPU Memory: %f MB", GEngineLoop.GPUMemoryManager.GetMemoryUsage() / static_cast<float>(1024) / static_cast<float>(1024));
+    }
+
+    ImGui::PopStyleColor();
     ImGui::PopStyleColor();
     ImGui::End();
 }
@@ -192,7 +201,7 @@ void FConsole::AddLog(ELogLevel Level, const ANSICHAR* Fmt, ...)
     char Buf[1024];
     vsnprintf_s(Buf, sizeof(Buf), _TRUNCATE, Fmt, Args);
     {
-        std::lock_guard<std::mutex> Lock(LogEntryMutex);
+        FSpinLockGuard Lock(LogLock);
         Items.Emplace(Level, std::string(Buf));
     }
     va_end(Args);
@@ -209,7 +218,7 @@ void FConsole::AddLog(ELogLevel Level, const WIDECHAR* Fmt, ...)
     wchar_t Buf[1024];
     _vsnwprintf_s(Buf, sizeof(Buf), _TRUNCATE, Fmt, Args);
     {
-        std::lock_guard<std::mutex> Lock(LogEntryMutex);
+        FSpinLockGuard Lock(LogLock);
         Items.Emplace(Level, FString(Buf).ToAnsiString());
         va_end(Args);
     }
@@ -220,7 +229,7 @@ void FConsole::AddLog(ELogLevel Level, const WIDECHAR* Fmt, ...)
 void FConsole::AddLog(ELogLevel Level, const FString& Message)
 {
     {
-        std::lock_guard<std::mutex> Lock(LogEntryMutex);
+        FSpinLockGuard Lock(LogLock);
         Items.Emplace(Level, Message);
     }
     ScrollToBottom = true;
@@ -292,7 +301,7 @@ void FConsole::Draw() {
 
     TArray<LogEntry> ItemsDup;
     {
-        std::lock_guard<std::mutex> Lock(LogEntryMutex);
+        FSpinLockGuard Lock(LogLock);
         ItemsDup = Items;
     }
     for (const auto& [Level, Message] : ItemsDup)
@@ -382,10 +391,29 @@ void FConsole::ExecuteCommand(const std::string& Command)
         AddLog(ELogLevel::Display, " - stat profiler: Toggle Profiler display");
         AddLog(ELogLevel::Display, " - stat all: Show all stat overlays");
         AddLog(ELogLevel::Display, " - stat none: Hide all stat overlays");
+        AddLog(ELogLevel::Display, " - skinning [cpu/gpu] : Set skeletal mesh render mode");
     }
     else if (Command.starts_with("stat "))
     {
         Overlay.ToggleStat(Command);
+    }
+    else if (Command.starts_with("skinning "))
+    {
+        FString Option = Command.substr(9);
+        if (Option == "CPU" || Option == "cpu")
+        {
+            FEngineLoop::Renderer.SkeletalMeshRenderPass->SetCPUSkinning(true);
+            AddLog(ELogLevel::Display, "Set to CPU skinning.");
+        }
+        else if (Option == "GPU" || Option == "gpu")
+        {
+            FEngineLoop::Renderer.SkeletalMeshRenderPass->SetCPUSkinning(false);
+            AddLog(ELogLevel::Display, "Set to GPU skinning.");
+        }
+        else
+        {
+            AddLog(ELogLevel::Error, "Unknown skinning option: %s", *Option);
+        }
     }
     else
     {

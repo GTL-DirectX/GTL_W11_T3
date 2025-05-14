@@ -7,7 +7,7 @@
 #include "Animation/AnimNotifies/AnimNotifyState_SlowMotion.h"
 #include "Contents/Actors/ItemActor.h"
 #include "Engine/EditorEngine.h"
-#include "Engine/FFbxLoader.h"
+#include "Engine/FbxManager.h"
 
 //#define TEST_NOTIFY_STATE
 
@@ -451,10 +451,10 @@ void AnimationSequenceViewer::RenderAssetBrowser()
 {
     TArray<FString> animNames;
     {
-        std::lock_guard<std::mutex> lock(FFbxLoader::AnimMapMutex);
-        for (auto const& [name, entry] : FFbxLoader::AnimMap)
+        FSpinLockGuard Lock(FFbxManager::AnimMapLock);
+        for (auto const& [name, entry] : FFbxManager::GetAnimSequences())
         {
-            if (entry.State == FFbxLoader::LoadState::Completed && entry.Sequence != nullptr)
+            if (entry.State == FFbxManager::LoadState::Completed && entry.Sequence != nullptr)
             {
                 animNames.Add(name);
             }
@@ -472,7 +472,7 @@ void AnimationSequenceViewer::RenderAssetBrowser()
                 SelectedAnimIndex = i;
                 SelectedAnimName = animNames[i]; 
 
-                UAnimSequence* newSequence = FFbxLoader::GetAnimSequenceByName(SelectedAnimName);
+                UAnimSequence* newSequence = FFbxManager::GetAnimSequenceByName(SelectedAnimName);
                 if (newSequence != SelectedAnimSequence) // If sequence changed
                 {
                     TrackAndKeyMap.Empty();
