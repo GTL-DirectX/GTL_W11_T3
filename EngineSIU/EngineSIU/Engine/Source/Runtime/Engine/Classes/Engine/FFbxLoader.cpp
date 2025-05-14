@@ -184,7 +184,7 @@ FFbxSkeletalMesh* FFbxLoader::ParseFBX(const FString& FBXFilePath, USkeletalMesh
 
     if (sceneAxisSystem != UnrealTargetAxisSystem)
     {
-        UnrealTargetAxisSystem.ConvertScene(scene);
+        UnrealTargetAxisSystem.DeepConvertScene(scene);
     }
     
     FbxSystemUnit SceneSystemUnit = scene->GetGlobalSettings().GetSystemUnit();
@@ -625,7 +625,7 @@ void FFbxLoader::ParseFBXAnimationOnly(const FString& filename, USkeletalMesh* s
     if (sceneAxisSystem != UnrealTargetAxisSystem)
     {
         UE_LOG(ELogLevel::Display, "ParseFBXAnimationOnly: Converting axis system for animation.");
-        UnrealTargetAxisSystem.ConvertScene(scene);
+        UnrealTargetAxisSystem.DeepConvertScene(scene);
     }
 
     FbxSystemUnit sceneSystemUnit = scene->GetGlobalSettings().GetSystemUnit();
