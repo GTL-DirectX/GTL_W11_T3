@@ -298,22 +298,15 @@ void FSkeletalMeshRenderPass::UpdateBoneMatrices(const TArray<FMatrix>& BoneMatr
 
 void FSkeletalMeshRenderPass::CreateShader()
 {
-    HRESULT hr = ShaderManager->AddVertexShaderAndInputLayout(L"SkeletalMeshVertexShader", L"Shaders/SkeletalMeshVertexShader.hlsl", "mainVS", FSkeletalVertex::LayoutDesc, ARRAYSIZE(FSkeletalVertex::LayoutDesc));
-    if (FAILED(hr))
-    {
-        return;
-    }
+    ShaderManager->AddVertexShaderAndInputLayoutAsync(L"SkeletalMeshVertexShader", L"Shaders/SkeletalMeshVertexShader.hlsl", "mainVS", FSkeletalVertex::LayoutDesc, ARRAYSIZE(FSkeletalVertex::LayoutDesc), nullptr);
 #pragma region UberShader
     D3D_SHADER_MACRO DefinesGouraud[] =
     {
         { GOURAUD, "1" },
         { nullptr, nullptr }
     };
-    hr = ShaderManager->AddVertexShaderAndInputLayout(L"GOURAUD_SkeletalMeshVertexShader", L"Shaders/StaticMeshVertexShader.hlsl", "mainVS", FSkeletalVertex::LayoutDesc, ARRAYSIZE(FSkeletalVertex::LayoutDesc), DefinesGouraud);
-    if (FAILED(hr))
-    {
-        return;
-    }
+    ShaderManager->AddVertexShaderAndInputLayoutAsync(L"GOURAUD_SkeletalMeshVertexShader", L"Shaders/StaticMeshVertexShader.hlsl", "mainVS", FSkeletalVertex::LayoutDesc, ARRAYSIZE(FSkeletalVertex::LayoutDesc), DefinesGouraud);
+
 #pragma endregion UberShader
 }
 

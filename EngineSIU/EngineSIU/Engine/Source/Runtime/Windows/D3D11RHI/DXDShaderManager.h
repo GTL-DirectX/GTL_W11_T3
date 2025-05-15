@@ -84,6 +84,10 @@ public:
     void SetPixelShader(const std::wstring& Key, ID3D11DeviceContext* Context);
 
 private:
+    HRESULT ReadShaderFile(const std::wstring& FileName, ID3DBlob** Blob);
+    HRESULT SaveShaderFile(const std::wstring& FileName, ID3DBlob* Blob);
+
+private:
 	TMap<std::wstring, ID3D11InputLayout*> InputLayouts;
 	TMap<std::wstring, ID3D11VertexShader*> VertexShaders;
 	TMap<std::wstring, ID3D11PixelShader*> PixelShaders;

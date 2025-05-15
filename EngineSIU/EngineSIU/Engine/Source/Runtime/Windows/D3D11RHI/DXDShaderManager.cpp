@@ -543,17 +543,20 @@ void FDXDShaderManager::AddVertexShaderAndInputLayoutAsync(const std::wstring& K
         ID3DBlob* VertexShaderCSO = nullptr;
         ID3DBlob* ErrorBlob = nullptr;
 
-
         // === D3DCompileFromFile은 thread-unsafe이므로, 전역 mutex로 보호 ===
         {
             std::lock_guard<std::mutex> compileLock(D3DCompileMutex);
+            hr = ReadShaderFile(FileName, &VertexShaderCSO);
 
-            hr = D3DCompileFromFile(
-                FileName.c_str(),
-                DefinesCopy->empty() ? nullptr : DefinesCopy->data(),
-                D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                EntryPoint.c_str(), "vs_5_0", shaderFlags, 0, &VertexShaderCSO, &ErrorBlob
-            );
+            if (FAILED(hr))
+            {
+                hr = D3DCompileFromFile(
+                    FileName.c_str(),
+                    DefinesCopy->empty() ? nullptr : DefinesCopy->data(),
+                    D3D_COMPILE_STANDARD_FILE_INCLUDE,
+                    EntryPoint.c_str(), "vs_5_0", shaderFlags, 0, &VertexShaderCSO, &ErrorBlob
+                );
+            }
         }
         // ====================================================================
 
@@ -577,6 +580,12 @@ void FDXDShaderManager::AddVertexShaderAndInputLayoutAsync(const std::wstring& K
                 InputLayoutCompileQueue[Key].Condition.notify_all();
             }
             return;
+        }
+
+        if(!FAILED(hr))
+        {
+            std::lock_guard<std::mutex> lock(D3DCompileMutex);
+            SaveShaderFile(FileName, VertexShaderCSO);
         }
 
         ID3D11VertexShader* NewVertexShader = nullptr;
@@ -656,6 +665,7 @@ void FDXDShaderManager::AddVertexShaderAndInputLayoutAsync(const std::wstring& K
             free((void*)macro.Name);
             free((void*)macro.Definition);
         }
+
         });
     Worker.detach();
 }
@@ -705,16 +715,21 @@ void FDXDShaderManager::AddPixelShaderAsync(const std::wstring& Key, const std::
         ID3DBlob* PixelShaderCSO = nullptr;
         ID3DBlob* ErrorBlob = nullptr;
 
+
         // === D3DCompileFromFile은 thread-unsafe이므로, 전역 mutex로 보호 ===
         {
             std::lock_guard<std::mutex> compileLock(D3DCompileMutex);
-            hr = D3DCompileFromFile(
-                FileName.c_str(),
-                DefinesCopy->empty() ? nullptr : DefinesCopy->data(),
-                D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                EntryPoint.c_str(), "ps_5_0", shaderFlags, 0,
-                &PixelShaderCSO, &ErrorBlob
-            );
+            hr = ReadShaderFile(FileName, &PixelShaderCSO);
+            if (FAILED(hr))
+            {
+                hr = D3DCompileFromFile(
+                    FileName.c_str(),
+                    DefinesCopy->empty() ? nullptr : DefinesCopy->data(),
+                    D3D_COMPILE_STANDARD_FILE_INCLUDE,
+                    EntryPoint.c_str(), "ps_5_0", shaderFlags, 0,
+                    &PixelShaderCSO, &ErrorBlob
+                );
+            }
         }
         // ====================================================================
 
@@ -729,6 +744,12 @@ void FDXDShaderManager::AddPixelShaderAsync(const std::wstring& Key, const std::
             PixelShaderCompileQueue[Key].ShaderPtr = static_cast<ID3D11PixelShader*>(nullptr);
             PixelShaderCompileQueue[Key].Condition.notify_all();
             return;
+        }
+
+        if (!FAILED(hr))
+        {
+            std::lock_guard<std::mutex> lock(D3DCompileMutex);
+            SaveShaderFile(FileName, PixelShaderCSO);
         }
 
         ID3D11PixelShader* NewPixelShader = nullptr;
@@ -1092,6 +1113,7 @@ ID3D11InputLayout* FDXDShaderManager::GetInputLayoutByKey(const std::wstring& Ke
             ID3D11InputLayout* IL = std::get<ID3D11InputLayout*>(queue.ShaderPtr);
             if (IL) {
                 InputLayouts[Key] = IL;
+                lock.unlock();
                 InputLayoutCompileQueue.erase(Key);
                 return IL;
             }
@@ -1118,6 +1140,7 @@ ID3D11VertexShader* FDXDShaderManager::GetVertexShaderByKey(const std::wstring& 
             ID3D11VertexShader* VS = std::get<ID3D11VertexShader*>(queue.ShaderPtr);
             if (VS) {
                 VertexShaders[Key] = VS;
+                lock.unlock();
                 VertexShaderCompileQueue.erase(Key);
                 return VS;
             }
@@ -1239,4 +1262,69 @@ void FDXDShaderManager::SetPixelShader(const std::wstring& Key, ID3D11DeviceCont
         UE_LOG(ELogLevel::Error, "Failed to set pixel shader : DeviceContext is nullptr.");
         return;
     }
+}
+
+HRESULT FDXDShaderManager::ReadShaderFile(const std::wstring& FileName, ID3DBlob** Blob)
+{
+    std::wstring CSOFileName = FileName.substr(0, FileName.find_last_of(L".hlsl"));
+    CSOFileName += L".cso";
+
+    // 파일 시간 비교
+    auto GetLastWriteTime = [](const std::wstring& FilePath) -> std::filesystem::file_time_type
+        {
+            std::error_code ec;
+            auto ftime = std::filesystem::last_write_time(FilePath, ec);
+            return ec ? std::filesystem::file_time_type::min() : ftime;
+        };
+
+
+    bool ShouldRecompile = false;
+
+    std::filesystem::file_time_type hlslTime = GetLastWriteTime(FileName);
+    std::filesystem::file_time_type csoTime = GetLastWriteTime(CSOFileName);
+
+    if (!std::filesystem::exists(CSOFileName) || hlslTime > csoTime)
+    {
+        ShouldRecompile = true;
+    }
+    
+    if (ShouldRecompile)
+    {
+        return E_FAIL;
+    }
+
+    if (DXDDevice == nullptr)
+        return S_FALSE;
+    HRESULT hr = S_OK;
+    ID3DBlob* ErrorBlob = nullptr;
+    hr = D3DReadFileToBlob(CSOFileName.c_str(), Blob);
+    if (FAILED(hr))
+    {
+        if (ErrorBlob) {
+            OutputDebugStringA((char*)ErrorBlob->GetBufferPointer());
+            ErrorBlob->Release();
+        }
+        return hr;
+    }
+    return S_OK;
+}
+
+HRESULT FDXDShaderManager::SaveShaderFile(const std::wstring& FileName, ID3DBlob* Blob)
+{
+    std::wstring CSOFileName = FileName.substr(0, FileName.find_last_of(L".hlsl"));
+    CSOFileName += L".cso";
+    if (DXDDevice == nullptr)
+        return S_FALSE;
+    HRESULT hr = S_OK;
+    ID3DBlob* ErrorBlob = nullptr;
+    hr = D3DWriteBlobToFile(Blob, CSOFileName.c_str(), TRUE);
+    if (FAILED(hr))
+    {
+        if (ErrorBlob) {
+            OutputDebugStringA((char*)ErrorBlob->GetBufferPointer());
+            ErrorBlob->Release();
+        }
+        return hr;
+    }
+    return S_OK;
 }

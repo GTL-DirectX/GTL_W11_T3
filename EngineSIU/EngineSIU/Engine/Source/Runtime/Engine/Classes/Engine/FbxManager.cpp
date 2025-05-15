@@ -978,6 +978,10 @@ bool FFbxManager::SaveNotifiesToBinary(const FWString& FilePath, const TMap<FStr
         }
     }
 
+    if (bEmpty)
+    {
+        return false;
+    }
     std::ofstream File(FilePath, std::ios::binary);
     if (!File.is_open())
         return false;
