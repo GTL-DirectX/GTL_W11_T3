@@ -525,35 +525,6 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
         }
     }
 
-    if (ImGui::Button("Play Blend Animation", ImVec2(120, 0)))
-    {
-        if (SelectedSkeleton)
-        {
-            UE_LOG(ELogLevel::Display, TEXT("Playing Blend animation: %s"), *SelectedAnimName);
-
-            UAnimSequence* animToPlay = FFbxManager::GetAnimSequenceByName
-(SelectedAnimName);
-            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTwoNodeBlend);
-            SelectedSkeleton->PlayAnimation(animToPlay, true);
-        }
-        else {
-            UE_LOG(ELogLevel::Warning, TEXT("Could not find or load animation: %s"), *SelectedAnimName);
-        }
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Stop Blend Animation", ImVec2(120, 0)))
-    {
-        if (SelectedSkeleton)
-        {
-            UE_LOG(ELogLevel::Display, TEXT("Stop Blend animation: %s"), *SelectedAnimName);
-
-            SelectedSkeleton->StopBlendAnimation();
-            //SelectedSkeleton->PlayAnimation(nullptr, false); // null 재생으로 중지
-            //SelectedSkeleton->ResetPose(); // 기본 포즈로
-        }
-    }
     if (SelectedSkeleton)
     {
         UAnimSingleNodeInstance* SingleNodeInstance = SelectedSkeleton->GetSingleNodeInstance();
@@ -572,47 +543,9 @@ void PropertyEditorPanel::DrawAnimationControls(USkeletalMeshComponent* Skeletal
     }
     ImGui::Spacing();
     ImGui::Separator();
-
-    const char* preview_valueB = (SelectedAnimIndexB >= 0 && SelectedAnimIndexB < AnimNameAnsiPtrs.size()) ? *animNames[SelectedAnimIndexB] : "None";
-    if (ImGui::BeginCombo("From AnimationsB", preview_valueB))
-    {
-        for (int i = 0; i < animNames.Num(); ++i)
-        {
-            const bool is_selected = (SelectedAnimIndexB == i);
-            if (ImGui::Selectable(AnimNameAnsiPtrs[i], is_selected))
-            {
-                SelectedAnimIndexB = i;
-                SelectedAnimNameB = animNames[i]; // 선택된 애니메이션 이름 업데이트
-            }
-            if (is_selected)
-            {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-
-    if (ImGui::Button("Play Transiiton Animation", ImVec2(120, 0)))
-    {
-        if (SelectedSkeleton)
-        {
-           
-            UAnimSingleNodeInstance* NodeA = SelectedSkeleton->GetSingleNodeInstance();
-
-            
-            UAnimSequence* animToPlayB = FFbxManager::GetAnimSequenceByName
-            (SelectedAnimNameB);
-
-            SelectedSkeleton->SetAnimationMode(EAnimationMode::AnimationTransition);
-            SelectedSkeleton->PlayTransitionAnimation(NodeA->GetCurrentSequence(), NodeA->GetCurrentTime(), animToPlayB, 0.0f);
-        }
-        else {
-            UE_LOG(ELogLevel::Warning, TEXT("Could not find or load animation: %s"), *SelectedAnimName);
-        }
-    }
-
-
 }
+
+// TODO : StateMachine UI 수정 중
 //void PropertyEditorPanel::DrawStateMachineDebugControls(USkeletalMeshComponent* SkeletalComp)
 //{
 //    UAnimInstance* AnimInst = SkeletalComp->GetAnimationInstance();
