@@ -178,6 +178,7 @@ public:
     FVector operator*(const FVector& Other) const;
     FVector operator*(float Scalar) const;
     FVector& operator*=(float Scalar);
+    FVector& operator*=(const FVector& Other);
 
     FVector operator/(const FVector& Other) const;
     FVector operator/(float Scalar) const;
@@ -421,6 +422,12 @@ inline FVector FVector::operator*(float Scalar) const
 inline FVector& FVector::operator*=(float Scalar)
 {
     X *= Scalar; Y *= Scalar; Z *= Scalar;
+    return *this;
+}
+
+inline FVector& FVector::operator*=(const FVector& Other)
+{
+    X *= Other.X; Y *= Other.Y; Z *= Other.Z;
     return *this;
 }
 
