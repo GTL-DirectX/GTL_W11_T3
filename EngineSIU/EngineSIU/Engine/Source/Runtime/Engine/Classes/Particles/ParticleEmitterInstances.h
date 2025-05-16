@@ -40,11 +40,31 @@ struct FParticleEmitterInstance
      *  the particle data array.
      */
     int32 MaxActiveParticles;
-    /** The fraction of time left over from spawning.                   */
 
-    void SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation, const FVector& InitialVelocity, struct FParticleEventInstancePayload* EventPayload);
+    float SpawnFraction;
+    float EmitterTime;
+    float LastDeltaTime;
 
+    /* 컴포넌트가 이 Emitter 비활성화시킬 수 있음 */
+    uint8 bEnabled : 1;
+
+
+    void KillParticles();
     void KillParticle(int32 Index);
 
-    ...
+    virtual void Tick(float DeltaTime, bool bSuppressSpawning);
+    virtual float Tick_EmitterTimeSetup(float DeltaTime, UParticleLODLevel* InCurrentLODLevel);
+    virtual void Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel);
+    virtual float Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime);
+
+
+    virtual float Spawn(float DeltaTime);
+    void SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation, const FVector& InitialVelocity, struct FParticleEventInstancePayload* EventPayload);
+
+
+
+    virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance);
+
+    virtual void Rewind();
+
 };
