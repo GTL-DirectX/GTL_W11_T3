@@ -296,6 +296,11 @@ UWorld* UWorld::GetWorld() const
     return const_cast<UWorld*>(this);
 }
 
+bool UWorld::IsGameWorld() const
+{
+    return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
+}
+
 APlayer* UWorld::GetMainPlayer() const
 {
     if (MainPlayer)

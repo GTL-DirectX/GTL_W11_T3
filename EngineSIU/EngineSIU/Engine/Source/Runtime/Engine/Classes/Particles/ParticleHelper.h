@@ -784,8 +784,8 @@ struct FDynamicEmitterDataBase
     }
 
     /** Custom new/delete with recycling */
-    void* operator new(size_t Size); // 제대로 할당 안되면 new연산자 제거.
-    void operator delete(void* RawMemory, size_t Size);
+    //void* operator new(size_t Size); // 제대로 할당 안되면 new연산자 제거.
+    //void operator delete(void* RawMemory, size_t Size);
 
     /** Callback from the renderer to gather simple lights that this proxy wants renderered. */
     //virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}
