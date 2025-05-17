@@ -7,6 +7,7 @@
 #include "PropertyEditor/SubEditor/SkeletalTreePanel.h"
 #include "PropertyEditor/SkeletalMeshControlPanel.h"
 #include "PropertyEditor/SubEditor/AnimationSequenceViewer.h"
+#include <PropertyEditor/SubEditor/ParticleSystemEditorPanel.h>
 
 void UnrealEd::Initialize()
 {
@@ -35,7 +36,7 @@ void UnrealEd::Initialize()
     AnimationSequencePanel->Handle = GEngineLoop.AnimationViewerAppWnd;
     AddEditorPanel("AnimationSequencePanel", AnimationSequencePanel, true);
 
-    auto PropertyPanelq = std::make_shared<OutlinerEditorPanel>();
+    auto PropertyPanelq = std::make_shared<ParticleSystemEditorPanel>();
     PropertyPanelq->Handle = GEngineLoop.ParticleSystemViewerAppWnd;
     AddEditorPanel("PropertyPanel2", PropertyPanelq, true);
 }
