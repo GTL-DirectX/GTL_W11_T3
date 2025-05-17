@@ -112,6 +112,11 @@ void ControlEditorPanel::Render()
             {
                 bShowAnimationViewer = true;
             }
+
+            if (ImGui::MenuItem("ParticleSystem Viewer", nullptr, bShowParticleSystemViewer))
+            {
+                bShowParticleSystemViewer = !bShowParticleSystemViewer;
+            }
             
             ImGui::EndMenu();
         }

@@ -59,6 +59,9 @@ public:
     /** Animation Viewer Handle */
     HWND AnimationViewerAppWnd;
 
+    // Particle System Viewer
+    HWND ParticleSystemViewerAppWnd;
+
     void ToggleWindow(HWND hWnd) const;
     void Show(HWND HWnd) const;
     void Hide(HWND hWnd) const;
@@ -73,12 +76,14 @@ private:
     UImGuiManager* MainUIManager;
     UImGuiManager* SkeletalMeshViewerUIManager;
     UImGuiManager* AnimationViewerUIManager;
+    UImGuiManager* ParticleSystemViewerUIManager;
     ImGuiContext* CurrentImGuiContext;
 
     std::unique_ptr<FSlateAppMessageHandler> AppMessageHandler;
     SLevelEditor* LevelEditor;
     SlateViewer* SkeletalMeshViewer;
     SlateViewer* AnimationViewer;
+    SlateViewer* ParticleSystemViewer;
     UnrealEd* UnrealEditor;
     FDXDBufferManager* BufferManager; //TODO: UEngine으로 옮겨야함.
 
@@ -90,6 +95,7 @@ public:
     SLevelEditor* GetLevelEditor() const { return LevelEditor; }
     SlateViewer* GetSkeletalMeshViewer() const { return SkeletalMeshViewer; }
     SlateViewer* GetAnimationViewer() const { return AnimationViewer; }
+    SlateViewer* GetParticleSystemViewer() const { return ParticleSystemViewer; }
     UnrealEd* GetUnrealEditor() const { return UnrealEditor; }
 
     FSlateAppMessageHandler* GetAppMessageHandler() const { return AppMessageHandler.get(); }
