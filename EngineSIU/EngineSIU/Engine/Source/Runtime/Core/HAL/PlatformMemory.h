@@ -41,6 +41,8 @@ public:
     template <EAllocationType AllocType>
     static void* Malloc(size_t Size);
 
+    static void* MemZero(void* Dest, size_t Count);
+
     template <EAllocationType AllocType>
     static void* AlignedMalloc(size_t Size, size_t Alignment);
 
@@ -118,6 +120,11 @@ void* FPlatformMemory::Malloc(size_t Size)
         IncrementStats<AllocType>(Size);
     }
     return Ptr;
+}
+
+inline void* FPlatformMemory::MemZero(void* Dest, size_t Count)
+{
+    return std::memset(Dest, 0, Count);
 }
 
 template <EAllocationType AllocType>

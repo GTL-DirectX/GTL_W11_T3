@@ -67,6 +67,7 @@ public:
     template <typename T>
         requires std::derived_from<T, AActor>
     T* DuplicateActor(T* InActor);
+    bool IsGameWorld() const;
 
     EWorldType WorldType = EWorldType::None;
     
