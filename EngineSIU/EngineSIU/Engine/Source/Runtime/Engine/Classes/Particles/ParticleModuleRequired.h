@@ -33,4 +33,17 @@ class UParticleModuleRequired : public UParticleModule
 public:
     UParticleModuleRequired() = default;
 
+    // class UMaterialInterface* Material;
+    FVector EmitterOrigin;
+    FRotator EmitterRotation;
+
+    EParticleSortMode SortMode;
+
+
+    uint8 bUseLocalSpace : 1;
+
+    uint8 bKillOnDeactivate : 1; // System이 비활성화 되면 emitter Kill
+
+    uint8 bKillOnCompleted : 1;  // Completed 시 emitter Kill
+
 };

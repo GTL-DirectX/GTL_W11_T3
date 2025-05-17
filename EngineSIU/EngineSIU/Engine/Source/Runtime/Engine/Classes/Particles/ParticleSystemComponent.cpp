@@ -3,6 +3,8 @@
 #include "ParticleEmitter.h"
 #include "ParticleEmitterInstances.h"
 #include "ParticleLODLevel.h"
+#include "ParticleModuleRequired.h"
+#include "ParticleSystem.h"
 #include "World/World.h"
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
@@ -18,6 +20,12 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     if (GetWorld()->IsGameWorld())
     {
         //for (APlayerController*& : TObjectRange<>)
+    }
+
+    // 최초 한 번만 파티클 이터레이터 인스턴스 생성
+    if (EmitterInstances.Num() == 0)
+    {
+        InitParticles();
     }
 
 
@@ -39,6 +47,68 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 }
 
+void UParticleSystemComponent::ResetParticles()
+{
+    for (FParticleEmitterInstance* OldInstance : EmitterInstances)
+    {
+        if (OldInstance)
+        {
+            delete OldInstance;
+            OldInstance = nullptr;
+        }
+    }
+    EmitterInstances.Empty();
+}
+
+void UParticleSystemComponent::InitParticles()
+{
+    ResetParticles();
+
+    const int32 NumEmitters = Template->Emitters.Num();
+    EmitterInstances.Reserve(NumEmitters);
+
+    for (int32 EmitterIndex = 0; EmitterIndex < NumEmitters; EmitterIndex++)
+    {
+        UParticleEmitter* EmitterTemplate = Template->Emitters[EmitterIndex];
+        if (!EmitterTemplate)
+        {
+            continue;
+        }
+
+        UParticleModuleRequired* Required = EmitterTemplate->LODLevels[0]->RequiredModule;
+        int32 MaxParts = 0;
+
+        
+        FParticleEmitterInstance* Inst = new FParticleEmitterInstance();
+
+        Inst->Component = this;
+        Inst->SpriteTemplate = EmitterTemplate;
+
+        Inst->CurrentLODLevelIndex = 0;
+        Inst->CurrentLODLevel = EmitterTemplate->LODLevels[0]; // LOD 기본 0
+
+
+        //Inst->MaxActiveParticles = MaxParts;
+        Inst->ParticleSize = sizeof(FBaseParticle);
+        //Inst->InstancePayloadSize = Required->InstancePayloadSize;
+        Inst->ParticleStride = Inst->ParticleSize + Inst->InstancePayloadSize;
+        Inst->PayloadOffset = Inst->ParticleSize;
+
+        // 파티클 풀 메모리 할당
+        Inst->ParticleData = (uint8*)malloc(Inst->ParticleStride * MaxParts);
+        Inst->ParticleIndices = (uint16*)malloc(sizeof(uint16) * MaxParts);
+        Inst->InstanceData = nullptr;
+
+        // 초기 파티클 상태
+        Inst->ActiveParticles = 0;
+        Inst->SpawnFraction = 0.f;
+        Inst->EmitterTime = 0.f;
+        Inst->bEnabled = true;
+
+        EmitterInstances.Add(Inst);
+        
+    }
+}
 
 /* 파티클 시스템을 더 이상 활성 상태로 두지 않음을 의미
  * 1. 더이상 파티클을 생성하지 않음

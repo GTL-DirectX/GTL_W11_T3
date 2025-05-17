@@ -11,7 +11,8 @@ class UParticleSystem : public UObject // UE는 UFXSystemAsset을 상속. 불필
 
 public:
     UParticleSystem() = default;
-    
+
+    // 에디터에서 생성한 UParticleEmitter들
     TArray<UParticleEmitter*> Emitters;
 
 

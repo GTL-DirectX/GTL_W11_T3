@@ -133,11 +133,13 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
     if (bEnabled)
     {
+        bool bFirstTime = (EmitterTime == 0.0f);
+
         // 수명이 다했거나 RelativeTime > 1.0 인 파티클을 제거.
         KillParticles();
-        //Tick_ModuleUpdate(DeltaTime, LODLevel);
+        Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-        //SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
+        SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
 
         // beams의 경우 postupdate 추가 필요
         if (ActiveParticles > 0)
@@ -177,14 +179,14 @@ float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLO
     {
         // 스폰 시도 조건 : Emitter가 루프 중이거나 처음 생성된 경우
         // 무한 반복 || 아직 루프 수 채우지 않음 || 시간이 아직 남음 || 생성 이후 첫 프레임
-        //if ((EmitterLoops == 0) ||
-        //    (LoopCount < EmitterLoops) ||
-        //    (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||
-        //    bFirstTime)
-        //{
-        //    bFirstTime = false;
-        //    SpawnFraction = Spawn(DeltaTime);
-        //}
+        if (/*(EmitterLoops == 0) ||
+            (LoopCount < EmitterLoops) ||
+            (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||*/
+            bFirstTime)
+        {
+            bFirstTime = false;
+            SpawnFraction = Spawn(DeltaTime);
+        }
     }
     return SpawnFraction;
 }
@@ -215,7 +217,6 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/)
     {
         //SpawnParticles(Number, StartTime, Increment, InitialLocation, FVector::ZeroVector, EventPayload);
-
     }
 
     /*
@@ -244,11 +245,11 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
         // Macro 추가 필요.
         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ActiveParticles * ParticleStride));
         PreSpawn(Particle, InitialLocation, InitialVelocity);
-        /*for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)
+        for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)
         {
             
         }
-        PostSpawn(Particle, Interp, SpawnTime);*/
+        PostSpawn(Particle, Interp, SpawnTime);
     }
 }
 

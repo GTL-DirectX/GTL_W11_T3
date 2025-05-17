@@ -51,30 +51,11 @@ public:
     uint8 bEditable : 1;
     FColor EditorColor;
 
-    /**
-     *	Called on a particle that is freshly spawned by the emitter.
-     *
-     *	@param	Owner		The FParticleEmitterInstance that spawned the particle.
-     *	@param	Offset		The modules offset into the data payload of the particle.
-     *	@param	SpawnTime	The time of the spawn.
-     */
+
     virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase);
-    /**
-     *	Called on a particle that is being updated by its emitter.
-     *
-     *	@param	Owner		The FParticleEmitterInstance that 'owns' the particle.
-     *	@param	Offset		The modules offset into the data payload of the particle.
-     *	@param	DeltaTime	The time since the last update.
-     */
+
     virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime);
-    /**
-     *	Called on an emitter when all other update operations have taken place
-     *	INCLUDING bounding box cacluations!
-     *
-     *	@param	Owner		The FParticleEmitterInstance that 'owns' the particle.
-     *	@param	Offset		The modules offset into the data payload of the particle.
-     *	@param	DeltaTime	The time since the last update.
-     */
+
     virtual void	FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime);
 
     virtual EModuleType	GetModuleType() const { return EPMT_General; }
