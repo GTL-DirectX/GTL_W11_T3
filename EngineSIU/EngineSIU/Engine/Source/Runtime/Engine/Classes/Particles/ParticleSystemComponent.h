@@ -16,7 +16,7 @@ public:
     virtual void TickComponent(float DeltaTime) override;
 
     void DeactivateSystem();
-    void ComputeTickComponent_Concurrent();
+    void ComputeTickComponent_Concurrent(float DeltaTimeTick);
 
 public:
     TArray<struct FParticleEmitterInstance*> EmitterInstances;
