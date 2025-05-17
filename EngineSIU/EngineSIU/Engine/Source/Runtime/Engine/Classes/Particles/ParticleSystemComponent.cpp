@@ -19,8 +19,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     }
 
     ComputeTickComponent_Concurrent(DeltaTime);
-
-    
 }
 
 

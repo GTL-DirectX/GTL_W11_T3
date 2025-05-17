@@ -18,6 +18,9 @@ struct FParticleEmitterInstance
     int32 CurrentLODLevelIndex;
     UParticleLODLevel* CurrentLODLevel;
 
+    // Collision Enable? // 추가구현 항목이지만 우선 추가.
+    bool bEnableCollision;
+
     /** Pointer to the particle data array.                             */
     uint8* ParticleData;
     /** Pointer to the particle index array.                            */
@@ -36,9 +39,7 @@ struct FParticleEmitterInstance
     int32 ActiveParticles;
     /** Monotonically increasing counter. */
     uint32 ParticleCounter;
-    /** The maximum number of active particles that can be held in
-     *  the particle data array.
-     */
+    /** The maximum number of active particles that can be held inthe particle data array. **/
     int32 MaxActiveParticles;
 
     float SpawnFraction;
@@ -49,8 +50,6 @@ struct FParticleEmitterInstance
     uint8 bEnabled : 1;
 
 
-    void KillParticles();
-    void KillParticle(int32 Index);
 
     virtual void Tick(float DeltaTime, bool bSuppressSpawning);
     virtual float Tick_EmitterTimeSetup(float DeltaTime, UParticleLODLevel* InCurrentLODLevel);
@@ -59,9 +58,13 @@ struct FParticleEmitterInstance
 
 
     virtual float Spawn(float DeltaTime);
+    virtual void PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity);
+    virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime);
+
     void SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation, const FVector& InitialVelocity, struct FParticleEventInstancePayload* EventPayload);
 
-
+    void KillParticles();
+    void KillParticle(int32 Index);
 
     virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance);
 
