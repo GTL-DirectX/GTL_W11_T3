@@ -37,6 +37,10 @@ FEngineLoop::FEngineLoop()
     , AnimationViewer(nullptr)
     , UnrealEditor(nullptr)
     , BufferManager(nullptr)
+
+    , ParticleSystemViewer(nullptr)
+    , ParticleSystemViewerAppWnd(nullptr)
+    , ParticleSystemViewerUIManager(nullptr)
 {
 }
 
@@ -44,6 +48,8 @@ int32 FEngineLoop::PreInit()
 {
     return 0;
 }
+
+
 
 int32 FEngineLoop::Init(HINSTANCE hInstance)
 {
@@ -58,15 +64,19 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     SkeletalMeshViewerAppWnd = CreateNewWindow(hInstance, L"SkeletalWindowClass", L"SkeletalMesh Viewer", 800, 600, nullptr);
 
     AnimationViewerAppWnd = CreateNewWindow(hInstance, L"AnimationWindowClass", L"Animation Viewer", 800, 600, nullptr);
-    
+
+    ParticleSystemViewerAppWnd = CreateNewWindow(hInstance, L"ParticleSystemWindowClass", L"Particle System Viewer", 800, 600, nullptr);
+
     /** New Constructor */
     BufferManager = new FDXDBufferManager();
     MainUIManager = new UImGuiManager;
     SkeletalMeshViewerUIManager = new UImGuiManager;
     AnimationViewerUIManager = new UImGuiManager;
+    ParticleSystemViewerUIManager = new UImGuiManager;
     LevelEditor = new SLevelEditor();
     SkeletalMeshViewer = new SlateViewer();
     AnimationViewer = new SlateViewer();
+    ParticleSystemViewer = new SlateViewer();
     UnrealEditor = new UnrealEd();
     AppMessageHandler = std::make_unique<FSlateAppMessageHandler>();
     GEngine = FObjectFactory::ConstructObject<UEditorEngine>(nullptr);
@@ -75,6 +85,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     GraphicDevice.Initialize(MainAppWnd);
     GraphicDevice.CreateAdditionalSwapChain(SkeletalMeshViewerAppWnd);
     GraphicDevice.CreateAdditionalSwapChain(AnimationViewerAppWnd);
+    GraphicDevice.CreateAdditionalSwapChain(ParticleSystemViewerAppWnd);
     
     BufferManager->Initialize(GraphicDevice.Device, GraphicDevice.DeviceContext);
     Renderer.Initialize(&GraphicDevice, BufferManager, &GPUTimingManager);
@@ -86,14 +97,17 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     MainUIManager->Initialize(MainAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
     SkeletalMeshViewerUIManager->Initialize(SkeletalMeshViewerAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
     AnimationViewerUIManager->Initialize(AnimationViewerAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
+    ParticleSystemViewerUIManager->Initialize(ParticleSystemViewerAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
 
     WndImGuiContextMap.Add(MainAppWnd, MainUIManager->GetContext());
     WndImGuiContextMap.Add(SkeletalMeshViewerAppWnd, SkeletalMeshViewerUIManager->GetContext());
     WndImGuiContextMap.Add(AnimationViewerAppWnd, AnimationViewerUIManager->GetContext());
+    WndImGuiContextMap.Add(ParticleSystemViewerAppWnd, ParticleSystemViewerUIManager->GetContext());
     
     LevelEditor->Initialize(1400, 1000);
     SkeletalMeshViewer->Initialize(SkeletalMeshViewerAppWnd, "SkeletalMeshViewer.ini", 800, 600);
     AnimationViewer->Initialize(AnimationViewerAppWnd, "AnimationViewer.ini", 800, 600);
+    ParticleSystemViewer->Initialize(ParticleSystemViewerAppWnd, "ParticleSystemViewer.ini", 800, 600);
     
     UnrealEditor->Initialize();
     
