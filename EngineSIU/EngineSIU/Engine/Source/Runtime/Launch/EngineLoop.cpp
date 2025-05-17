@@ -390,6 +390,27 @@ void FEngineLoop::Exit()
         AnimationViewerUIManager = nullptr;
     }
 
+    /* Particle System Viewer Section */
+    if (ParticleSystemViewer)
+    {
+        ParticleSystemViewer->Release();
+        delete ParticleSystemViewer;
+        ParticleSystemViewer = nullptr;
+    }
+
+    if (ParticleSystemViewerAppWnd && IsWindow(ParticleSystemViewerAppWnd))
+    {
+        DestroyWindow(ParticleSystemViewerAppWnd);
+        ParticleSystemViewerAppWnd = nullptr;
+    }
+
+    if (ParticleSystemViewerUIManager)
+    {
+        ParticleSystemViewerUIManager->Shutdown();
+        delete ParticleSystemViewerUIManager;
+        ParticleSystemViewerUIManager = nullptr;
+    }
+
     /** Main Window Section */
     if (LevelEditor)
     {
