@@ -1,6 +1,8 @@
 #include "ParticleSystemComponent.h"
 
+#include "ParticleEmitter.h"
 #include "ParticleEmitterInstances.h"
+#include "ParticleLODLevel.h"
 #include "World/World.h"
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
@@ -18,7 +20,23 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         //for (APlayerController*& : TObjectRange<>)
     }
 
+
     ComputeTickComponent_Concurrent(DeltaTime);
+
+    if (IsActive())
+    {
+        EmitterRenderData.Empty();
+        // [언리얼] : CPU의 파티클 데이터를 렌더 스레드에 전달하는 Send.._Concurrent() 존재
+        for (FParticleEmitterInstance*& Inst : EmitterInstances)
+        {
+            FDynamicEmitterDataBase* Dyn = Inst->GetDynamicData(false);
+            if (Dyn)
+            {
+                EmitterRenderData.Add(Dyn);
+            }
+        }
+    }
+
 }
 
 
@@ -62,14 +80,60 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent(float DeltaTimeTi
         FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
         if (Instance && Instance->SpriteTemplate)
         {
+
             // 1) Emitter가 어떤 LOD를 사용할지 결정
-            //UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-            //// [간략] : Significance 관리 없이 Tick 수행
-            //if (SpriteLODLevel && SpriteLODLevel->bEnabled)
-            //{
-            //    Instance->Tick(DeltaTimeTick, bSuppressSpawning);
-            //    // Tick_MaterialOverrides(EmitterIndex);
-            //}
+            UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+            // [간략] : Significance 관리 없이 Tick 수행
+            if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+            {
+                Instance->Tick(DeltaTimeTick, bSuppressSpawning);
+                // Tick_MaterialOverrides(EmitterIndex);
+            }
         }
     }
+}
+
+
+/**
+* 정적 메서드: 리플레이 데이터를 제공받아, 파티클 시스템을 렌더링하는 데 사용할 수 있는 동적 Emitter 데이터를 생성
+*
+* @param	EmitterInstance		이 리플레이가 실행 중인 Emitter 인스턴스
+* @param	EmitterReplayData	들어오는 리플레이 데이터 (NULL이 될 수 없음)
+* @param	bSelected			파티클 시스템이 현재 선택된 상태라면 true
+*
+* @return	새로 생성된 동적 데이터, 실패 시 NULL 반환
+*/
+FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay(
+    FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected
+)
+{
+
+    FDynamicEmitterDataBase* DynData = nullptr;
+    switch (EmitterReplayData->eEmitterType)
+    {
+    case DET_Sprite:
+    {
+        auto* SpriteData = new FDynamicSpriteEmitterData(
+            EmitterInstance->CurrentLODLevel->RequiredModule
+        );
+
+        // Replay → Source 복사
+        SpriteData->Source = *static_cast<const FDynamicSpriteEmitterReplayDataBase*>(EmitterReplayData);
+        SpriteData->bSelected = bSelected;
+        SpriteData->Init(bSelected);  // 정렬, 버텍스/인덱스 생성
+        DynData = SpriteData;
+        break;
+    }
+    default:
+        break;
+
+        // …Mesh, Ribbon 등 다른 타입도 마찬가지…
+    }
+
+    return DynData;
+}
+
+void UParticleSystemComponent::InitParticles()
+{
+
 }

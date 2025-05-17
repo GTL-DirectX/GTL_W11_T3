@@ -49,6 +49,11 @@ struct FParticleEmitterInstance
     /* 컴포넌트가 이 Emitter 비활성화시킬 수 있음 */
     uint8 bEnabled : 1;
 
+    FParticleEmitterInstance();
+
+    // 각 Emitter Type에 맞게 오버라이딩 필요
+    virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected);
+    virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutData);
 
 
     virtual void Tick(float DeltaTime, bool bSuppressSpawning);

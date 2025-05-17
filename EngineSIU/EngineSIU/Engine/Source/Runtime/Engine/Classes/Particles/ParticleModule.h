@@ -38,45 +38,17 @@ class UParticleModule : public UObject
 public:
     UParticleModule() = default;
 
-private:
+public:
 
-    /** If true, the module performs operations on particles during Spawning		*/
-    //UPROPERTY()
     uint8 bSpawnModule : 1;
-
-    /** If true, the module performs operations on particles during Updating		*/
-    //UPROPERTY()
     uint8 bUpdateModule : 1;
-
-    /** If true, the module performs operations on particles during final update	*/
-    //UPROPERTY()
     uint8 bFinalUpdateModule : 1;
-
-    /** If true, the module performs operations on particles during update and/or final update for GPU emitters*/
-    //UPROPERTY()
     uint8 bUpdateForGPUEmitter : 1;
-
-    /** If true, the module displays FVector curves as colors						*/
-    //UPROPERTY()
     uint8 bCurvesAsColor : 1;
-
-    /** If true, the module should render its 3D visualization helper				*/
-    //UPROPERTY(EditAnywhere, Category = Cascade)
     uint8 b3DDrawMode : 1;
-
-    /** If true, the module supports rendering a 3D visualization helper			*/
-    //UPROPERTY()
     uint8 bSupported3DDrawMode : 1;
-
-    /** If true, the module is enabled												*/
-    //UPROPERTY()
     uint8 bEnabled : 1;
-
-    /** If true, the module has had editing enabled on it							*/
-    //UPROPERTY()
     uint8 bEditable : 1;
-
-    // Editor only.
     FColor EditorColor;
 
     /**

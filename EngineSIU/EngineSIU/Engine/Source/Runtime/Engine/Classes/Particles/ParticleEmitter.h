@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ParticleEmitterInstances.h"
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
 #include "Container/Array.h"
@@ -31,7 +32,5 @@ public:
     TArray<UParticleLODLevel*> LODLevels;
 
     void CacheEmitterModuleInfo();
-
-
-
+    UParticleLODLevel* GetCurrentLODLevel(FParticleEmitterInstance* Instance);
 };

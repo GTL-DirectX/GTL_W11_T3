@@ -10,3 +10,8 @@ void UParticleEmitter::CacheEmitterModuleInfo()
     ........
     */
 }
+
+UParticleLODLevel* UParticleEmitter::GetCurrentLODLevel(FParticleEmitterInstance* Instance)
+{
+    return Instance->CurrentLODLevel;
+}
