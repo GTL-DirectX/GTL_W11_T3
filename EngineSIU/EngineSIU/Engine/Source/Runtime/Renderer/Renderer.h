@@ -46,6 +46,7 @@ class FEditorRenderPass;
 class FDepthPrePass;
 class FTileLightCullingPass;
 class FGPUTimingManager;
+class FParticleRenderPass;
 
 class FRenderer
 {
@@ -105,6 +106,7 @@ public:
     FGizmoRenderPass* GizmoRenderPass = nullptr;
     FUpdateLightBufferPass* UpdateLightBufferPass = nullptr;
     FLineRenderPass* LineRenderPass = nullptr;
+    FParticleRenderPass* ParticleRenderPass = nullptr;
     FFogRenderPass* FogRenderPass = nullptr;
     FCameraEffectRenderPass* CameraEffectRenderPass = nullptr;
     FEditorRenderPass* EditorRenderPass = nullptr;

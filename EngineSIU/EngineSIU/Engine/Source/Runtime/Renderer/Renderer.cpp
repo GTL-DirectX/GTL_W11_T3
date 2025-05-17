@@ -25,6 +25,7 @@
 
 #include "CompositingPass.h"
 #include "LightHeatMapRenderPass.h"
+#include "ParticleRenderPass.h"
 #include "PostProcessCompositingPass.h"
 #include "ShadowManager.h"
 #include "ShadowRenderPass.h"
@@ -59,6 +60,7 @@ void FRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* InBuf
     GizmoRenderPass = AddRenderPass<FGizmoRenderPass>();
     UpdateLightBufferPass = AddRenderPass<FUpdateLightBufferPass>();
     LineRenderPass = AddRenderPass<FLineRenderPass>();
+    ParticleRenderPass = AddRenderPass<FParticleRenderPass>();
     FogRenderPass = AddRenderPass<FFogRenderPass>();
     CameraEffectRenderPass = AddRenderPass<FCameraEffectRenderPass>();
     EditorRenderPass = AddRenderPass<FEditorRenderPass>();
@@ -358,7 +360,6 @@ void FRenderer::RenderWorldScene(const std::shared_ptr<FEditorViewportClient>& V
         }
     }
     
-    // Render World Billboard
     if (ShowFlag & EEngineShowFlags::SF_BillboardText)
     {
         {
@@ -366,6 +367,13 @@ void FRenderer::RenderWorldScene(const std::shared_ptr<FEditorViewportClient>& V
             QUICK_GPU_SCOPE_CYCLE_COUNTER(WorldBillboardPass_GPU, *GPUTimingManager)
             WorldBillboardRenderPass->Render(Viewport);
         }
+    }
+
+    if (ShowFlag & EEngineShowFlags::SF_Particles)
+    {
+        QUICK_SCOPE_CYCLE_COUNTER(ParticlePass_CPU)
+        QUICK_GPU_SCOPE_CYCLE_COUNTER(ParticlePass_GPU, *GPUTimingManager)
+        ParticleRenderPass->Render(Viewport);
     }
 }
 

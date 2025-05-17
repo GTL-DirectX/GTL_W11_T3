@@ -18,6 +18,8 @@ public:
     void DeactivateSystem();
     void ComputeTickComponent_Concurrent(float DeltaTimeTick);
 
+    TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
+
 public:
     TArray<struct FParticleEmitterInstance*> EmitterInstances;
 
