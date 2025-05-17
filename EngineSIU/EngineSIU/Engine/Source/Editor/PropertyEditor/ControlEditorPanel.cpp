@@ -209,6 +209,15 @@ void ControlEditorPanel::Render()
             GEngineLoop.Show(GEngineLoop.AnimationViewerAppWnd);
         }
     }
+
+    if (bShowParticleSystemViewer)
+    {
+        bShowParticleSystemViewer = false;
+        if (GEngineLoop.ParticleSystemViewerAppWnd)
+        {
+            GEngineLoop.Show(GEngineLoop.ParticleSystemViewerAppWnd);
+        }
+    }
 }
 
 void ControlEditorPanel::CreateMenuButton(const ImVec2 ButtonSize, ImFont* IconFont)

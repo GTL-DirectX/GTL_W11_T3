@@ -201,6 +201,10 @@ void FEngineLoop::Render(HWND Handle) const
         {
             Viewer = AnimationViewer;
         }
+        else if (Handle == ParticleSystemViewerAppWnd)
+        {
+            Viewer = ParticleSystemViewer;
+        }
         
         /**
          * Child Window 의 월드를 처리하기 위해 기존의 월드를 임시 저장
@@ -237,6 +241,14 @@ void FEngineLoop::Render(HWND Handle) const
             AnimationViewerUIManager->BeginFrame();
             UnrealEditor->RenderSubWindowPanel(Handle);
             AnimationViewerUIManager->EndFrame();
+        }
+
+        // Particle System Viewer
+        if (ParticleSystemViewerUIManager && ParticleSystemViewerUIManager->GetContext() && Handle == ParticleSystemViewerAppWnd)
+        {
+            ParticleSystemViewerUIManager->BeginFrame();
+            UnrealEditor->RenderSubWindowPanel(Handle);
+            ParticleSystemViewerUIManager->EndFrame();
         }
     }
     
@@ -288,11 +300,13 @@ void FEngineLoop::Tick()
         LevelEditor->Tick(DeltaTime);
         SkeletalMeshViewer->Tick(DeltaTime);
         AnimationViewer->Tick(DeltaTime);
+        ParticleSystemViewer->Tick(DeltaTime);
 
         /* Render Viewports */
         Render();
         Render(SkeletalMeshViewerAppWnd);
         Render(AnimationViewerAppWnd);
+        Render(ParticleSystemViewerAppWnd);
 
         if (CurrentImGuiContext != nullptr)
         {
@@ -312,6 +326,7 @@ void FEngineLoop::Tick()
         /** Does not fix errors, This isn't critical error. */
         GraphicDevice.SwapBuffer(SkeletalMeshViewerAppWnd);
         GraphicDevice.SwapBuffer(AnimationViewerAppWnd);
+        GraphicDevice.SwapBuffer(ParticleSystemViewerAppWnd);
         
         do
         {
@@ -563,6 +578,22 @@ LRESULT CALLBACK FEngineLoop::AppWndProc(HWND hWnd, uint32 Msg, WPARAM wParam, L
                             Renderer.TileLightCullingPass->ResizeViewBuffers(
                                 static_cast<uint32>(AnimationViewer->GetActiveViewportClient()->GetD3DViewport().Width),
                                 static_cast<uint32>(AnimationViewer->GetActiveViewportClient()->GetD3DViewport().Height)
+                            );
+                        }
+                    }
+                }
+
+                if (hWnd == GEngineLoop.ParticleSystemViewerAppWnd)
+                {
+                    if (SlateViewer* PartilcleSystemViewer = GEngineLoop.GetParticleSystemViewer())
+                    {
+                        PartilcleSystemViewer->ResizeEditor(ClientWidth, ClientHeight);
+                        if (PartilcleSystemViewer->GetActiveViewportClient())
+                        {
+
+                            Renderer.TileLightCullingPass->ResizeViewBuffers(
+                                static_cast<uint32>(PartilcleSystemViewer->GetActiveViewportClient()->GetD3DViewport().Width),
+                                static_cast<uint32>(PartilcleSystemViewer->GetActiveViewportClient()->GetD3DViewport().Height)
                             );
                         }
                     }

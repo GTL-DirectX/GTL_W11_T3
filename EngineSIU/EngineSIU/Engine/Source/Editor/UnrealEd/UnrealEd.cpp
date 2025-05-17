@@ -25,7 +25,7 @@ void UnrealEd::Initialize()
     auto SubWindowSkeletalTreePanel = std::make_shared<SkeletalTreePanel>();
     SubWindowSkeletalTreePanel->Handle = GEngineLoop.SkeletalMeshViewerAppWnd;
     AddEditorPanel("SubWindowSkeletalTreePanel", SubWindowSkeletalTreePanel, true);
-    
+
     // SkeletalMeshViewer용 컨트롤 패널 추가
     auto SkeletalControlPanel = std::make_shared<SkeletalMeshControlPanel>();
     SkeletalControlPanel->Handle = GEngineLoop.SkeletalMeshViewerAppWnd;
@@ -34,6 +34,10 @@ void UnrealEd::Initialize()
     auto AnimationSequencePanel = std::make_shared<AnimationSequenceViewer>();
     AnimationSequencePanel->Handle = GEngineLoop.AnimationViewerAppWnd;
     AddEditorPanel("AnimationSequencePanel", AnimationSequencePanel, true);
+
+    auto PropertyPanelq = std::make_shared<OutlinerEditorPanel>();
+    PropertyPanelq->Handle = GEngineLoop.ParticleSystemViewerAppWnd;
+    AddEditorPanel("PropertyPanel2", PropertyPanelq, true);
 }
 
 void UnrealEd::Render() const
