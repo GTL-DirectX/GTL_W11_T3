@@ -13,6 +13,7 @@
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "Container/StringConv.h"
+#include "FObjLoader.h"
 
 // 헬퍼 함수
 namespace
@@ -1198,12 +1199,12 @@ void FFbxLoader::LoadFBXMaterials(
     {
         FbxSurfaceMaterial* material = node->GetMaterial(i);
 
-        UMaterial* materialInfo = FObjectFactory::ConstructObject<UMaterial>(nullptr);
+        UMaterial* NewMaterial = FObjectFactory::ConstructObject<UMaterial>(nullptr);
         
-        materialInfo->GetMaterialInfo().MaterialName = material->GetName();
+        NewMaterial->GetMaterialInfo().MaterialName = material->GetName();
         int reservedCount = static_cast<uint32>(EMaterialTextureSlots::MTS_MAX);
         for (int i = 0; i < reservedCount; ++i)
-            materialInfo->GetMaterialInfo().TextureInfos.Add({});
+            NewMaterial->GetMaterialInfo().TextureInfos.Add({});
         
         // normalMap
         FbxProperty normal = material->FindProperty(FbxSurfaceMaterial::sNormalMap);
@@ -1214,11 +1215,11 @@ void FFbxLoader::LoadFBXMaterials(
             if (fileTexture && CreateTextureFromFile(StringToWString(fileTexture->GetFileName()), false))
             {
                 const uint32 SlotIdx = static_cast<uint32>(EMaterialTextureSlots::MTS_Normal);
-                FTextureInfo& slot = materialInfo->GetMaterialInfo().TextureInfos[SlotIdx];
+                FTextureInfo& slot = NewMaterial->GetMaterialInfo().TextureInfos[SlotIdx];
                 slot.TextureName = fileTexture->GetName();
                 slot.TexturePath = StringToWString(fileTexture->GetFileName());
                 slot.bIsSRGB = false;
-                materialInfo->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Normal);
+                NewMaterial->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Normal);
             }
         }
         
@@ -1227,18 +1228,18 @@ void FFbxLoader::LoadFBXMaterials(
         if (diffuse.IsValid())
         {
             FbxDouble3 color = diffuse.Get<FbxDouble3>();
-            materialInfo->SetDiffuse(FVector(color[0], color[1], color[2]));
+            NewMaterial->SetDiffuse(FVector(color[0], color[1], color[2]));
             
             FbxTexture* texture = diffuse.GetSrcObject<FbxTexture>();
             FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(texture);
             if (fileTexture && CreateTextureFromFile(StringToWString(fileTexture->GetFileName()), true))
             {
                 const uint32 SlotIdx = static_cast<uint32>(EMaterialTextureSlots::MTS_Diffuse);
-                FTextureInfo& slot = materialInfo->GetMaterialInfo().TextureInfos[SlotIdx];
+                FTextureInfo& slot = NewMaterial->GetMaterialInfo().TextureInfos[SlotIdx];
                 slot.TextureName = fileTexture->GetName();
                 slot.TexturePath = StringToWString(fileTexture->GetFileName());
                 slot.bIsSRGB = true;
-                materialInfo->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
+                NewMaterial->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
             }
         }
         
@@ -1247,18 +1248,18 @@ void FFbxLoader::LoadFBXMaterials(
         if (ambient.IsValid())
         {
             FbxDouble3 color = ambient.Get<FbxDouble3>();
-            materialInfo->SetAmbient(FVector(color[0], color[1], color[2]));
+            NewMaterial->SetAmbient(FVector(color[0], color[1], color[2]));
             
             FbxTexture* texture = ambient.GetSrcObject<FbxTexture>();
             FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(texture);
             if (fileTexture && CreateTextureFromFile(StringToWString(fileTexture->GetFileName()), true))
             {
                 const uint32 SlotIdx = static_cast<uint32>(EMaterialTextureSlots::MTS_Ambient);
-                FTextureInfo& slot = materialInfo->GetMaterialInfo().TextureInfos[SlotIdx];
+                FTextureInfo& slot = NewMaterial->GetMaterialInfo().TextureInfos[SlotIdx];
                 slot.TextureName = fileTexture->GetName();
                 slot.TexturePath = StringToWString(fileTexture->GetFileName());
                 slot.bIsSRGB = true;
-                materialInfo->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Ambient);
+                NewMaterial->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Ambient);
             }
 
         }
@@ -1268,18 +1269,18 @@ void FFbxLoader::LoadFBXMaterials(
         if (ambient.IsValid())
         {
             FbxDouble3 color = specular.Get<FbxDouble3>();
-            materialInfo->SetSpecular(FVector(color[0], color[1], color[2]));
+            NewMaterial->SetSpecular(FVector(color[0], color[1], color[2]));
             
             FbxTexture* texture = specular.GetSrcObject<FbxTexture>();
             FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(texture);
             if (fileTexture && CreateTextureFromFile(StringToWString(fileTexture->GetFileName()), true))
             {
                 const uint32 SlotIdx = static_cast<uint32>(EMaterialTextureSlots::MTS_Specular);
-                FTextureInfo& slot = materialInfo->GetMaterialInfo().TextureInfos[SlotIdx];
+                FTextureInfo& slot = NewMaterial->GetMaterialInfo().TextureInfos[SlotIdx];
                 slot.TextureName = fileTexture->GetName();
                 slot.TexturePath = StringToWString(fileTexture->GetFileName());
                 slot.bIsSRGB = true;
-                materialInfo->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Specular);
+                NewMaterial->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Specular);
             }
         }
 
@@ -1290,23 +1291,24 @@ void FFbxLoader::LoadFBXMaterials(
         {
             FbxDouble3 color = emissive.Get<FbxDouble3>();
             double intensity = emissiveFactor.Get<FbxDouble>();
-            materialInfo->SetEmissive(FVector(color[0], color[1], color[2]), intensity);
+            NewMaterial->SetEmissive(FVector(color[0], color[1], color[2]), intensity);
             
             FbxTexture* texture = emissive.GetSrcObject<FbxTexture>();
             FbxFileTexture* fileTexture = FbxCast<FbxFileTexture>(texture);
             if (fileTexture && CreateTextureFromFile(StringToWString(fileTexture->GetFileName()), true))
             {
                 const uint32 SlotIdx = static_cast<uint32>(EMaterialTextureSlots::MTS_Emissive);
-                FTextureInfo& slot = materialInfo->GetMaterialInfo().TextureInfos[SlotIdx];
+                FTextureInfo& slot = NewMaterial->GetMaterialInfo().TextureInfos[SlotIdx];
                 slot.TextureName = fileTexture->GetName();
                 slot.TexturePath = StringToWString(fileTexture->GetFileName());
                 slot.bIsSRGB = true;
                 
-                materialInfo->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Emissive);
+                NewMaterial->GetMaterialInfo().TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Emissive);
             }
         }
         
-        fbxObject->material.Add(materialInfo);
+        fbxObject->material.Add(NewMaterial);
+        FObjManager::CreateMaterial(NewMaterial->GetMaterialInfo());
     }
 }
 
