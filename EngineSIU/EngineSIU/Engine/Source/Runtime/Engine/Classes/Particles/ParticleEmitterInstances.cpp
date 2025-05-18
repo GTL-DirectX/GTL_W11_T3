@@ -1,5 +1,9 @@
 #include "ParticleEmitterInstances.h"
 
+#include "ParticleEmitter.h"
+#include "ParticleLODLevel.h"
+#include "ParticleModuleRequired.h"
+
 void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)
 {
     if (InParticleDataNumBytes > 0 && ParticleIndicesNumShorts >= 0
@@ -50,6 +54,78 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 }
 
 
+FParticleEmitterInstance::FParticleEmitterInstance() :
+    SpriteTemplate(NULL)
+    , Component(NULL)
+    , CurrentLODLevel(NULL)
+    , CurrentLODLevelIndex(0)
+    , PayloadOffset(0)
+    , bEnabled(1)
+    , ParticleData(NULL)
+    , ParticleIndices(NULL)
+    , InstanceData(NULL)
+    , InstancePayloadSize(0)
+    , ParticleSize(0)
+    , ParticleStride(0)
+    , ActiveParticles(0)
+    , ParticleCounter(0)
+    , MaxActiveParticles(0)
+    , SpawnFraction(0.0f)
+    , EmitterTime(0.0f)
+{
+}
+
+// Test용으로 우선 Sprite가 기본 Template이라 가정하고 구현, FillReplayData()도 마찬가지
+FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected)
+{
+    UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
+    if (!LODLevel || !bEnabled || !LODLevel->RequiredModule->bEnabled)
+    {
+        return nullptr;
+    }
+
+    FDynamicSpriteEmitterData* NewEmitterData = new FDynamicSpriteEmitterData(LODLevel->RequiredModule);
+
+    if (!FillReplayData(NewEmitterData->Source))
+    {
+        delete NewEmitterData;
+        return nullptr;
+    }
+
+    NewEmitterData->bSelected = bSelected;
+    NewEmitterData->Init(bSelected);
+
+    return NewEmitterData;
+}
+
+// 아래 함수도 마찬가지로, Sprite가 기본 Template이라 가정하고 구현
+// 차후 SpriteEmitterInstance에서 오버라이딩 필요
+bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& OutData)
+{
+    if (ActiveParticles <= 0)
+    {
+        return false;
+    }
+
+    // 2) 공통 필드 복사
+    OutData.eEmitterType = DET_Sprite;             // 스프라이트로 기본 가정
+    OutData.ActiveParticleCount = ActiveParticles; // 활성 파티클 수
+    OutData.ParticleStride = ParticleStride;       // 파티클 하나당 데이터 크기
+    OutData.Scale = FVector(1, 1, 1);       // 기본 (1,1,1)
+    OutData.SortMode = PSORTMODE_DistanceToView;   // 거리 기준 정렬 예시
+
+    // ParticleStride : 파티클 하나당 바이트 수
+    int32 TotalDataBytes = ParticleStride * ActiveParticles;    // 총 바이트 수 
+    int32 TotalIndices = ActiveParticles;                       // 인덱스 개수
+    OutData.DataContainer.Alloc(TotalDataBytes, TotalIndices);
+
+    // 실제 데이터 복사 : OutData.DataContainer로 파티클 데이터 / 파티클 인덱스 깊은 복사
+    memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
+    memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));
+
+    return true;
+}
+
 void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 {
     UParticleLODLevel* LODLevel = /*GetCurrentLODLevelChecked()*/ nullptr;
@@ -57,11 +133,13 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
     if (bEnabled)
     {
+        bool bFirstTime = (EmitterTime == 0.0f);
+
         // 수명이 다했거나 RelativeTime > 1.0 인 파티클을 제거.
         KillParticles();
-        //Tick_ModuleUpdate(DeltaTime, LODLevel);
+        Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-        //SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
+        SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
 
         // beams의 경우 postupdate 추가 필요
         if (ActiveParticles > 0)
@@ -101,14 +179,14 @@ float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLO
     {
         // 스폰 시도 조건 : Emitter가 루프 중이거나 처음 생성된 경우
         // 무한 반복 || 아직 루프 수 채우지 않음 || 시간이 아직 남음 || 생성 이후 첫 프레임
-        //if ((EmitterLoops == 0) ||
-        //    (LoopCount < EmitterLoops) ||
-        //    (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||
-        //    bFirstTime)
-        //{
-        //    bFirstTime = false;
-        //    SpawnFraction = Spawn(DeltaTime);
-        //}
+        if (/*(EmitterLoops == 0) ||
+            (LoopCount < EmitterLoops) ||
+            (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||*/
+            bFirstTime)
+        {
+            bFirstTime = false;
+            SpawnFraction = Spawn(DeltaTime);
+        }
     }
     return SpawnFraction;
 }
@@ -139,7 +217,6 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/)
     {
         //SpawnParticles(Number, StartTime, Increment, InitialLocation, FVector::ZeroVector, EventPayload);
-
     }
 
     /*
@@ -153,6 +230,14 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     return SpawnFraction;
 }
 
+void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity)
+{
+}
+
+void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
+{
+}
+
 void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation, const FVector& InitialVelocity, FParticleEventInstancePayload* EventPayload)
 {
     for (int32 i = 0; i < Count; i++)
@@ -160,11 +245,11 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
         // Macro 추가 필요.
         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ActiveParticles * ParticleStride));
         PreSpawn(Particle, InitialLocation, InitialVelocity);
-        /*for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)
+        for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)
         {
             
         }
-        PostSpawn(Particle, Interp, SpawnTime);*/
+        PostSpawn(Particle, Interp, SpawnTime);
     }
 }
 
@@ -193,6 +278,13 @@ FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* 
     : bSelected(false)
     , EmitterIndex(INDEX_NONE)
 {
+}
+
+void FDynamicSpriteEmitterData::Init(bool bInSelected)
+{
+    bSelected = bInSelected;
+    // Material NULL Slot
+    // TODO : 정렬, VertexBuffer 생성, BuildIndexBuffer 필요
 }
 
 FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
@@ -227,7 +319,7 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 
 FDynamicSpriteEmitterReplayDataBase::~FDynamicSpriteEmitterReplayDataBase()
 {
-    delete RequiredModule;
+    //delete RequiredModule;
 }
 
 /** FDynamicSpriteEmitterReplayDataBase Serialization */

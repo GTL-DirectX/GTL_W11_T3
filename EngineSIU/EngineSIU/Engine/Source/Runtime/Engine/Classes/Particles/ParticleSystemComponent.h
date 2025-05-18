@@ -2,6 +2,7 @@
 
 #include "Components/PrimitiveComponent.h"
 
+struct FDynamicEmitterReplayDataBase;
 class UParticleSystem;
 struct FParticleEmitterInstance;
 struct FDynamicEmitterDataBase;
@@ -17,6 +18,11 @@ public:
 
     void DeactivateSystem();
     void ComputeTickComponent_Concurrent(float DeltaTimeTick);
+
+    static FDynamicEmitterDataBase* CreateDynamicDataFromReplay(FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected);
+
+    virtual void InitParticles();
+
 
     TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
 
