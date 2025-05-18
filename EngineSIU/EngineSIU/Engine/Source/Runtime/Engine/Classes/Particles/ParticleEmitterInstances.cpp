@@ -165,17 +165,26 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
     return 0.f;
 }
 
+/*
+ * 매 프레임마다 파티클의 각 모듈=속성 (위치, 크기, 컬러, 수명 등)을 보간 및 증가
+ */
 void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
-    //UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
-    //for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->Modules.Num(); ModuleIndex++)
-    //{
-    //    UParticleModule* CurrentModule = InCurrentLODLevel->UpdateModules[ModuleIndex];
-    //    if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bUpdateModule)
-    //    {
-    //        CurrentModule->Update(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
-    //    }
-    //}
+    UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
+    if (HighestLODLevel == nullptr)
+    {
+        UE_LOG(ELogLevel::Error, "Tick_ModuleUpdate() : LODLevel 0 Not Exists");
+        return;
+    }
+
+    for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->Modules.Num(); ModuleIndex++)
+    {
+        UParticleModule* CurrentModule = InCurrentLODLevel->UpdateModules[ModuleIndex];
+        if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bUpdateModule)
+        {            
+            CurrentModule->Update(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
+        }
+    }
 }
 
 float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
@@ -271,6 +280,12 @@ void FParticleEmitterInstance::OnEmitterInstanceKilled(FParticleEmitterInstance*
     }*/
 }
 
+uint32 FParticleEmitterInstance::GetModuleDataOffset(UParticleModule* Module) const
+{
+    uint32* Offset = SpriteTemplate->ModuleOffsetMap.Find(Module);
+    return (Offset != nullptr) ? *Offset : 0;
+}
+
 uint8* FParticleEmitterInstance::GetModuleInstanceData(UParticleModule* Module) const
 {
     if (!Module || !InstanceData)
@@ -344,6 +359,9 @@ void FParticleEmitterInstance::Init(UParticleSystemComponent* InComponent, int32
     Resize(InitialCount, /*bSetMaxActiveCount=*/true);
 }
 
+/*
+ * 재할당 후, 새로 들어오는 모든 파티클의 NewMaxActiveParticles 인덱스 초기화
+ */
 bool FParticleEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount)
 {
     if (NewMaxActiveParticles <= MaxActiveParticles)

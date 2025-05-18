@@ -81,6 +81,11 @@ void UParticleEmitter::CacheEmitterModuleInfo()
     // ReqInstanceBytes 는 모든 모듈의 인스턴스 데이터 크기를 합산한 값
 }
 
+void UParticleEmitter::PostLoad()
+{
+    
+}
+
 UParticleLODLevel* UParticleEmitter::GetCurrentLODLevel(FParticleEmitterInstance* Instance) const
 {
     return Instance->CurrentLODLevel;

@@ -15,7 +15,9 @@ void UParticleModule::FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset,
 {
 }
 
-/* UParticleModuleCollision로 주석 예시 작성 */
+/* UParticleModuleCollision로 주석 예시 작성
+ * 아래 두 함수는, [FBaseParticle에 정의된 필드만을 사용하는 기본 모듈 기준] 모두 0을 반환해야 함 
+ */
 
 uint32 UParticleModule::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {

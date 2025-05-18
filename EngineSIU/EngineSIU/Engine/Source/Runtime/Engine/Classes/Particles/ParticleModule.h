@@ -32,8 +32,7 @@ enum EModuleType : int
 };
 
 
-class 
-    UParticleModule : public UObject
+class UParticleModule : public UObject
 {
     DECLARE_CLASS(UParticleModule, UObject)
     

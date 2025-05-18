@@ -73,6 +73,7 @@ struct FParticleEmitterInstance
 
     virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance);
 
+    uint32 GetModuleDataOffset(UParticleModule* Module) const;
     uint8* GetModuleInstanceData(UParticleModule* Module) const;
 
     virtual void Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex);

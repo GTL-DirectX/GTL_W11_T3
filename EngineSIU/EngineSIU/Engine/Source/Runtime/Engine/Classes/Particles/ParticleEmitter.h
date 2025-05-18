@@ -26,9 +26,10 @@ public:
     UParticleEmitter() = default;
     void Build();
     void CacheEmitterModuleInfo();
+    void PostLoad();
 
-    
-    UParticleLODLevel* GetCurrentLODLevel(FParticleEmitterInstance* Instance);
+
+    UParticleLODLevel* GetCurrentLODLevel(FParticleEmitterInstance* Instance) const;
     UParticleLODLevel* GetLODLevel(int32 LODLevel);
 
     FName EmitterName;
