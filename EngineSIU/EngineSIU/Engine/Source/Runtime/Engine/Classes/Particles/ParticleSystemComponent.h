@@ -22,7 +22,7 @@ public:
     static FDynamicEmitterDataBase* CreateDynamicDataFromReplay(FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected);
 
     virtual void InitParticles();
-
+    void ResetParticles();
 
     TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
 

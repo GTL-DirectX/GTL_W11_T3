@@ -202,8 +202,3 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay(
 
     return DynData;
 }
-
-void UParticleSystemComponent::InitParticles()
-{
-
-}
