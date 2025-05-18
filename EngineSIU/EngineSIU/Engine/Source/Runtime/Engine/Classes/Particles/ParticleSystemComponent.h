@@ -11,11 +11,11 @@ class UParticleSystemComponent : public UPrimitiveComponent // UE는 UFXSystemCo
 {
     DECLARE_CLASS(UParticleSystemComponent, UPrimitiveComponent)
 
-
 public:
     UParticleSystemComponent() = default;
     virtual void TickComponent(float DeltaTime) override;
 
+    void InitializeSystem();
     void DeactivateSystem();
     void ComputeTickComponent_Concurrent(float DeltaTimeTick);
 
@@ -24,12 +24,13 @@ public:
     virtual void InitParticles();
     void ResetParticles();
 
+    void SetTemplate(class UParticleSystem* NewTemplate);
     TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
 
 public:
     TArray<struct FParticleEmitterInstance*> EmitterInstances;
 
-private:
+public:
     UParticleSystem* Template;
 
     TArray<struct FDynamicEmitterDataBase*> EmitterRenderData; // UE 클래스에서는 이 변수는 없고 CreateDynamicDataFromReplay() 함수가 있음

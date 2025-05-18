@@ -5,6 +5,7 @@
 #include "ParticleHelper.h"
 #include "Math/Color.h"
 
+class UParticleModuleTypeDataBase;
 struct FParticleEmitterInstance;
 
 enum EModuleType : int
@@ -31,7 +32,8 @@ enum EModuleType : int
 };
 
 
-class UParticleModule : public UObject
+class 
+    UParticleModule : public UObject
 {
     DECLARE_CLASS(UParticleModule, UObject)
     
@@ -60,5 +62,12 @@ public:
 
     virtual EModuleType	GetModuleType() const { return EPMT_General; }
 
+
+    /* Number of bytes the module needs per "Particle" */
+    virtual uint32 RequiredBytes(UParticleModuleTypeDataBase * TypeData);
+
+    /* Number of bytes module needs per "Emitter Instance" */
+    virtual uint32 RequiredBytesPerInstance();
+    virtual uint32 PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData);
 
 };

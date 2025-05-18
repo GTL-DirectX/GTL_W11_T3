@@ -1,0 +1,42 @@
+#include "ParticleModule.h"
+#include "ParticleModuleTypeDataBase.h"
+
+
+void UParticleModule::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
+{
+}
+
+void UParticleModule::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
+{
+}
+
+
+void UParticleModule::FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
+{
+}
+
+/* UParticleModuleCollision로 주석 예시 작성 */
+
+uint32 UParticleModule::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
+{
+    return 0;
+    // return sizeof(FParticleCollisionPayload);
+}
+
+/*
+* 각 UParticleModule이 자신의 per - instance 데이터 크기를 리턴하는 함수
+* 보통 SpawnModule, SizeModule, ColorModule 등은 0을 리턴(데이터를 가지지 않음)
+* 일부 모듈(예: RibbonTrail, Mesh 등)은 데이터가 필요하여 > 0 값 반환
+*/
+uint32 UParticleModule::RequiredBytesPerInstance()
+{
+    return 0;
+    // return sizeof(FParticleCollisionInstancePayload);
+}
+uint32 UParticleModule::PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData)
+{
+    return 0xffffffff;
+    // FParticleCollisionInstancePayload* CollisionInstPayload = (FParticleCollisionInstancePayload*)(InstData);
+    // CollisionInstPayload->CurrentLODBoundsCheckCount = 0;
+    // return 0;
+}

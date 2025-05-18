@@ -15,6 +15,7 @@ public:
     // Particle LOD Level
     int32 LODLevel;
     bool bEnabled;
+    int32 PeakActiveParticles;
 
 
     class UParticleModuleRequired* RequiredModule;

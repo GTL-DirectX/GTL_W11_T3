@@ -33,6 +33,8 @@ class UParticleModuleRequired : public UParticleModule
 public:
     UParticleModuleRequired() = default;
 
+public:
+
     // class UMaterialInterface* Material;
     FVector EmitterOrigin;
     FRotator EmitterRotation;

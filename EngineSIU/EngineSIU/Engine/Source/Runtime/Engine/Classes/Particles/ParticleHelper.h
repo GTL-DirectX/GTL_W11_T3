@@ -94,30 +94,30 @@ struct FParticleBeam2EmitterInstance;
 struct FBaseParticle
 {
     // 24 bytes
-    FVector		OldLocation;			// Last frame's location, used for collision
-    FVector		Location;				// Current location. Loaction += Velocity * DeltaTime.
+    FVector		OldLocation;			
+    FVector		Location;				
 
     // 16 bytes
-    FVector		BaseVelocity;			// Velocity = BaseVelocity at the start of each frame.
-    float			Rotation;				// Rotation of particle (in Radians)
+    FVector		BaseVelocity;			
+    float			Rotation;				
 
     // 16 bytes
-    FVector 		Velocity;				// Current velocity, gets reset to BaseVelocity each frame to allow 
-    float			BaseRotationRate;		// Initial angular velocity of particle (in Radians per second)
+    FVector 		Velocity;				
+    float			BaseRotationRate;		
 
     // 16 bytes
-    FVector	    	BaseSize;				// Size = BaseSize at the start of each frame
-    float			RotationRate;			// Current rotation rate, gets reset to BaseRotationRate each frame
+    FVector	    	BaseSize;				
+    float			RotationRate;			
 
     // 16 bytes
-    FVector 		Size;					// Current size, gets reset to BaseSize each frame
-    int32			Flags;					// Flags indicating various particle states
+    FVector 		Size;					
+    int32			Flags;					
 
     // 16 bytes
-    FLinearColor	Color;					// Current color of particle.
+    FLinearColor	Color;					
 
     // 16 bytes
-    FLinearColor	BaseColor;				// Base color of the particle
+    FLinearColor	BaseColor;			
 
     // 16 bytes
     float			RelativeTime;			// Relative time, range is 0 (==spawn) to 1 (==death). RelativeTime >= 1.0f 이면 Kill. RelativeTime += DeltaTime / LifeTime.
@@ -131,21 +131,13 @@ struct FBaseParticle
  */
 struct FParticleSpriteVertex
 {
-    /** The position of the particle. */
     FVector Position;
-    /** The relative time of the particle. */
     float RelativeTime;
-    /** The previous position of the particle. */
     FVector	OldPosition;
-    /** Value that remains constant over the lifetime of a particle. */
     float ParticleId;
-    /** The size of the particle. */
     FVector2D Size;
-    /** The rotation of the particle. */
     float Rotation;
-    /** The sub-image index for the particle. */
     float SubImageIndex;
-    /** The color of the particle. */
     FLinearColor Color;
 };
 
@@ -154,23 +146,14 @@ struct FParticleSpriteVertex
  */
 struct FParticleSpriteVertexNonInstanced
 {
-    /** The texture UVs. */
     FVector2D UV;
-    /** The position of the particle. */
     FVector Position;
-    /** The relative time of the particle. */
     float RelativeTime;
-    /** The previous position of the particle. */
     FVector	OldPosition;
-    /** Value that remains constant over the lifetime of a particle. */
     float ParticleId;
-    /** The size of the particle. */
     FVector2D Size;
-    /** The rotation of the particle. */
     float Rotation;
-    /** The sub-image index for the particle. */
     float SubImageIndex;
-    /** The color of the particle. */
     FLinearColor Color;
 };
 
@@ -185,22 +168,16 @@ struct FParticleVertexDynamicParameter
 // Per-particle data sent to the GPU.
 struct FMeshParticleInstanceVertex
 {
-    /** The color of the particle. */
     FLinearColor Color;
 
-    /** The instance to world transform of the particle. Translation vector is packed into W components. */
     FVector4 Transform[3];
 
-    /** The velocity of the particle, XYZ: direction, W: speed. */
     FVector4 Velocity;
 
-    /** The sub-image texture offsets for the particle. */
     int16 SubUVParams[4];
 
-    /** The sub-image lerp value for the particle. */
     float SubUVLerp;
 
-    /** The relative time of the particle. */
     float RelativeTime;
 };
 
@@ -254,36 +231,22 @@ struct FLightParticlePayload
 // 레이저, 번개, 에너지빔, 갈고리 등의 선처럼 뻗는 이펙트에 사용.
 struct FBeam2TypeDataPayload
 {
-    /** The source of this beam											*/
     FVector		SourcePoint;
-    /** The source tangent of this beam									*/
     FVector		SourceTangent;
-    /** The stength of the source tangent of this beam					*/
     float		SourceStrength;
 
-    /** The target of this beam											*/
     FVector		TargetPoint;
-    /** The target tangent of this beam									*/
     FVector		TargetTangent;
-    /** The stength of the Target tangent of this beam					*/
     float		TargetStrength;
 
-    /** Target lock, extreme max, Number of noise points				*/
     int32		Lock_Max_NumNoisePoints;
-
-    /** Number of segments to render (steps)							*/
     int32		InterpolationSteps;
 
-    /** Direction to step in											*/
     FVector		Direction;
-    /** StepSize (for each segment to be rendered)						*/
     double		StepSize;
-    /** Number of segments to render (steps)							*/
     int32		Steps;
-    /** The 'extra' amount to travel (partial segment)					*/
     float		TravelRatio;
 
-    /** The number of triangles to render for this beam					*/
     int32		TriangleCount;
 
     /**

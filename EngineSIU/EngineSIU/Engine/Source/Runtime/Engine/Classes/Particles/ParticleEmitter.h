@@ -24,13 +24,26 @@ class UParticleEmitter : public UObject
 
 public:
     UParticleEmitter() = default;
+    void Build();
+    void CacheEmitterModuleInfo();
+
     
+    UParticleLODLevel* GetCurrentLODLevel(FParticleEmitterInstance* Instance);
+    UParticleLODLevel* GetLODLevel(int32 LODLevel);
+
     FName EmitterName;
     int32 ParticleSize;
+    int32 InitialAllocationCount;
+    int32 ReqInstanceBytes;
 
 
     TArray<UParticleLODLevel*> LODLevels;
 
-    void CacheEmitterModuleInfo();
-    UParticleLODLevel* GetCurrentLODLevel(FParticleEmitterInstance* Instance);
+    /* per-instance 데이터를 정적으로 보관하거나 초기화가 필요한 모듈들 목록
+     * 각 모듈은 PrepPerInstanceBlock()을 갖고 있으며, 여기에 필요 정보들을 설정함
+     */
+    TArray<UParticleModule*> ModulesNeedingInstanceData;
+    TMap<UParticleModule*, uint32> ModuleOffsetMap;
+    TMap<UParticleModule*, uint32> ModuleInstanceOffsetMap;
+
 };

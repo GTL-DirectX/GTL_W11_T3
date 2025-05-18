@@ -22,10 +22,11 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         //for (APlayerController*& : TObjectRange<>)
     }
 
-    // 최초 한 번만 파티클 이터레이터 인스턴스 생성
+    // [테스트 용] : 최초 한 번만 파티클 이터레이터 인스턴스 생성
+    // [디버그 후] : SetTemplate()에서 호출해줘야 마땅함
     if (EmitterInstances.Num() == 0)
     {
-        InitParticles();
+        InitializeSystem();
     }
 
 
@@ -47,6 +48,11 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 }
 
+void UParticleSystemComponent::InitializeSystem()
+{
+    InitParticles();
+}
+
 void UParticleSystemComponent::ResetParticles()
 {
     for (FParticleEmitterInstance* OldInstance : EmitterInstances)
@@ -59,9 +65,11 @@ void UParticleSystemComponent::ResetParticles()
     }
     EmitterInstances.Empty();
 }
-
 void UParticleSystemComponent::InitParticles()
 {
+    /* 반드시 호출해야 Inst->Init에서 올바른 값을 참조 (SpriteTemplate의 모든 변수) */
+    Template->BuildEmitters();
+
     ResetParticles();
 
     const int32 NumEmitters = Template->Emitters.Num();
@@ -75,66 +83,16 @@ void UParticleSystemComponent::InitParticles()
             continue;
         }
 
-        UParticleModuleRequired* Required = EmitterTemplate->LODLevels[0]->RequiredModule;
-        int32 MaxParts = 0;
-
-        
+        // 1. 인스턴스 생성 
         FParticleEmitterInstance* Inst = new FParticleEmitterInstance();
-
-        Inst->Component = this;
-        Inst->SpriteTemplate = EmitterTemplate;
-
-        Inst->CurrentLODLevelIndex = 0;
-        Inst->CurrentLODLevel = EmitterTemplate->LODLevels[0]; // LOD 기본 0
-
-
-        //Inst->MaxActiveParticles = MaxParts;
-        Inst->ParticleSize = sizeof(FBaseParticle);
-        //Inst->InstancePayloadSize = Required->InstancePayloadSize;
-        Inst->ParticleStride = Inst->ParticleSize + Inst->InstancePayloadSize;
-        Inst->PayloadOffset = Inst->ParticleSize;
-
-        // 파티클 풀 메모리 할당
-        Inst->ParticleData = (uint8*)malloc(Inst->ParticleStride * MaxParts);
-        Inst->ParticleIndices = (uint16*)malloc(sizeof(uint16) * MaxParts);
-        Inst->InstanceData = nullptr;
-
-        // 초기 파티클 상태
-        Inst->ActiveParticles = 0;
-        Inst->SpawnFraction = 0.f;
-        Inst->EmitterTime = 0.f;
-        Inst->bEnabled = true;
+        // 2. 사이즈 계산 + 풀 할당 - EmitterIndex는 internal에서 사용됨
+        Inst->Init(this, EmitterIndex);
 
         EmitterInstances.Add(Inst);
         
     }
 }
 
-/* 파티클 시스템을 더 이상 활성 상태로 두지 않음을 의미
- * 1. 더이상 파티클을 생성하지 않음
- * 2. bKillOnDeactivate에 따라 EmitterInstance를 즉시 삭제 / 잔여 파티클 자연 소멸
- */
-void UParticleSystemComponent::DeactivateSystem()
-{
-    //
-    for (int32 i = 0; i < EmitterInstances.Num(); i++)
-    {
-        FParticleEmitterInstance* Instance = EmitterInstances[i];
-        // if instance bKillOnDeactivate is true, kill it
-        if (Instance)
-        {
-            // clean up other instances that may point to this one
-            // ... //
-
-            delete Instance;
-            EmitterInstances[i] = nullptr;
-        }
-        else
-        {
-            //Instance->OnDeactivateSystem();
-        }
-    }
-}
 
 /*
  * @brief TickComponent_Concurrent
@@ -201,4 +159,43 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay(
     }
 
     return DynData;
+}
+
+/* 파티클 시스템을 더 이상 활성 상태로 두지 않음을 의미
+ * 1. 더이상 파티클을 생성하지 않음
+ * 2. bKillOnDeactivate에 따라 EmitterInstance를 즉시 삭제 / 잔여 파티클 자연 소멸
+ */
+void UParticleSystemComponent::DeactivateSystem()
+{
+    //
+    for (int32 i = 0; i < EmitterInstances.Num(); i++)
+    {
+        FParticleEmitterInstance* Instance = EmitterInstances[i];
+        // if instance bKillOnDeactivate is true, kill it
+        if (Instance)
+        {
+            // clean up other instances that may point to this one
+            // ... //
+
+            delete Instance;
+            EmitterInstances[i] = nullptr;
+        }
+        else
+        {
+            //Instance->OnDeactivateSystem();
+        }
+    }
+}
+
+
+/*
+ * [ImGui/코드]에서 ParticleSystem 생성후 Component에 할당할 때에 호출
+ */
+void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
+{
+    if (Template != NewTemplate)
+    {
+        Template = NewTemplate;
+        InitializeSystem();         // 내부에서 InitParticles() 호출
+    }
 }

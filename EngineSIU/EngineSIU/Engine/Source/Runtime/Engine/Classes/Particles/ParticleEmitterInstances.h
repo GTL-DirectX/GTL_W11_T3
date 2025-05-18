@@ -73,6 +73,9 @@ struct FParticleEmitterInstance
 
     virtual void OnEmitterInstanceKilled(FParticleEmitterInstance* Instance);
 
-    virtual void Rewind();
+    uint8* GetModuleInstanceData(UParticleModule* Module) const;
 
+    virtual void Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex);
+    virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true);
+    virtual void Rewind();
 };

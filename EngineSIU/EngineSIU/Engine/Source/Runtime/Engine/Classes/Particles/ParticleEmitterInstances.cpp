@@ -1,8 +1,14 @@
 #include "ParticleEmitterInstances.h"
 
+#include <algorithm>
+
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModuleRequired.h"
+#include "ParticleModuleTypeDataBase.h"
+#include "ParticleSystem.h"
+#include "ParticleSystemComponent.h"
+#include "Templates/AlignmentTemplates.h"
 
 void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)
 {
@@ -263,6 +269,116 @@ void FParticleEmitterInstance::OnEmitterInstanceKilled(FParticleEmitterInstance*
     {
         TargetEmitter = NULL;
     }*/
+}
+
+uint8* FParticleEmitterInstance::GetModuleInstanceData(UParticleModule* Module) const
+{
+    if (!Module || !InstanceData)
+    {
+        return nullptr;
+    }
+
+    const uint32* Offset = SpriteTemplate->ModuleInstanceOffsetMap.Find(Module);
+    return Offset ? (InstanceData + *Offset) : nullptr;
+}
+
+/*
+ * 반드시 CacheEmitterModuleInfo() 호출 후에 Init() 호출해야 SpriteTemplate의 유효한 값 참조 가능.. (ReqInstanceBytes, Map 등)
+ */
+void FParticleEmitterInstance::Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex)
+{
+    Component = InComponent;
+    SpriteTemplate = Component->Template->Emitters[InEmitterIndex];
+    CurrentLODLevelIndex = 0;
+    CurrentLODLevel = SpriteTemplate->LODLevels[0];
+    bEnabled = true;
+
+    // --- 1) 기본 파티클 크기 ---
+    ParticleSize = sizeof(FBaseParticle);
+
+    // --- 2) TypeData 추가 Payload 처리 ---
+    if (UParticleModuleTypeDataBase* TypeData = CurrentLODLevel->TypeDataModule)
+    {
+        // 가상 함수 호출 (자식 클래스에서 override 되어야 함)
+        const int32 TypeDataBytes = TypeData->RequiredBytes(nullptr);
+        ParticleSize += TypeDataBytes;
+    }
+
+    // --- 3) 16바이트 정렬 (SIMD 최적화용) ---
+    ParticleSize = Align(ParticleSize, 16);
+    PayloadOffset = ParticleSize;
+
+    // --- 4) 인스턴스 데이터 메모리 할당 ---
+    const int32 InstanceSize = SpriteTemplate->ReqInstanceBytes;
+    InstanceData = (uint8*)FPlatformMemory::Realloc<EAT_Container>(InstanceData, InstanceSize);
+    if (InstanceData)
+    {
+        FPlatformMemory::MemZero(InstanceData, InstanceSize);
+
+        for (UParticleModule* Module : SpriteTemplate->ModulesNeedingInstanceData)
+        {
+            uint8* ModData = GetModuleInstanceData(Module);
+            if (ModData)
+            {
+                Module->PrepPerInstanceBlock(this, ModData);
+            }
+        }
+    }
+
+    InstancePayloadSize = InstanceSize;
+
+    // --- 5) 전체 ParticleStride 계산 ---
+    ParticleStride = ParticleSize + InstancePayloadSize;
+
+    // --- 6) 파티클 상태 초기화 ---
+    ActiveParticles = 0;
+    SpawnFraction = 0.f;
+    EmitterTime = 0.f;
+    ParticleCounter = 0;
+
+    // --- 7) 최초 풀 할당 ---
+    int32 InitialCount = SpriteTemplate->InitialAllocationCount > 0
+        ? FMath::Min(SpriteTemplate->InitialAllocationCount, 100)
+        : 10;
+
+    Resize(InitialCount, /*bSetMaxActiveCount=*/true);
+}
+
+bool FParticleEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount)
+{
+    if (NewMaxActiveParticles <= MaxActiveParticles)
+    {
+        return true;
+    }
+
+    const int32 NewBytes = ParticleStride * NewMaxActiveParticles;
+    ParticleData = (uint8*)FPlatformMemory::Realloc<EAT_Container>(ParticleData, NewBytes);
+
+
+    FPlatformMemory::MemZero(
+        ParticleData + (ParticleStride * MaxActiveParticles),
+        (NewMaxActiveParticles - MaxActiveParticles) * ParticleStride
+    );
+
+    ParticleIndices = (uint16*)FPlatformMemory::Realloc<EAT_Container>(
+        ParticleIndices,
+        sizeof(uint16) * (NewMaxActiveParticles + 1)
+    );
+
+    for (int32 i = MaxActiveParticles; i < NewMaxActiveParticles; ++i)
+    {
+        ParticleIndices[i] = i;
+    }
+
+    MaxActiveParticles = NewMaxActiveParticles;
+
+    if (bSetMaxActiveCount)
+    {
+        UParticleLODLevel* LOD0 = SpriteTemplate->LODLevels[0];
+        LOD0->PeakActiveParticles = FMath::Max(MaxActiveParticles, LOD0->PeakActiveParticles);
+    }
+
+    return true;
 }
 
 void FParticleEmitterInstance::Rewind()
