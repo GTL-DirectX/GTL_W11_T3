@@ -48,6 +48,8 @@
 #include "GameFramework/Character.h"
 #include "Renderer/CompositingPass.h"
 
+#include "Particles/ParticleActor.h"
+
 void ControlEditorPanel::Render()
 {
     /* Pre Setup */
@@ -111,6 +113,11 @@ void ControlEditorPanel::Render()
             if (ImGui::MenuItem("Animation Viewer"))
             {
                 bShowAnimationViewer = true;
+            }
+
+            if (ImGui::MenuItem("ParticleSystem Viewer", nullptr, bShowParticleSystemViewer))
+            {
+                bShowParticleSystemViewer = !bShowParticleSystemViewer;
             }
             
             ImGui::EndMenu();
@@ -202,6 +209,15 @@ void ControlEditorPanel::Render()
         if (GEngineLoop.AnimationViewerAppWnd)
         {
             GEngineLoop.Show(GEngineLoop.AnimationViewerAppWnd);
+        }
+    }
+
+    if (bShowParticleSystemViewer)
+    {
+        bShowParticleSystemViewer = false;
+        if (GEngineLoop.ParticleSystemViewerAppWnd)
+        {
+            GEngineLoop.Show(GEngineLoop.ParticleSystemViewerAppWnd);
         }
     }
 }
@@ -449,14 +465,17 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 }
                 case OBJ_PARTICLE:
                 {
-                    SpawnedActor = World->SpawnActor<AActor>();
+                    SpawnedActor = World->SpawnActor<AParticleActor>();
                     SpawnedActor->SetActorLabel(TEXT("OBJ_PARTICLE"));
-                    UParticleSubUVComponent* ParticleComponent = SpawnedActor->AddComponent<UParticleSubUVComponent>();
+
+
+                    SpawnedActor->SetActorTickInEditor(true);
+                    // 기존 사용하던 SubUV는 잠시 제거. TODO: OBJ_SubUV로 상태 변경해서 따로 만들기.
+                    /*UParticleSubUVComponent* ParticleComponent = SpawnedActor->AddComponent<UParticleSubUVComponent>();
                     ParticleComponent->SetTexture(L"Assets/Texture/T_Explosion_SubUV.png");
                     ParticleComponent->SetRowColumnCount(6, 6);
                     ParticleComponent->SetRelativeScale3D(FVector(10.0f, 10.0f, 1.0f));
-                    ParticleComponent->Activate();
-                    SpawnedActor->SetActorTickInEditor(true);
+                    ParticleComponent->Activate();*/
                     break;
                 }
                 case OBJ_TEXT:

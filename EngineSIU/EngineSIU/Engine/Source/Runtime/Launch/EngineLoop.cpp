@@ -37,6 +37,10 @@ FEngineLoop::FEngineLoop()
     , AnimationViewer(nullptr)
     , UnrealEditor(nullptr)
     , BufferManager(nullptr)
+
+    , ParticleSystemViewer(nullptr)
+    , ParticleSystemViewerAppWnd(nullptr)
+    , ParticleSystemViewerUIManager(nullptr)
 {
 }
 
@@ -44,6 +48,8 @@ int32 FEngineLoop::PreInit()
 {
     return 0;
 }
+
+
 
 int32 FEngineLoop::Init(HINSTANCE hInstance)
 {
@@ -58,15 +64,19 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     SkeletalMeshViewerAppWnd = CreateNewWindow(hInstance, L"SkeletalWindowClass", L"SkeletalMesh Viewer", 800, 600, nullptr);
 
     AnimationViewerAppWnd = CreateNewWindow(hInstance, L"AnimationWindowClass", L"Animation Viewer", 800, 600, nullptr);
-    
+
+    ParticleSystemViewerAppWnd = CreateNewWindow(hInstance, L"ParticleSystemWindowClass", L"Particle System Viewer", 800, 600, nullptr);
+
     /** New Constructor */
     BufferManager = new FDXDBufferManager();
     MainUIManager = new UImGuiManager;
     SkeletalMeshViewerUIManager = new UImGuiManager;
     AnimationViewerUIManager = new UImGuiManager;
+    ParticleSystemViewerUIManager = new UImGuiManager;
     LevelEditor = new SLevelEditor();
     SkeletalMeshViewer = new SlateViewer();
     AnimationViewer = new SlateViewer();
+    ParticleSystemViewer = new SlateViewer();
     UnrealEditor = new UnrealEd();
     AppMessageHandler = std::make_unique<FSlateAppMessageHandler>();
     GEngine = FObjectFactory::ConstructObject<UEditorEngine>(nullptr);
@@ -75,6 +85,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     GraphicDevice.Initialize(MainAppWnd);
     GraphicDevice.CreateAdditionalSwapChain(SkeletalMeshViewerAppWnd);
     GraphicDevice.CreateAdditionalSwapChain(AnimationViewerAppWnd);
+    GraphicDevice.CreateAdditionalSwapChain(ParticleSystemViewerAppWnd);
     
     BufferManager->Initialize(GraphicDevice.Device, GraphicDevice.DeviceContext);
     Renderer.Initialize(&GraphicDevice, BufferManager, &GPUTimingManager);
@@ -86,14 +97,17 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
     MainUIManager->Initialize(MainAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
     SkeletalMeshViewerUIManager->Initialize(SkeletalMeshViewerAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
     AnimationViewerUIManager->Initialize(AnimationViewerAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
+    ParticleSystemViewerUIManager->Initialize(ParticleSystemViewerAppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
 
     WndImGuiContextMap.Add(MainAppWnd, MainUIManager->GetContext());
     WndImGuiContextMap.Add(SkeletalMeshViewerAppWnd, SkeletalMeshViewerUIManager->GetContext());
     WndImGuiContextMap.Add(AnimationViewerAppWnd, AnimationViewerUIManager->GetContext());
+    WndImGuiContextMap.Add(ParticleSystemViewerAppWnd, ParticleSystemViewerUIManager->GetContext());
     
     LevelEditor->Initialize(1400, 1000);
     SkeletalMeshViewer->Initialize(SkeletalMeshViewerAppWnd, "SkeletalMeshViewer.ini", 800, 600);
     AnimationViewer->Initialize(AnimationViewerAppWnd, "AnimationViewer.ini", 800, 600);
+    ParticleSystemViewer->Initialize(ParticleSystemViewerAppWnd, "ParticleSystemViewer.ini", 800, 600);
     
     UnrealEditor->Initialize();
     
@@ -187,6 +201,10 @@ void FEngineLoop::Render(HWND Handle) const
         {
             Viewer = AnimationViewer;
         }
+        else if (Handle == ParticleSystemViewerAppWnd)
+        {
+            Viewer = ParticleSystemViewer;
+        }
         
         /**
          * Child Window 의 월드를 처리하기 위해 기존의 월드를 임시 저장
@@ -223,6 +241,14 @@ void FEngineLoop::Render(HWND Handle) const
             AnimationViewerUIManager->BeginFrame();
             UnrealEditor->RenderSubWindowPanel(Handle);
             AnimationViewerUIManager->EndFrame();
+        }
+
+        // Particle System Viewer
+        if (ParticleSystemViewerUIManager && ParticleSystemViewerUIManager->GetContext() && Handle == ParticleSystemViewerAppWnd)
+        {
+            ParticleSystemViewerUIManager->BeginFrame();
+            UnrealEditor->RenderSubWindowPanel(Handle);
+            ParticleSystemViewerUIManager->EndFrame();
         }
     }
     
@@ -274,11 +300,13 @@ void FEngineLoop::Tick()
         LevelEditor->Tick(DeltaTime);
         SkeletalMeshViewer->Tick(DeltaTime);
         AnimationViewer->Tick(DeltaTime);
+        ParticleSystemViewer->Tick(DeltaTime);
 
         /* Render Viewports */
         Render();
         Render(SkeletalMeshViewerAppWnd);
         Render(AnimationViewerAppWnd);
+        Render(ParticleSystemViewerAppWnd);
 
         if (CurrentImGuiContext != nullptr)
         {
@@ -298,6 +326,7 @@ void FEngineLoop::Tick()
         /** Does not fix errors, This isn't critical error. */
         GraphicDevice.SwapBuffer(SkeletalMeshViewerAppWnd);
         GraphicDevice.SwapBuffer(AnimationViewerAppWnd);
+        GraphicDevice.SwapBuffer(ParticleSystemViewerAppWnd);
         
         do
         {
@@ -359,6 +388,27 @@ void FEngineLoop::Exit()
         AnimationViewerUIManager->Shutdown();
         delete AnimationViewerUIManager;
         AnimationViewerUIManager = nullptr;
+    }
+
+    /* Particle System Viewer Section */
+    if (ParticleSystemViewer)
+    {
+        ParticleSystemViewer->Release();
+        delete ParticleSystemViewer;
+        ParticleSystemViewer = nullptr;
+    }
+
+    if (ParticleSystemViewerAppWnd && IsWindow(ParticleSystemViewerAppWnd))
+    {
+        DestroyWindow(ParticleSystemViewerAppWnd);
+        ParticleSystemViewerAppWnd = nullptr;
+    }
+
+    if (ParticleSystemViewerUIManager)
+    {
+        ParticleSystemViewerUIManager->Shutdown();
+        delete ParticleSystemViewerUIManager;
+        ParticleSystemViewerUIManager = nullptr;
     }
 
     /** Main Window Section */
@@ -549,6 +599,22 @@ LRESULT CALLBACK FEngineLoop::AppWndProc(HWND hWnd, uint32 Msg, WPARAM wParam, L
                             Renderer.TileLightCullingPass->ResizeViewBuffers(
                                 static_cast<uint32>(AnimationViewer->GetActiveViewportClient()->GetD3DViewport().Width),
                                 static_cast<uint32>(AnimationViewer->GetActiveViewportClient()->GetD3DViewport().Height)
+                            );
+                        }
+                    }
+                }
+
+                if (hWnd == GEngineLoop.ParticleSystemViewerAppWnd)
+                {
+                    if (SlateViewer* PartilcleSystemViewer = GEngineLoop.GetParticleSystemViewer())
+                    {
+                        PartilcleSystemViewer->ResizeEditor(ClientWidth, ClientHeight);
+                        if (PartilcleSystemViewer->GetActiveViewportClient())
+                        {
+
+                            Renderer.TileLightCullingPass->ResizeViewBuffers(
+                                static_cast<uint32>(PartilcleSystemViewer->GetActiveViewportClient()->GetD3DViewport().Width),
+                                static_cast<uint32>(PartilcleSystemViewer->GetActiveViewportClient()->GetD3DViewport().Height)
                             );
                         }
                     }
