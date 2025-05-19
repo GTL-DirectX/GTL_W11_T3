@@ -82,4 +82,5 @@ struct FParticleEmitterInstance
     void UpdateTransforms();
     virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true);
     virtual void Rewind();
+    virtual void UpdateBoundingBox(float DeltaTime);
 };

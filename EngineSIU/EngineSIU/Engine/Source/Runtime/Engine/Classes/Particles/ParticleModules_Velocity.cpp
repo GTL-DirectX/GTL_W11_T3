@@ -22,4 +22,10 @@ void UParticleModuleVelocity::Spawn(FParticleEmitterInstance* Owner, int32 Offse
 
     Particle.Velocity += Vel;
     Particle.BaseVelocity += Vel;
+
+    UE_LOG(ELogLevel::Error,
+        TEXT("[Velocity] OffsetIdx=%d SpawnTime=%.3f AddVel=(%.1f,%.1f,%.1f) CurrVel=(%.1f,%.1f,%.1f)"),
+        Offset, SpawnTime,
+        Vel.X, Vel.Y, Vel.Z,
+        Particle.Velocity.X, Particle.Velocity.Y, Particle.Velocity.Z);
 }

@@ -41,9 +41,10 @@ struct FParticleBeam2EmitterInstance;
 #define DECLARE_PARTICLE_PTR(Name,Address)		\
 	FBaseParticle* Name = (FBaseParticle*) (Address);
 
+/* 원본 : check((Owner != NULL) && (Owner->Component != NULL)); */
 #define BEGIN_UPDATE_LOOP																								\
 	{																													\
-		check((Owner != NULL) && (Owner->Component != NULL));															\
+		static_assert((Component != NULL));													\
 		int32&			ActiveParticles = Owner->ActiveParticles;														\
 		uint32			CurrentOffset	= Offset;																		\
 		const uint8*		ParticleData	= Owner->ParticleData;															\
@@ -54,7 +55,7 @@ struct FParticleBeam2EmitterInstance;
 			const int32	CurrentIndex	= ParticleIndices[i];															\
 			const uint8* ParticleBase	= ParticleData + CurrentIndex * ParticleStride;									\
 			FBaseParticle& Particle		= *((FBaseParticle*) ParticleBase);												\
-			if ((Particle.Flags & STATE_Particle_Freeze) == 0)															\
+			if (/*(Particle.Flags & STATE_Particle_Freeze) == 0*/ true)															\
 			{																											\
 
 #define END_UPDATE_LOOP																									\
@@ -85,6 +86,15 @@ struct FParticleBeam2EmitterInstance;
 		ActiveParticles--;																								\
 	}
 
+#define BEGIN_MY_UPDATE_LOOP \
+    for (int32 i = ActiveParticles - 1; i >= 0; i--) \
+    { \
+        const int32 ParticleIndex = ParticleIndices[i]; \
+        uint8* ParticleBase = ParticleData + ParticleIndex * ParticleStride; \
+        FBaseParticle& Particle = *(FBaseParticle*)ParticleBase;
+
+#define END_MY_UPDATE_LOOP \
+    }
 
 /*
     파티클 시스템이 실제로 시뮬레이션하고 렌더링하는 **파티클 한 개의 데이터**를 저장하는 구조체.
@@ -124,6 +134,30 @@ struct FBaseParticle
     float			OneOverMaxLifetime;		// Reciprocal of lifetime. 1 / Lifetime 계산을 매번 하지 않기 위한 캐시 값.
     float			Placeholder0;
     float			Placeholder1;
+};
+
+enum EParticleStates
+{
+    /** Ignore updates to the particle						*/
+    STATE_Particle_JustSpawned = 0x02000000,
+    /** Ignore updates to the particle						*/
+    STATE_Particle_Freeze = 0x04000000,
+    /** Ignore collision updates to the particle			*/
+    STATE_Particle_IgnoreCollisions = 0x08000000,
+    /**	Stop translations of the particle					*/
+    STATE_Particle_FreezeTranslation = 0x10000000,
+    /**	Stop rotations of the particle						*/
+    STATE_Particle_FreezeRotation = 0x20000000,
+    /** Combination for a single check of 'ignore' flags	*/
+    STATE_Particle_CollisionIgnoreCheck = STATE_Particle_Freeze | STATE_Particle_IgnoreCollisions | STATE_Particle_FreezeTranslation | STATE_Particle_FreezeRotation,
+    /** Delay collision updates to the particle				*/
+    STATE_Particle_DelayCollisions = 0x40000000,
+    /** Flag indicating the particle has had at least one collision	*/
+    STATE_Particle_CollisionHasOccurred = 0x80000000,
+    /** State mask. */
+    STATE_Mask = 0xFE000000,
+    /** Counter mask. */
+    STATE_CounterMask = (~STATE_Mask)
 };
 
 /**

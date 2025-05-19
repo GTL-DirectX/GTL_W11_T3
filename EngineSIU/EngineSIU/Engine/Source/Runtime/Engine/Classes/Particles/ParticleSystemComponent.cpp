@@ -31,9 +31,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 
     ComputeTickComponent_Concurrent(DeltaTime);
-    FinalizeTickComponent();
-    
-
+    //FinalizeTickComponent();
 }
 
 void UParticleSystemComponent::FinalizeTickComponent()
@@ -56,7 +54,12 @@ void UParticleSystemComponent::FinalizeTickComponent()
 
 void UParticleSystemComponent::InitializeSystem()
 {
+    /* 초기값 false, 파티클 항상 생성토록 함 */
+    bSuppressSpawning = false;
+
+    UE_LOG(ELogLevel::Error, "InitializeSystem() Start :  Template=%p", Template);
     InitParticles();
+    UE_LOG(ELogLevel::Error, "InitializeSystem() End : EmitterInstances.Num=%d", EmitterInstances.Num());
 }
 
 void UParticleSystemComponent::ResetParticles()
@@ -111,17 +114,35 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent(float DeltaTimeTi
 {
     for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
     {
-        FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
-        if (Instance && Instance->SpriteTemplate)
+        FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex];
+        if (!Inst || !Inst->SpriteTemplate)
         {
-
+            UE_LOG(ELogLevel::Error, TEXT("ComputeTickComponent_Concurrent() : EmitterInstance %d is NULL"), EmitterIndex);
+            continue;
+        }
+        if (Inst && Inst->SpriteTemplate)
+        {
             // 1) Emitter가 어떤 LOD를 사용할지 결정
-            UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+            UParticleLODLevel* SpriteLODLevel = Inst->SpriteTemplate->GetCurrentLODLevel(Inst);
             // [간략] : Significance 관리 없이 Tick 수행
             if (SpriteLODLevel && SpriteLODLevel->bEnabled)
             {
-                Instance->Tick(DeltaTimeTick, bSuppressSpawning);
+                UE_LOG(ELogLevel::Error,
+                    TEXT("[Tick] Emitter[%d] Pos=(%.1f,%.1f,%.1f) VelSample=(%.1f,%.1f,%.1f) Active=%d"), EmitterIndex,
+                    Inst->Location.X, Inst->Location.Y, Inst->Location.Z,
+                    Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.X : 0.f,
+                    Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Y : 0.f,
+                    Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Z : 0.f,
+                    Inst->ActiveParticles
+                );
+
+                Inst->Tick(DeltaTimeTick, bSuppressSpawning);
                 // Tick_MaterialOverrides(EmitterIndex);
+            }
+            // 디버깅용 
+            else
+            {
+                UE_LOG(ELogLevel::Error, TEXT("ComputeTickComponent_Concurrent() : EmitterInstance %d LODLevel is NULL"), EmitterIndex);
             }
         }
     }
@@ -191,6 +212,8 @@ void UParticleSystemComponent::DeactivateSystem()
             //Instance->OnDeactivateSystem();
         }
     }
+    /* 더이상 새로운 파티클이 나오지 않게 하기 위해 true로 변경 */
+    bSuppressSpawning = true;
 }
 
 

@@ -22,6 +22,9 @@ void UParticleEmitter::Build()
     {
         /* Cache particle size/offset data for all LOD Levels */
         CacheEmitterModuleInfo();
+
+        UE_LOG(ELogLevel::Error, TEXT("ParticleSize=%d  ReqInstanceBytes=%d Modules=%d"),
+            ParticleSize, ReqInstanceBytes, ModulesNeedingInstanceData.Num());
     }
 }
 

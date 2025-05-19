@@ -36,8 +36,11 @@ public:
 
     TArray<struct FDynamicEmitterDataBase*> EmitterRenderData; // UE 클래스에서는 이 변수는 없고 CreateDynamicDataFromReplay() 함수가 있음
 
-    uint8 bSuppressSpawning : 1 = true;
+    /* [일시적인 억제 플래그] true이면 현재 프레임에서 파티클을 생성하지 않음*/
+    uint8 bSuppressSpawning : 1;
 
+    FVector InitialLocationHardcoded;
+    FVector InitialVelocityHardcoded;
 
 };
 

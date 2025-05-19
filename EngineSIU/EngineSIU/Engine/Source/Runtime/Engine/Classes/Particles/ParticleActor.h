@@ -11,6 +11,7 @@ public:
 
     virtual void PostSpawnInitialize() override;
     virtual UObject* Duplicate(UObject* InOuter) override;
+    virtual void BeginPlay() override;
 
 private:
     class UParticleSystemComponent* ParticleSystemComponent;

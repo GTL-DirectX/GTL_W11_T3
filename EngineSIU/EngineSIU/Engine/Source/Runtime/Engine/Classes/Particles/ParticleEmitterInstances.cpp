@@ -93,7 +93,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , ParticleStride(0)
     , ActiveParticles(0)
     , ParticleCounter(0)
-    , MaxActiveParticles(0)
+    , MaxActiveParticles(10)
     , SpawnFraction(0.0f)
     , EmitterTime(0.0f)
 {
@@ -152,7 +152,9 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
 
 void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 {
-    UParticleLODLevel* LODLevel = /*GetCurrentLODLevelChecked()*/ nullptr;
+    UE_LOG(ELogLevel::Error, "Tick() Start: DeltaTime=%.4f, Active=%d", DeltaTime, ActiveParticles);
+
+    UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
     float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
 
     if (bEnabled)
@@ -162,19 +164,35 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
         // 수명이 다했거나 RelativeTime > 1.0 인 파티클을 제거.
         // 이유 : Kill before the spawn... Otherwise, we can get 'flashing' (beam2Emitter)
         KillParticles();
+
+        UE_LOG(ELogLevel::Error, "  Before Update: Loc=%s", *Location.ToString());
+
         Tick_ModuleUpdate(DeltaTime, LODLevel);
 
+        UE_LOG(ELogLevel::Error, "  After Update: Loc=%s", *Location.ToString());
         SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
+
+        UE_LOG(ELogLevel::Error, "  SpawnFraction=%.4f", SpawnFraction);
 
         // beams의 경우 postupdate 추가 필요
         if (ActiveParticles > 0)
         {
             // Orbit Module 존재시 UpdateOrbitData 추가 필요
-            //UpdateBoundingBox(DeltaTime);
+
+            /* 파티클의 실제 Location를 Velocity에 따라 갱신하는 곳 */
+            UpdateBoundingBox(DeltaTime);
         }
+
+        EmitterTime += SpawnFraction;
+        if (EmitterTime >= CurrentLODLevel->RequiredModule->EmitterDuration)
+        {
+            EmitterTime = 0.0f;
+            bFirstTime = true;
+        }
+
+        UE_LOG(ELogLevel::Error, "Tick() End : EmitterTime=%.4f, ActiveParticles=%d\n", EmitterTime, ActiveParticles);
     }
 
-    EmitterTime += EmitterDelay;
 }
 
 // 파티클 시스템 전체의 진행 시간 증가 및 딜레이, 루프, 종료 조건 처리
@@ -217,12 +235,10 @@ float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLO
     {
         // 스폰 시도 조건 : Emitter가 루프 중이거나 처음 생성된 경우
         // 무한 반복 || 아직 루프 수 채우지 않음 || 시간이 아직 남음 || 생성 이후 첫 프레임
-        if (bFirstTime /*(EmitterLoops == 0) || (LoopCount < EmitterLoops) || (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||*/
-            )
-        {
-            bFirstTime = false;
-            SpawnFraction = Spawn(DeltaTime);
-        }
+        //if (bFirstTime /*(EmitterLoops == 0) || (LoopCount < EmitterLoops)(SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||*/ )
+        //bFirstTime = false;
+
+        SpawnFraction = Spawn(DeltaTime);
     }
     return SpawnFraction;
 }
@@ -245,7 +261,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     UParticleModuleRequired* Req = CurrentLODLevel->RequiredModule;
     float Rate = CurrentLODLevel->RequiredModule->SpawnRate; // Distribution 대신 고정 값
 
-    float SpawnRate = 0.0f;            // 초당 생성할 파티클 수
+    float SpawnRate = Rate;            // 초당 생성할 파티클 수
     int32 SpawnCount = 0;              // 이번 프레임에 생성할 일반 파티클 수
     float OldLeftover = SpawnFraction; // 지난 프레임에 못 만든 누적된 스폰 타이밍
 
@@ -298,35 +314,40 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     return SpawnFraction;
 }
 
+/* 파티클 버퍼를 초기화하고 기본 위치, 속도를 세팅하는 함수  */
 void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity)
 {
+
     FPlatformMemory::MemZero(Particle, ParticleSize);
     Particle->Location = InitialLocation;
     Particle->OldLocation = InitialLocation;
     Particle->Velocity = InitialVelocity;
     Particle->BaseVelocity = InitialVelocity;
 
+    UE_LOG(ELogLevel::Error,
+        TEXT("PreSpawn: Loc=(%.1f,%.1f,%.1f) Vel=(%.1f,%.1f,%.1f)"),
+        InitialLocation.X, InitialLocation.Y, InitialLocation.Z,
+        InitialVelocity.X, InitialVelocity.Y, InitialVelocity.Z);
+
     // 생명 시간
     Particle->RelativeTime = 0.0f;
     Particle->OneOverMaxLifetime = CurrentLODLevel->RequiredModule->EmitterDuration > 0.f
         ? 1.f / CurrentLODLevel->RequiredModule->EmitterDuration
         : 1.f;
-
-    UParticleLODLevel* HighLODLevel = SpriteTemplate->LODLevels[0];
-    for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->SpawnModules.Num(); ++ModuleIndex)
-    {
-        UParticleModule* Mod = CurrentLODLevel->SpawnModules[ModuleIndex];
-        if (Mod && Mod->bEnabled)
-        {
-            uint32 Offset = GetModuleDataOffset(HighLODLevel->SpawnModules[ModuleIndex]);
-            Mod->Spawn(this, Offset, EmitterTime, Particle);
-        }
-    }
 }
 
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
 {
+    // TODO : Spawn 시 위치를 보간 적용 필요 (위치가 1이상 차이날 경우)
+
     // 현재 스프라이트엔 특별 후처리 없음
+    // Offset caused by any velocity
+    Particle->OldLocation = Particle->Location;
+    Particle->Location += SpawnTime * FVector(Particle->Velocity);
+
+    // Store a sequence counter
+    Particle->Flags |= STATE_Particle_JustSpawned;
+
 }
 
 void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation, const FVector& InitialVelocity, FParticleEventInstancePayload* EventPayload)
@@ -356,7 +377,8 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
          SpawnTime -= Increment;
          Interp -= InterpDelta;
 
-         PreSpawn(Particle, InitialLocation, InitialVelocity);
+         //PreSpawn(Particle, InitialLocation, InitialVelocity);
+         PreSpawn(Particle, Component->InitialLocationHardcoded, Component->InitialVelocityHardcoded);
 
          for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->SpawnModules.Num(); ModuleIndex++)
          {
@@ -379,7 +401,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
          }
          
 
-         UE_LOG(ELogLevel::Display, "SpawnParticles() : Particle %d Spawned", Index);
+         UE_LOG(ELogLevel::Display, "SpawnParticles() : Particle %d Spawned", Index+1);
      }
 }
 
@@ -435,7 +457,7 @@ void FParticleEmitterInstance::Init(UParticleSystemComponent* InComponent, int32
     }
 
     // --- 3) 16바이트 정렬 (SIMD 최적화용) ---
-    ParticleSize = Align(ParticleSize, 16);
+    ParticleSize = Align(ParticleSize, 16); // 136 -> Align시 144 
     PayloadOffset = ParticleSize;
 
     // --- 4) 인스턴스 데이터 메모리 할당 ---
@@ -444,7 +466,7 @@ void FParticleEmitterInstance::Init(UParticleSystemComponent* InComponent, int32
     if (InstanceData)
     {
         FPlatformMemory::MemZero(InstanceData, InstanceSize);
-
+        // 현재 ModulesNeedingInstanceData Empty
         for (UParticleModule* Module : SpriteTemplate->ModulesNeedingInstanceData)
         {
             uint8* ModData = GetModuleInstanceData(Module);
@@ -505,7 +527,7 @@ void FParticleEmitterInstance::UpdateTransforms()
  */
 bool FParticleEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount)
 {
-    if (NewMaxActiveParticles <= MaxActiveParticles)
+    if (NewMaxActiveParticles < MaxActiveParticles)
     {
         return true;
     }
@@ -547,6 +569,30 @@ void FParticleEmitterInstance::Rewind()
     // LoopCount = 0;
     ParticleCounter = 0;
     // bEnabled = 1;
+}
+
+void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
+{
+    // 단순 위치 업데이트만 수행
+    auto* Owner = this;
+    BEGIN_MY_UPDATE_LOOP
+    {
+        FVector Old = Particle.Location; // 디버깅용 변수
+
+        // Freeze, JustSpawned 등 상태 무시하고 단순 업데이트만
+        Particle.OldLocation = Particle.Location;
+        Particle.Location += Particle.Velocity * DeltaTime;
+        Particle.RelativeTime += DeltaTime * Particle.OneOverMaxLifetime;
+
+        UE_LOG(ELogLevel::Error,
+            TEXT("UpdateBoundingBox(): Index=%d, OldLoc=(%.2f, %.2f, %.2f), Vel=(%.2f, %.2f, %.2f), NewLoc=(%.2f, %.2f, %.2f), Life : (%.2f)"),
+            i,
+            Old.X, Old.Y, Old.Z,
+            Particle.Velocity.X, Particle.Velocity.Y, Particle.Velocity.Z,
+            Particle.Location.X, Particle.Location.Y, Particle.Location.Z, Particle.RelativeTime
+        );
+    }
+    END_MY_UPDATE_LOOP;
 }
 
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)
