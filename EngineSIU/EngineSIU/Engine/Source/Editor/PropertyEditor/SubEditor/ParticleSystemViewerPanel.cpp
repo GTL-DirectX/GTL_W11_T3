@@ -51,7 +51,7 @@ void ParticleSystemViewerPanel::RenderParticles()
 {
     ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.3f, Height * 0.55f));
-    ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     
     ImGui::End();
 }
@@ -60,8 +60,14 @@ void ParticleSystemViewerPanel::RenderEmitters()
 {
     ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, 0.f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.7f, Height * 0.55f));
-    ImGui::Begin("Emitters", nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
+    ImGui::Begin(
+        "Emitters",
+        nullptr,
+        ImGuiWindowFlags_HorizontalScrollbar |
+        ImGuiWindowFlags_NoMove        |
+        ImGuiWindowFlags_NoResize      |
+        ImGuiWindowFlags_NoCollapse
+    );
     ImGui::SameLine();
     if (ImGui::Button("Add Default Emitter"))
     {
@@ -125,7 +131,7 @@ void ParticleSystemViewerPanel::RenderDetails()
 {
     ImGui::SetNextWindowPos(ImVec2(0.f, Height * 0.55f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.3f, Height * 0.45f));
-    ImGui::Begin("Details", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::Begin("Details", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     if (SelectedEmitter)
     {
         std::string EmitterName = GetData(*SelectedEmitter->EmitterName.ToString());
@@ -144,7 +150,7 @@ void ParticleSystemViewerPanel::RenderCurveEditor()
 {
     ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, Height * 0.55f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.7f, Height * 0.45f));
-    ImGui::Begin("Curve Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::Begin("Curve Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     
     ImGui::End();
 }
