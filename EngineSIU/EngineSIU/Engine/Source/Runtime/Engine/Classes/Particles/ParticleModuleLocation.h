@@ -8,5 +8,9 @@ class UParticleModuleLocation : public UParticleModuleLocationBase
 
 public:
     UParticleModuleLocation() = default;
+    virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+
+
+    FVector StartLocation;
 
 };

@@ -1695,7 +1695,8 @@
     <ClCompile Include="Engine\Source\Runtime\Renderer\ParticleRenderPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystem.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleLODLevel.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleVelocity.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Velocity.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Location.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />

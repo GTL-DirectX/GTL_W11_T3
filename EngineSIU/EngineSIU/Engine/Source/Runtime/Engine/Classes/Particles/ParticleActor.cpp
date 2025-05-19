@@ -6,7 +6,7 @@ void AParticleActor::PostSpawnInitialize()
 {
     Super::PostSpawnInitialize();
 
-    ParticleSystemComponent = AddComponent<UParticleSystemComponent>("ParticleSystemComponent");
+    ParticleSystemComponent = AddComponent<UParticleSystemComponent>(FName("ParticleSystemComponent_0"));
 }
 
 UObject* AParticleActor::Duplicate(UObject* InOuter)
