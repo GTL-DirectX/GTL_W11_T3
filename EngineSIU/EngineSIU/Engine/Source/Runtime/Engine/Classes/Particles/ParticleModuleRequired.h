@@ -36,8 +36,8 @@ public:
 public:
 
     // class UMaterialInterface* Material;
-    FVector EmitterOrigin;
-    FRotator EmitterRotation;
+    FVector EmitterOrigin = FVector::ZeroVector;
+    FRotator EmitterRotation = FRotator::ZeroRotator;
 
     EParticleSortMode SortMode;
 
