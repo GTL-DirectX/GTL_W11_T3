@@ -41,9 +41,10 @@ struct FParticleBeam2EmitterInstance;
 #define DECLARE_PARTICLE_PTR(Name,Address)		\
 	FBaseParticle* Name = (FBaseParticle*) (Address);
 
+/* 원본 : check((Owner != NULL) && (Owner->Component != NULL)); */
 #define BEGIN_UPDATE_LOOP																								\
 	{																													\
-		check((Owner != NULL) && (Owner->Component != NULL));															\
+		static_assert((Component != NULL));													\
 		int32&			ActiveParticles = Owner->ActiveParticles;														\
 		uint32			CurrentOffset	= Offset;																		\
 		const uint8*		ParticleData	= Owner->ParticleData;															\
@@ -54,7 +55,7 @@ struct FParticleBeam2EmitterInstance;
 			const int32	CurrentIndex	= ParticleIndices[i];															\
 			const uint8* ParticleBase	= ParticleData + CurrentIndex * ParticleStride;									\
 			FBaseParticle& Particle		= *((FBaseParticle*) ParticleBase);												\
-			if ((Particle.Flags & STATE_Particle_Freeze) == 0)															\
+			if (/*(Particle.Flags & STATE_Particle_Freeze) == 0*/ true)															\
 			{																											\
 
 #define END_UPDATE_LOOP																									\
@@ -85,6 +86,15 @@ struct FParticleBeam2EmitterInstance;
 		ActiveParticles--;																								\
 	}
 
+#define BEGIN_MY_UPDATE_LOOP \
+    for (int32 i = ActiveParticles - 1; i >= 0; i--) \
+    { \
+        const int32 ParticleIndex = ParticleIndices[i]; \
+        uint8* ParticleBase = ParticleData + ParticleIndex * ParticleStride; \
+        FBaseParticle& Particle = *(FBaseParticle*)ParticleBase;
+
+#define END_MY_UPDATE_LOOP \
+    }
 
 /*
     파티클 시스템이 실제로 시뮬레이션하고 렌더링하는 **파티클 한 개의 데이터**를 저장하는 구조체.
@@ -94,30 +104,30 @@ struct FParticleBeam2EmitterInstance;
 struct FBaseParticle
 {
     // 24 bytes
-    FVector		OldLocation;			// Last frame's location, used for collision
-    FVector		Location;				// Current location. Loaction += Velocity * DeltaTime.
+    FVector		OldLocation;			
+    FVector		Location;				
 
     // 16 bytes
-    FVector		BaseVelocity;			// Velocity = BaseVelocity at the start of each frame.
-    float			Rotation;				// Rotation of particle (in Radians)
+    FVector		BaseVelocity;			
+    float			Rotation;				
 
     // 16 bytes
-    FVector 		Velocity;				// Current velocity, gets reset to BaseVelocity each frame to allow 
-    float			BaseRotationRate;		// Initial angular velocity of particle (in Radians per second)
+    FVector 		Velocity;				
+    float			BaseRotationRate;		
 
     // 16 bytes
-    FVector	    	BaseSize;				// Size = BaseSize at the start of each frame
-    float			RotationRate;			// Current rotation rate, gets reset to BaseRotationRate each frame
+    FVector	    	BaseSize;				
+    float			RotationRate;			
 
     // 16 bytes
-    FVector 		Size;					// Current size, gets reset to BaseSize each frame
-    int32			Flags;					// Flags indicating various particle states
+    FVector 		Size;					
+    int32			Flags;					
 
     // 16 bytes
-    FLinearColor	Color;					// Current color of particle.
+    FLinearColor	Color;					
 
     // 16 bytes
-    FLinearColor	BaseColor;				// Base color of the particle
+    FLinearColor	BaseColor;			
 
     // 16 bytes
     float			RelativeTime;			// Relative time, range is 0 (==spawn) to 1 (==death). RelativeTime >= 1.0f 이면 Kill. RelativeTime += DeltaTime / LifeTime.
@@ -126,26 +136,42 @@ struct FBaseParticle
     float			Placeholder1;
 };
 
+enum EParticleStates
+{
+    /** Ignore updates to the particle						*/
+    STATE_Particle_JustSpawned = 0x02000000,
+    /** Ignore updates to the particle						*/
+    STATE_Particle_Freeze = 0x04000000,
+    /** Ignore collision updates to the particle			*/
+    STATE_Particle_IgnoreCollisions = 0x08000000,
+    /**	Stop translations of the particle					*/
+    STATE_Particle_FreezeTranslation = 0x10000000,
+    /**	Stop rotations of the particle						*/
+    STATE_Particle_FreezeRotation = 0x20000000,
+    /** Combination for a single check of 'ignore' flags	*/
+    STATE_Particle_CollisionIgnoreCheck = STATE_Particle_Freeze | STATE_Particle_IgnoreCollisions | STATE_Particle_FreezeTranslation | STATE_Particle_FreezeRotation,
+    /** Delay collision updates to the particle				*/
+    STATE_Particle_DelayCollisions = 0x40000000,
+    /** Flag indicating the particle has had at least one collision	*/
+    STATE_Particle_CollisionHasOccurred = 0x80000000,
+    /** State mask. */
+    STATE_Mask = 0xFE000000,
+    /** Counter mask. */
+    STATE_CounterMask = (~STATE_Mask)
+};
+
 /**
  * Per-particle data sent to the GPU.
  */
 struct FParticleSpriteVertex
 {
-    /** The position of the particle. */
     FVector Position;
-    /** The relative time of the particle. */
     float RelativeTime;
-    /** The previous position of the particle. */
     FVector	OldPosition;
-    /** Value that remains constant over the lifetime of a particle. */
     float ParticleId;
-    /** The size of the particle. */
     FVector2D Size;
-    /** The rotation of the particle. */
     float Rotation;
-    /** The sub-image index for the particle. */
     float SubImageIndex;
-    /** The color of the particle. */
     FLinearColor Color;
 };
 
@@ -154,23 +180,14 @@ struct FParticleSpriteVertex
  */
 struct FParticleSpriteVertexNonInstanced
 {
-    /** The texture UVs. */
     FVector2D UV;
-    /** The position of the particle. */
     FVector Position;
-    /** The relative time of the particle. */
     float RelativeTime;
-    /** The previous position of the particle. */
     FVector	OldPosition;
-    /** Value that remains constant over the lifetime of a particle. */
     float ParticleId;
-    /** The size of the particle. */
     FVector2D Size;
-    /** The rotation of the particle. */
     float Rotation;
-    /** The sub-image index for the particle. */
     float SubImageIndex;
-    /** The color of the particle. */
     FLinearColor Color;
 };
 
@@ -185,22 +202,16 @@ struct FParticleVertexDynamicParameter
 // Per-particle data sent to the GPU.
 struct FMeshParticleInstanceVertex
 {
-    /** The color of the particle. */
     FLinearColor Color;
 
-    /** The instance to world transform of the particle. Translation vector is packed into W components. */
     FVector4 Transform[3];
 
-    /** The velocity of the particle, XYZ: direction, W: speed. */
     FVector4 Velocity;
 
-    /** The sub-image texture offsets for the particle. */
     int16 SubUVParams[4];
 
-    /** The sub-image lerp value for the particle. */
     float SubUVLerp;
 
-    /** The relative time of the particle. */
     float RelativeTime;
 };
 
@@ -254,36 +265,22 @@ struct FLightParticlePayload
 // 레이저, 번개, 에너지빔, 갈고리 등의 선처럼 뻗는 이펙트에 사용.
 struct FBeam2TypeDataPayload
 {
-    /** The source of this beam											*/
     FVector		SourcePoint;
-    /** The source tangent of this beam									*/
     FVector		SourceTangent;
-    /** The stength of the source tangent of this beam					*/
     float		SourceStrength;
 
-    /** The target of this beam											*/
     FVector		TargetPoint;
-    /** The target tangent of this beam									*/
     FVector		TargetTangent;
-    /** The stength of the Target tangent of this beam					*/
     float		TargetStrength;
 
-    /** Target lock, extreme max, Number of noise points				*/
     int32		Lock_Max_NumNoisePoints;
-
-    /** Number of segments to render (steps)							*/
     int32		InterpolationSteps;
 
-    /** Direction to step in											*/
     FVector		Direction;
-    /** StepSize (for each segment to be rendered)						*/
     double		StepSize;
-    /** Number of segments to render (steps)							*/
     int32		Steps;
-    /** The 'extra' amount to travel (partial segment)					*/
     float		TravelRatio;
 
-    /** The number of triangles to render for this beam					*/
     int32		TriangleCount;
 
     /**

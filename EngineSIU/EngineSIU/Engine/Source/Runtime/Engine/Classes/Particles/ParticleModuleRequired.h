@@ -33,17 +33,27 @@ class UParticleModuleRequired : public UParticleModule
 public:
     UParticleModuleRequired() = default;
 
+public:
+
     // class UMaterialInterface* Material;
     
     UPROPERTY(EditAnywhere, FVector, EmitterOrigin)
     
     UPROPERTY(EditAnywhere, FRotator, EmitterRotation)
-
     UPROPERTY(None, EParticleSortMode, SortMode)
 
+    /* 	기본적으로 파티클은 컴포넌트 로컬 공간에서 시뮬레이션
+     *  false면 캐릭터와 별개로 월드 공간에 떠다님
+     */
     UPROPERTY(EditAnywhere, uint8, bUseLocalSpace)
 
     UPROPERTY(None, uint8, bKillOnDeactivate) // System이 비활성화 되면 emitter Kill
 
     UPROPERTY(None, uint8, bKillOnCompleted)  // Completed 시 emitter Kill
+
+    // 초당 생성할 파티클 수
+    // TODO : RawDistribution 으로 바꿔야 함
+    float SpawnRate;
+
+    float EmitterDuration;
 };
