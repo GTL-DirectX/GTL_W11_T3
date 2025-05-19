@@ -34,23 +34,26 @@ enum EModuleType : int
 class UParticleModule : public UObject
 {
     DECLARE_CLASS(UParticleModule, UObject)
-    
+
 public:
     UParticleModule() = default;
 
 public:
 
-    uint8 bSpawnModule : 1;
-    uint8 bUpdateModule : 1;
-    uint8 bFinalUpdateModule : 1;
-    uint8 bUpdateForGPUEmitter : 1;
-    uint8 bCurvesAsColor : 1;
-    uint8 b3DDrawMode : 1;
-    uint8 bSupported3DDrawMode : 1;
-    uint8 bEnabled : 1;
-    uint8 bEditable : 1;
-    FColor EditorColor;
+    // ParticleModule 의 속성들 일단은 None 으로 설정
+    UPROPERTY(None, uint8, bSpawnModule)
+    // UPROPERTY(EditAnywhere, uint8, bSpawnModule)
+    /*uint8 bSpawnModule : 1;*/
 
+    UPROPERTY(None, uint8, bUpdateModule)
+    UPROPERTY(None, uint8, bFinalUpdateModule)
+    UPROPERTY(None, uint8, bUpdateForGPUEmitter)
+    UPROPERTY(None, uint8, bCurvesAsColor)
+    UPROPERTY(None, uint8, b3DDrawMode)
+    UPROPERTY(None, uint8, bSupported3DDrawMode)
+    UPROPERTY(None, uint8, bEnabled)
+    UPROPERTY(None, uint8, bEditable)
+    UPROPERTY(None, FColor, EditorColor)
 
     virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase);
 

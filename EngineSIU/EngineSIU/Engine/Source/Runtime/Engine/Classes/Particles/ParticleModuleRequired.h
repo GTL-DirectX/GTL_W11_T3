@@ -34,16 +34,16 @@ public:
     UParticleModuleRequired() = default;
 
     // class UMaterialInterface* Material;
-    FVector EmitterOrigin;
-    FRotator EmitterRotation;
+    
+    UPROPERTY(EditAnywhere, FVector, EmitterOrigin)
+    
+    UPROPERTY(EditAnywhere, FRotator, EmitterRotation)
 
-    EParticleSortMode SortMode;
+    UPROPERTY(None, EParticleSortMode, SortMode)
 
+    UPROPERTY(EditAnywhere, uint8, bUseLocalSpace)
 
-    uint8 bUseLocalSpace : 1;
+    UPROPERTY(None, uint8, bKillOnDeactivate) // System이 비활성화 되면 emitter Kill
 
-    uint8 bKillOnDeactivate : 1; // System이 비활성화 되면 emitter Kill
-
-    uint8 bKillOnCompleted : 1;  // Completed 시 emitter Kill
-
+    UPROPERTY(None, uint8, bKillOnCompleted)  // Completed 시 emitter Kill
 };
