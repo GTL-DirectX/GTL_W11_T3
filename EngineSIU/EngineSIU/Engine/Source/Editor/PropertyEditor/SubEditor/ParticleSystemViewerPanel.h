@@ -4,6 +4,7 @@
 #include "Container/Array.h"
 #include "ImGui/imgui.h"
 #include "UnrealEd/EditorPanel.h"
+#include "UObject/Class.h"
 
 class UParticleModule;
 class UParticleEmitter;
