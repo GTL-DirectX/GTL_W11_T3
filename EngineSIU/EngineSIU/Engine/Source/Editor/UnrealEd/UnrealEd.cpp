@@ -14,33 +14,40 @@ void UnrealEd::Initialize()
     // MainAppWnd
     auto ControlPanel = std::make_shared<ControlEditorPanel>();
     ControlPanel->Handle = GEngineLoop.MainAppWnd;
+    ControlPanel->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.MainAppWnd];
     AddEditorPanel("ControlPanel", ControlPanel);
 
     auto OutlinerPanel = std::make_shared<OutlinerEditorPanel>();
     OutlinerPanel->Handle = GEngineLoop.MainAppWnd;
+    OutlinerPanel->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.MainAppWnd];
     AddEditorPanel("OutlinerPanel", OutlinerPanel);
 
     auto PropertyPanel = std::make_shared<PropertyEditorPanel>();
     PropertyPanel->Handle = GEngineLoop.MainAppWnd;
+    PropertyPanel->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.MainAppWnd];
     AddEditorPanel("PropertyPanel", PropertyPanel);
 
     // SkeletalMeshViewerAppWnd
     auto SubWindowSkeletalTreePanel = std::make_shared<SkeletalTreePanel>();
     SubWindowSkeletalTreePanel->Handle = GEngineLoop.SkeletalMeshViewerAppWnd;
+    SubWindowSkeletalTreePanel->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.SkeletalMeshViewerAppWnd];
     AddEditorPanel("SubWindowSkeletalTreePanel", SubWindowSkeletalTreePanel, true);
 
     auto SkeletalControlPanel = std::make_shared<SkeletalMeshControlPanel>();
     SkeletalControlPanel->Handle = GEngineLoop.SkeletalMeshViewerAppWnd;
+    SkeletalControlPanel->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.SkeletalMeshViewerAppWnd];
     AddEditorPanel("SkeletalControlPanel", SkeletalControlPanel, true);
 
     // AnimationViewerAppWnd
     auto AnimationSequencePanel = std::make_shared<AnimationSequenceViewerPanel>();
     AnimationSequencePanel->Handle = GEngineLoop.AnimationViewerAppWnd;
+    AnimationSequencePanel->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.AnimationViewerAppWnd];
     AddEditorPanel("AnimationSequencePanel", AnimationSequencePanel, true);
 
     // ParticleSystemViewerAppWnd
     auto PropertyPanelq = std::make_shared<ParticleSystemViewerPanel>();
     PropertyPanelq->Handle = GEngineLoop.ParticleSystemViewerAppWnd;
+    PropertyPanelq->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.ParticleSystemViewerAppWnd];
     AddEditorPanel("ParticleSystemViewerPanel", PropertyPanelq, true);
 
     Init();

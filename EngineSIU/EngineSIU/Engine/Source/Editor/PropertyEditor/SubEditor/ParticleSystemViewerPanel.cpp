@@ -1,10 +1,15 @@
 #include "ParticleSystemViewerPanel.h"
+
+#include "UnrealClient.h"
 #include "Engine/EditorEngine.h"
-#include "Particles/ParticleSystem.h"
 #include "GameFramework/Actor.h"
+#include "ImGui/imgui_internal.h"
+#include "LevelEditor/SLevelEditor.h"
+#include "Particles/ParticleSystem.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "UnrealEd/EditorViewportClient.h"
 
 void ParticleSystemViewerPanel::Init()
 {
@@ -21,7 +26,7 @@ void ParticleSystemViewerPanel::Init()
 void ParticleSystemViewerPanel::Render()
 {
     // Viewport
-    RenderParticles();
+    RenderMainViewport();
     
     // Emitters
     RenderEmitters();
@@ -43,13 +48,21 @@ void ParticleSystemViewerPanel::OnResize(HWND hWnd)
     }
 }
 
-void ParticleSystemViewerPanel::RenderParticles()
+void ParticleSystemViewerPanel::RenderMainViewport()
 {
-    ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
-    ImGui::SetNextWindowSize(ImVec2(Width * 0.3f, Height * 0.55f));
-    ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, 0.f));
 
-    ImGui::End();
+    float ViewportWidth = Width * 0.3f;
+    float ViewportHeight = Height * 0.55f;
+    UE_LOG(ELogLevel::Display, TEXT("Client Size: %f %f"), Width, Height);
+    UE_LOG(ELogLevel::Display, TEXT("ViewportPanelSize: %f %f"), ViewportWidth, ViewportHeight);
+
+    ViewportSize = FRect{
+        0,
+        0,
+        ViewportWidth,
+        ViewportHeight
+    };
 }
 
 void ParticleSystemViewerPanel::RenderEmitters()

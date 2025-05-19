@@ -1,9 +1,12 @@
 #pragma once
-#include "GameFramework/Actor.h"
-#include "Particles/ParticleSystemComponent.h"
+
+#include "Define.h"
+#include "Container/Array.h"
+#include "ImGui/imgui.h"
 #include "UnrealEd/EditorPanel.h"
 
 class UParticleSystem;
+class UParticleSystemComponent;
 
 class ParticleSystemViewerPanel : public UEditorPanel
 {
@@ -15,14 +18,18 @@ public:
     virtual void Render() override;
     virtual void OnResize(HWND hWnd) override;
 
+    FRect GetViewportSize() const { return ViewportSize; }
+
 private:
-    void RenderParticles();
+    void RenderMainViewport();
     void RenderEmitters();
     void RenderDetails();
     void RenderCurveEditor();
 
 private:
     float Width = 800, Height = 600;
+
+    FRect ViewportSize;
 
     UParticleSystem* SelectedParticleSystem = nullptr;
     UParticleSystemComponent* SelectedParticleSystemComponent = nullptr;

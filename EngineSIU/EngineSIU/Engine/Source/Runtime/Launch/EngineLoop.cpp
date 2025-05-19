@@ -13,6 +13,7 @@
 #include "World/World.h"
 #include "Renderer/TileLightCullingPass.h"
 #include "SoundManager.h"
+#include "PropertyEditor/SubEditor/ParticleSystemViewerPanel.h"
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -219,6 +220,15 @@ void FEngineLoop::Render(HWND Handle) const
                 GEngine->ActiveWorld = EditorWorld;
                 Renderer.Render(Viewer->GetActiveViewportClient());
             }
+
+            if (ParticleSystemViewerUIManager && ParticleSystemViewerUIManager->GetContext() && Handle == ParticleSystemViewerAppWnd)
+            {
+                ParticleSystemViewerPanel* Panel = dynamic_cast<ParticleSystemViewerPanel*>(UnrealEditor->GetSubEditorPanel("ParticleSystemViewerPanel").get());
+                if (Panel)
+                {
+                    Viewer->GetActiveViewportClient()->GetViewport()->SetRect(Panel->GetViewportSize());
+                }
+            }
             Renderer.RenderViewport(Handle, Viewer->GetActiveViewportClient());
         }
 
@@ -251,7 +261,6 @@ void FEngineLoop::Render(HWND Handle) const
             ParticleSystemViewerUIManager->EndFrame();
         }
     }
-    
 }
 
 void FEngineLoop::Tick()
