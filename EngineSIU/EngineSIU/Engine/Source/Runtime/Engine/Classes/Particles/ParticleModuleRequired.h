@@ -41,8 +41,17 @@ public:
 
     EParticleSortMode SortMode;
 
+    // 초당 생성할 파티클 수
+    // TODO : RawDistribution 으로 바꿔야 함
+    float SpawnRate;
 
-    uint8 bUseLocalSpace : 1;
+    float EmitterDuration;
+
+
+    /* 	기본적으로 파티클은 컴포넌트 로컬 공간에서 시뮬레이션
+     *  false면 캐릭터와 별개로 월드 공간에 떠다님
+     */
+    uint8 bUseLocalSpace : 1 = true;
 
     uint8 bKillOnDeactivate : 1; // System이 비활성화 되면 emitter Kill
 

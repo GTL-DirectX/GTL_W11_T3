@@ -14,6 +14,7 @@ class UParticleSystemComponent : public UPrimitiveComponent // UE는 UFXSystemCo
 public:
     UParticleSystemComponent() = default;
     virtual void TickComponent(float DeltaTime) override;
+    virtual void FinalizeTickComponent();
 
     void InitializeSystem();
     void DeactivateSystem();

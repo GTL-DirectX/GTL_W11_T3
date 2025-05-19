@@ -52,10 +52,28 @@ void FParticleDataContainer::Free()
  */
 void FParticleEmitterInstance::KillParticles()
 {
+    for (int32 i = ActiveParticles - 1; i >= 0; --i)
+    {
+        FBaseParticle* Particle = (FBaseParticle*)(ParticleData + i * ParticleStride);
+        if (Particle->RelativeTime >= 1.0f)
+        {
+            // KillCurrentParticle(ParticleIndices[i]);
+            ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
+            ParticleIndices[ActiveParticles - 1] = i;
+            --ActiveParticles;
+        }
+    }
 }
 
+/* 인덱스 풀 방식 구현 : 인덱스만 스왑, 메모리 블록을 Memcpy로 앞당기지 않음 */
 void FParticleEmitterInstance::KillParticle(int32 Index)
 {
+    if (Index >= 0 && Index < ActiveParticles)
+    {
+        ParticleIndices[Index] = ParticleIndices[ActiveParticles - 1];
+        ParticleIndices[ActiveParticles - 1] = Index;
+        --ActiveParticles;
+    }
     
 }
 
@@ -142,6 +160,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
         bool bFirstTime = (EmitterTime == 0.0f);
 
         // 수명이 다했거나 RelativeTime > 1.0 인 파티클을 제거.
+        // 이유 : Kill before the spawn... Otherwise, we can get 'flashing' (beam2Emitter)
         KillParticles();
         Tick_ModuleUpdate(DeltaTime, LODLevel);
 
@@ -162,7 +181,9 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 // @return : 실제 시뮬레이션에 쓰이지 않은 시간(딜레이)
 float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
-    return 0.f;
+    UpdateTransforms();
+    // 현재는 단순화함 : Delay, Looping 무시
+    return 0.0f;
 }
 
 /*
@@ -170,6 +191,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
  */
 void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
+    // HighLODLevel은 오프셋 계산용
     UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
     if (HighestLODLevel == nullptr)
     {
@@ -177,12 +199,13 @@ void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLe
         return;
     }
 
-    for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->Modules.Num(); ModuleIndex++)
+    for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
     {
-        UParticleModule* CurrentModule = InCurrentLODLevel->UpdateModules[ModuleIndex];
-        if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bUpdateModule)
-        {            
-            CurrentModule->Update(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
+        UParticleModule* Mod = InCurrentLODLevel->UpdateModules[ModuleIndex];
+        if (Mod && Mod->bEnabled && Mod->bUpdateModule)
+        {
+            uint32 Offset = GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]);
+            Mod->Update(this, Offset, DeltaTime);
         }
     }
 }
@@ -190,14 +213,12 @@ void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLe
 float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
 {
     // [간략] significance 중지 또는 외부 중단 명령 고려 안함
-    if (/*!bHaltSpawning && !bHaltSpawningExternal && */!bSuppressSpawning && (EmitterTime >= 0.0f))
+    if (!bSuppressSpawning && (EmitterTime >= 0.0f) /*!bHaltSpawning && !bHaltSpawningExternal && */)
     {
         // 스폰 시도 조건 : Emitter가 루프 중이거나 처음 생성된 경우
         // 무한 반복 || 아직 루프 수 채우지 않음 || 시간이 아직 남음 || 생성 이후 첫 프레임
-        if (/*(EmitterLoops == 0) ||
-            (LoopCount < EmitterLoops) ||
-            (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||*/
-            bFirstTime)
+        if (bFirstTime /*(EmitterLoops == 0) || (LoopCount < EmitterLoops) || (SecondsSinceCreation < (EmitterDuration * EmitterLoops)) ||*/
+            )
         {
             bFirstTime = false;
             SpawnFraction = Spawn(DeltaTime);
@@ -220,6 +241,10 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     // 생성할 파티클 수 결정 시, SpawnParticles()로 실제 생성 (일반용, Burst용)
     // 누적되지 못한 잔여 시간(SpawnFraction) 다음 프레임으로 넘김
 
+    // --- 1) SpawnRate 가져오기
+    UParticleModuleRequired* Req = CurrentLODLevel->RequiredModule;
+    float Rate = CurrentLODLevel->RequiredModule->SpawnRate; // Distribution 대신 고정 값
+
     float SpawnRate = 0.0f;            // 초당 생성할 파티클 수
     int32 SpawnCount = 0;              // 이번 프레임에 생성할 일반 파티클 수
     float OldLeftover = SpawnFraction; // 지난 프레임에 못 만든 누적된 스폰 타이밍
@@ -229,9 +254,37 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     // 정수 파티클 개수 분리 (StartTime, Increment 계산 등)
     // 풀 크기 클램핑 (Resize)
     // 최대치 검사 (미리 할당된 파티클 풀 크기 내에서만 생성되도록 생성개수 클램핑)
-    if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/)
+
+     // 2) 누적 & 정수/소수 분리
+    float Total = SpawnFraction + Rate * DeltaTime;
+    int32 ToSpawn = FMath::FloorToInt32(Total);
+    SpawnFraction = Total - ToSpawn;
+
+    // 3) 풀 크기 클램핑
+    ToSpawn = FMath::Min(ToSpawn, MaxActiveParticles - ActiveParticles);
+    if (ToSpawn <= 0)
     {
-        //SpawnParticles(Number, StartTime, Increment, InitialLocation, FVector::ZeroVector, EventPayload);
+        return SpawnFraction;
+    }
+
+    // 4) 실제 생성
+    FVector Origin = Component->GetWorldLocation() + CurrentLODLevel->RequiredModule->EmitterOrigin;
+    const FVector InitialVelocity = FVector::ZeroVector;
+
+    // SpawnTime 분배: 균일 분포
+    const float Increment = (Rate > 0.f) ? (1.f / Rate) : 0.f;
+    float StartTime = DeltaTime + SpawnFraction * Increment - Increment;
+
+    if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/) 
+    {
+        SpawnParticles(
+            ToSpawn,
+            StartTime,
+            Increment,
+            Origin,
+            InitialVelocity,
+            /*EventPayload=*/ nullptr
+        );
     }
 
     /*
@@ -247,25 +300,87 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 
 void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity)
 {
+    FPlatformMemory::MemZero(Particle, ParticleSize);
+    Particle->Location = InitialLocation;
+    Particle->OldLocation = InitialLocation;
+    Particle->Velocity = InitialVelocity;
+    Particle->BaseVelocity = InitialVelocity;
+
+    // 생명 시간
+    Particle->RelativeTime = 0.0f;
+    Particle->OneOverMaxLifetime = CurrentLODLevel->RequiredModule->EmitterDuration > 0.f
+        ? 1.f / CurrentLODLevel->RequiredModule->EmitterDuration
+        : 1.f;
+
+    UParticleLODLevel* HighLODLevel = SpriteTemplate->LODLevels[0];
+    for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->SpawnModules.Num(); ++ModuleIndex)
+    {
+        UParticleModule* Mod = CurrentLODLevel->SpawnModules[ModuleIndex];
+        if (Mod && Mod->bEnabled)
+        {
+            uint32 Offset = GetModuleDataOffset(HighLODLevel->SpawnModules[ModuleIndex]);
+            Mod->Spawn(this, Offset, EmitterTime, Particle);
+        }
+    }
 }
 
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
 {
+    // 현재 스프라이트엔 특별 후처리 없음
 }
 
 void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation, const FVector& InitialVelocity, FParticleEventInstancePayload* EventPayload)
 {
-    // for (int32 i = 0; i < Count; i++)
-    // {
-    //     // Macro 추가 필요.
-    //     DECLARE_PARTICLE_PTR(Particle, ParticleData + (ActiveParticles * ParticleStride));
-    //     PreSpawn(Particle, InitialLocation, InitialVelocity);
-    //     for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)
-    //     {
-    //         
-    //     }
-    //     PostSpawn(Particle, Interp, SpawnTime);
-    // }
+    // 오프셋 계산용 Base LOD
+    UParticleLODLevel* HighLODLevel = SpriteTemplate->LODLevels[0];
+
+    float SpawnTime = StartTime;
+    float Interp = 1.0f;
+    const float InterpDelta = (Count > 0 && Increment > 0.0f)
+        ? (1.0f / (float)Count)
+        : 0.0f;
+
+     for (int32 Index = 0; Index < Count; Index++)
+     {
+         // 풀 한계 검사
+         if (ActiveParticles >= MaxActiveParticles)
+         {
+             break;
+         }
+
+         // Macro 추가 필요.
+         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ParticleStride * Index));
+         const uint32 CurrentParticleIndex = ActiveParticles++;
+
+         // 언리얼에선 bLegacySpawnBehavior가 true일때 아래와 같이 반영
+         SpawnTime -= Increment;
+         Interp -= InterpDelta;
+
+         PreSpawn(Particle, InitialLocation, InitialVelocity);
+
+         for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->SpawnModules.Num(); ModuleIndex++)
+         {
+             UParticleModule* SpawnModule = CurrentLODLevel->SpawnModules[ModuleIndex];
+             if (SpawnModule->bEnabled)
+             {
+                 UParticleModule* OffsetModule = HighLODLevel->SpawnModules[ModuleIndex];
+                 SpawnModule->Spawn(this, GetModuleDataOffset(OffsetModule), SpawnTime, Particle);
+             }
+         }
+         
+         PostSpawn(Particle, Interp, StartTime);
+
+         if (Particle->RelativeTime > 1.0f)
+         {
+             KillParticle(CurrentParticleIndex);
+
+             // Process next particle
+             continue;
+         }
+         
+
+         UE_LOG(ELogLevel::Display, "SpawnParticles() : Particle %d Spawned", Index);
+     }
 }
 
 void FParticleEmitterInstance::OnEmitterInstanceKilled(FParticleEmitterInstance* Instance)
@@ -351,12 +466,38 @@ void FParticleEmitterInstance::Init(UParticleSystemComponent* InComponent, int32
     EmitterTime = 0.f;
     ParticleCounter = 0;
 
+    UpdateTransforms();
+    Location = Component->GetWorldLocation();
+
     // --- 7) 최초 풀 할당 ---
     int32 InitialCount = SpriteTemplate->InitialAllocationCount > 0
         ? FMath::Min(SpriteTemplate->InitialAllocationCount, 100)
         : 10;
 
     Resize(InitialCount, /*bSetMaxActiveCount=*/true);
+}
+
+void FParticleEmitterInstance::UpdateTransforms()
+{
+    UParticleLODLevel* LODLevel = CurrentLODLevel;
+
+    FMatrix ComponentToWorld = Component != nullptr ?
+        Component->GetWorldMatrix().GetMatrixWithoutScale() : FMatrix::Identity;
+    FMatrix EmitterToComponent = 
+        FMatrix::CreateRotationMatrix(LODLevel->RequiredModule->EmitterRotation)
+        * FMatrix::CreateTranslationMatrix(LODLevel->RequiredModule->EmitterOrigin);
+
+    if (LODLevel->RequiredModule->bUseLocalSpace)
+    {
+        EmitterToSimulation = EmitterToComponent;
+        SimulationToWorld = ComponentToWorld;
+    }
+    else
+    {
+        EmitterToSimulation = EmitterToComponent * ComponentToWorld;
+        SimulationToWorld = FMatrix::Identity;
+    }
+
 }
 
 /*

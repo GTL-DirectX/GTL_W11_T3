@@ -18,28 +18,30 @@ struct FParticleEmitterInstance
     int32 CurrentLODLevelIndex;
     UParticleLODLevel* CurrentLODLevel;
 
+    /* Emitter instance의 위치 / Emitter 로컬 ->Simulation 기준 공간 변환 / */
+    FVector Location;
+    FMatrix EmitterToSimulation;
+    FMatrix SimulationToWorld;
+
     // Collision Enable? // 추가구현 항목이지만 우선 추가.
     bool bEnableCollision;
 
-    /** Pointer to the particle data array.                             */
+    /** (파티클 데이터 / 인덱스 / 인스턴스 데이터 / 인스턴스 데이터 크기) 배열  포인터 */
     uint8* ParticleData;
-    /** Pointer to the particle index array.                            */
     uint16* ParticleIndices;
-    /** Pointer to the instance data array.                             */
     uint8* InstanceData;
-    /** The size of the Instance data array.                            */
     int32 InstancePayloadSize;
-    /** The offset to the particle data.                                */
+
+    /** 파티클 데이터의 오프셋 / 파티클 총 크기 / ParticleData 배열 내부 Stride */
     int32 PayloadOffset;
-    /** The total size of a particle (in bytes).                        */
     int32 ParticleSize;
-    /** The stride between particles in the ParticleData array.         */
     int32 ParticleStride;
-    /** The number of particles currently active in the emitter.        */
+
+    /** Emitter 내부 현재 활성화된 Particle 개수 / 단조 증가 카운터 */
     int32 ActiveParticles;
-    /** Monotonically increasing counter. */
     uint32 ParticleCounter;
-    /** The maximum number of active particles that can be held inthe particle data array. **/
+
+    /** 파티클 배열 내 최대 활성화 개수 **/
     int32 MaxActiveParticles;
 
     float SpawnFraction;
@@ -77,6 +79,7 @@ struct FParticleEmitterInstance
     uint8* GetModuleInstanceData(UParticleModule* Module) const;
 
     virtual void Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex);
+    void UpdateTransforms();
     virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true);
     virtual void Rewind();
 };

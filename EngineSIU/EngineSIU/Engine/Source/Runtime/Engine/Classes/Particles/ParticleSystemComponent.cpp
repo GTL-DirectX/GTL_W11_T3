@@ -31,7 +31,14 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 
     ComputeTickComponent_Concurrent(DeltaTime);
+    FinalizeTickComponent();
+    
 
+}
+
+void UParticleSystemComponent::FinalizeTickComponent()
+{
+    //CreateDynamicData();
     if (IsActive())
     {
         EmitterRenderData.Empty();
@@ -45,7 +52,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
             }
         }
     }
-
 }
 
 void UParticleSystemComponent::InitializeSystem()
