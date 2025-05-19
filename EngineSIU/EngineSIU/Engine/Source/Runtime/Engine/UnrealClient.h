@@ -169,6 +169,7 @@ public:
     FViewportResource* GetViewportResource() const { return ViewportResource; }
 
     FRect GetRect() const { return Rect; }
+    void SetRect(const FRect& InRect) { Rect = InRect; }
 
     bool bIsHovered(const FVector2D& InPoint) const;
 

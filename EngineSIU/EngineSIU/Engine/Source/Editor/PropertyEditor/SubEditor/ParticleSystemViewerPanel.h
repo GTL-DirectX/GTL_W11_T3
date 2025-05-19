@@ -1,13 +1,17 @@
 #pragma once
-#include "GameFramework/Actor.h"
-#include "Particles/ParticleSystemComponent.h"
+
+#include "Define.h"
+#include "Container/Array.h"
+#include "ImGui/imgui.h"
 #include "UnrealEd/EditorPanel.h"
+#include "UObject/Class.h"
 
 class UParticleModule;
 class UParticleEmitter;
 #include "PropertyEditor/ImGuiInspector.h"
 
 class UParticleSystem;
+class UParticleSystemComponent;
 
 class ParticleSystemViewerPanel : public UEditorPanel
 {
@@ -18,8 +22,10 @@ public:
     virtual void Render() override;
     virtual void OnResize(HWND hWnd) override;
 
+    FRect GetViewportSize() const { return ViewportSize; }
+
 private:
-    void RenderParticles();
+    void RenderMainViewport();
     void RenderEmitters();
     void RenderDetails();
     void RenderCurveEditor();
@@ -35,6 +41,13 @@ private:
 private:
     float Width = 800, Height = 600;
 
+    FRect ViewportSize;
+
+    UParticleSystem* SelectedParticleSystem = nullptr;
+    UParticleSystemComponent* SelectedParticleSystemComponent = nullptr;
+    TArray<struct FDynamicEmitterDataBase*> EmitterRenderData;
+
+    int SelectedEmitterIndex = -1;
     UParticleSystem* CurrentParticleSystem = nullptr;
     UParticleSystemComponent* CurrentParticleSystemComponent = nullptr;
     
