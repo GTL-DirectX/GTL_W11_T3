@@ -28,7 +28,6 @@ public:
     FName EmitterName;
     int32 ParticleSize;
 
-
     TArray<UParticleLODLevel*> LODLevels;
 
     void CacheEmitterModuleInfo();

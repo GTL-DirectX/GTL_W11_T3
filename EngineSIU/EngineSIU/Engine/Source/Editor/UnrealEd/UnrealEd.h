@@ -12,6 +12,7 @@ public:
     ~UnrealEd() = default;
     void Initialize();
 
+    void Init() const;
     void Render() const;
     void RenderSubWindowPanel(HWND hWnd) const;
     void OnResize(HWND hWnd, bool bSubWindow = false) const;

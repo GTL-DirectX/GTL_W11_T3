@@ -6,11 +6,12 @@
 #include "PropertyEditor/PropertyEditorPanel.h"
 #include "PropertyEditor/SubEditor/SkeletalTreePanel.h"
 #include "PropertyEditor/SkeletalMeshControlPanel.h"
-#include "PropertyEditor/SubEditor/AnimationSequenceViewer.h"
-#include <PropertyEditor/SubEditor/ParticleSystemEditorPanel.h>
+#include "PropertyEditor/SubEditor/AnimationSequenceViewerPanel.h"
+#include <PropertyEditor/SubEditor/ParticleSystemViewerPanel.h>
 
 void UnrealEd::Initialize()
 {
+    // MainAppWnd
     auto ControlPanel = std::make_shared<ControlEditorPanel>();
     ControlPanel->Handle = GEngineLoop.MainAppWnd;
     AddEditorPanel("ControlPanel", ControlPanel);
@@ -23,22 +24,34 @@ void UnrealEd::Initialize()
     PropertyPanel->Handle = GEngineLoop.MainAppWnd;
     AddEditorPanel("PropertyPanel", PropertyPanel);
 
+    // SkeletalMeshViewerAppWnd
     auto SubWindowSkeletalTreePanel = std::make_shared<SkeletalTreePanel>();
     SubWindowSkeletalTreePanel->Handle = GEngineLoop.SkeletalMeshViewerAppWnd;
     AddEditorPanel("SubWindowSkeletalTreePanel", SubWindowSkeletalTreePanel, true);
 
-    // SkeletalMeshViewer용 컨트롤 패널 추가
     auto SkeletalControlPanel = std::make_shared<SkeletalMeshControlPanel>();
     SkeletalControlPanel->Handle = GEngineLoop.SkeletalMeshViewerAppWnd;
     AddEditorPanel("SkeletalControlPanel", SkeletalControlPanel, true);
 
-    auto AnimationSequencePanel = std::make_shared<AnimationSequenceViewer>();
+    // AnimationViewerAppWnd
+    auto AnimationSequencePanel = std::make_shared<AnimationSequenceViewerPanel>();
     AnimationSequencePanel->Handle = GEngineLoop.AnimationViewerAppWnd;
     AddEditorPanel("AnimationSequencePanel", AnimationSequencePanel, true);
 
-    auto PropertyPanelq = std::make_shared<ParticleSystemEditorPanel>();
+    // ParticleSystemViewerAppWnd
+    auto PropertyPanelq = std::make_shared<ParticleSystemViewerPanel>();
     PropertyPanelq->Handle = GEngineLoop.ParticleSystemViewerAppWnd;
-    AddEditorPanel("PropertyPanel2", PropertyPanelq, true);
+    AddEditorPanel("ParticleSystemViewerPanel", PropertyPanelq, true);
+
+    Init();
+}
+
+void UnrealEd::Init() const
+{
+    for (const auto& Panel : Panels)
+    {
+        Panel.Value->Init();
+    }
 }
 
 void UnrealEd::Render() const

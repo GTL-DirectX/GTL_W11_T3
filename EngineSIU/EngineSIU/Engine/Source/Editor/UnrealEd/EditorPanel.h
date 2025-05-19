@@ -12,9 +12,14 @@ class UEditorPanel
 {
 public:
     virtual ~UEditorPanel() = default;
+    virtual void Init();
     virtual void Render() = 0;
     virtual void OnResize(HWND hWnd) = 0;
     
 public:
     HWND Handle = nullptr;
 };
+
+inline void UEditorPanel::Init()
+{
+}

@@ -26,13 +26,11 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/AssetManager.h"
-#include "Engine/FbxObject.h"
 #include "Engine/FbxManager.h"
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Components/Mesh/SkeletalMesh.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "LevelEditor/SLevelEditor.h"
-#include "Viewer/SlateViewer.h"
 #include "Slate/Widgets/Layout/SSplitter.h"
 #include "Components/Material/Material.h"
 #include "Contents/LuaAnimInstance.h"
@@ -45,10 +43,12 @@
 #include "LuaScripts/LuaScriptComponent.h"
 #include "LuaScripts/LuaScriptFileUtils.h"
 #include "imgui/imgui_bezier.h"
-#include "imgui/imgui_curve.h"
 #include <Animation/AnimNode_State.h>
 #include "Animation/AnimationStateMachine.h"
 #include <Contents/PreviewAnimInstance.h>
+#include "Particles/ParticleSystemComponent.h"
+
+#include "GameFramework/Actor.h"
 
 #define USE_UPROPERTY_IMGUI false
 
@@ -173,6 +173,11 @@ void PropertyEditorPanel::Render()
     if (USpringArmComponent* SpringArmComponent = GetTargetComponent<USpringArmComponent>(SelectedActor, SelectedComponent))
     {
         RenderForSpringArmComponent(SpringArmComponent);
+    }
+
+    if (UParticleSystemComponent* ParticleComponent = GetTargetComponent<UParticleSystemComponent>(SelectedActor, SelectedComponent))
+    {
+        RenderForParticleComponent(ParticleComponent);
     }
 
     ImGui::End();
@@ -1618,6 +1623,16 @@ void PropertyEditorPanel::RenderForSpringArmComponent(USpringArmComponent* Sprin
 #else
         RenderProperties(SpringArmComponent);
 #endif
+        ImGui::TreePop();
+    }
+}
+
+void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* ParticleComponent)
+{
+    ImGui::Separator();
+    if (ImGui::TreeNodeEx("Particle Component", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+    {
+
         ImGui::TreePop();
     }
 }

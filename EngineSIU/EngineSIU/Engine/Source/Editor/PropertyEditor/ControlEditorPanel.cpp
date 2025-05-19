@@ -37,7 +37,6 @@
 #include "Actors/CubeActor.h"
 #include "Actors/SphereActor.h"
 #include "Actors/CapsuleActor.h"
-#include "GameFramework/PlayerController.h"
 #include "Contents/Actors/Fish.h"
 #include "Contents/Actors/ItemActor.h"
 #include "Contents/Actors/PlatformActor.h"
@@ -469,7 +468,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                     SpawnedActor->SetActorLabel(TEXT("OBJ_PARTICLE"));
 
 
-                    SpawnedActor->SetActorTickInEditor(true);
+                    //SpawnedActor->SetActorTickInEditor(true);
                     // 기존 사용하던 SubUV는 잠시 제거. TODO: OBJ_SubUV로 상태 변경해서 따로 만들기.
                     /*UParticleSubUVComponent* ParticleComponent = SpawnedActor->AddComponent<UParticleSubUVComponent>();
                     ParticleComponent->SetTexture(L"Assets/Texture/T_Explosion_SubUV.png");

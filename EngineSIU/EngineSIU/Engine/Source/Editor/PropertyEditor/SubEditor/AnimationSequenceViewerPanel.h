@@ -7,7 +7,7 @@ struct FAnimNotifyEvent;
 class USkeletalMeshComponent;
 class UAnimSequence;
 
-class AnimationSequenceViewer : public UEditorPanel
+class AnimationSequenceViewerPanel : public UEditorPanel
 {
 public:
     virtual void Render() override;

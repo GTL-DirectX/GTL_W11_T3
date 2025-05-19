@@ -11,7 +11,6 @@ class UParticleSystemComponent : public UPrimitiveComponent // UE는 UFXSystemCo
 {
     DECLARE_CLASS(UParticleSystemComponent, UPrimitiveComponent)
 
-
 public:
     UParticleSystemComponent() = default;
     virtual void TickComponent(float DeltaTime) override;
@@ -25,6 +24,7 @@ public:
     void ResetParticles();
 
     TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
+    UParticleSystem* GetParticleSystem() { return Template; }
 
 public:
     TArray<struct FParticleEmitterInstance*> EmitterInstances;

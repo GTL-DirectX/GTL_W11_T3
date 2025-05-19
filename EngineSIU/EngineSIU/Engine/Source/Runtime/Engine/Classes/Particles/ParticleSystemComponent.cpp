@@ -22,6 +22,9 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         //for (APlayerController*& : TObjectRange<>)
     }
 
+
+    
+
     // 최초 한 번만 파티클 이터레이터 인스턴스 생성
     if (EmitterInstances.Num() == 0)
     {
