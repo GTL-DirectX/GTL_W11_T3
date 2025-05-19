@@ -29,7 +29,6 @@
 #include "Components/Light/PointLightComponent.h"
 #include "Contents/Actors/Fish.h"
 
-
 FStaticMeshRenderPass::FStaticMeshRenderPass():
     BufferManager(nullptr)
     , Graphics(nullptr)

@@ -27,7 +27,7 @@ private:
     template <class T>
     void RenderProperties(T* Obj);
 
-    void RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module, const std::string& ModuleName);
+    void RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module);
     
     // Test
     UParticleEmitter* CreateDefaultEmitter(int32 Index);

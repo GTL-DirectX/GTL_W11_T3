@@ -48,6 +48,7 @@
 #include "Renderer/CompositingPass.h"
 
 #include "Particles/ParticleActor.h"
+#include "Particles/ParticleSystemComponent.h"
 
 void ControlEditorPanel::Render()
 {
@@ -114,15 +115,41 @@ void ControlEditorPanel::Render()
                 bShowAnimationViewer = true;
             }
 
-            if (ImGui::MenuItem("ParticleSystem Viewer", nullptr, bShowParticleSystemViewer))
+            if (ImGui::MenuItem("ParticleSystem Viewer"))
             {
-                bShowParticleSystemViewer = !bShowParticleSystemViewer;
+                UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
+                bool hasPSC = Engine->GetSelectedActor() != nullptr
+                               && Engine->GetSelectedActor()->GetComponentByClass<UParticleSystemComponent>();
+                if (!hasPSC)
+                    bShowNoPSCPopup = true;
+                else
+                    bShowParticleSystemViewer = true;
             }
             
             ImGui::EndMenu();
         }
 
         ImGui::EndMenuBar();
+    }
+
+    if (bShowNoPSCPopup)
+    {
+        ImGui::OpenPopup("Error##NoPSC");
+        bShowNoPSCPopup = false;
+    }
+
+    const ImVec2 Center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(Center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(400, 150), ImGuiCond_Appearing);
+    if (ImGui::BeginPopupModal("Error##NoPSC", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::TextWrapped("\n선택된 ParticleSystemComponent가 없습니다.\n먼저 ParticleSystemComponent를 선택해주세요.");
+        ImGui::Dummy(ImVec2(0.0f, 20.0f)); 
+        if (ImGui::Button("OK", ImVec2(400, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 
     if (bOpenModal)

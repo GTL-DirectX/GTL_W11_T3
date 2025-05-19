@@ -63,7 +63,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
     ImGui::Begin("Emitters", nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
     ImGui::SameLine();
-    if (ImGui::Button("Add Emitter"))
+    if (ImGui::Button("Add Default Emitter"))
     {
         DefaultEmitterIndex++;
         UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
@@ -106,15 +106,14 @@ void ParticleSystemViewerPanel::RenderEmitters()
         }
             
         //── 2. Required 모듈 ─────────────────────────────────────────────
-        UParticleModuleRequired* RequiredModule = Emitter->LODLevels[0]->RequiredModule;
-        RenderModuleItem(Emitter, RequiredModule, "Required");
+        // UParticleModuleRequired* RequiredModule = Emitter->LODLevels[0]->RequiredModule;
+        // RenderModuleItem(Emitter, RequiredModule);
 
         //── 3. 나머지 모듈들 ──────────────────────────────────────────────
         auto& Modules = Emitter->LODLevels[0]->Modules;
         for (int m=0; m < Modules.Num(); ++m)
         {
-            std::string ModuleName = "Module_" + std::to_string(m);
-            RenderModuleItem(Emitter, Modules[m], ModuleName);
+            RenderModuleItem(Emitter, Modules[m]);
         }
         ImGui::EndChild();
         ImGui::SameLine();
@@ -207,13 +206,21 @@ UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultEmitter(int32 Index)
     return NewEmitter;
 }
 
-void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module, const std::string& ModuleName)
+void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module)
 {
     bool isSelected = (Module == SelectedModule);
-    if (ImGui::Selectable(ModuleName.c_str(), isSelected))
+    std::string RawName = *Module->GetName().ToString();
+    const std::string Prefix = "UParticleModule";
+    if (RawName.rfind(Prefix, 0) == 0)
+        RawName = RawName.substr(Prefix.size());
+    auto pos = RawName.find('_');
+    if (pos != std::string::npos)
+        RawName = RawName.substr(0, pos);
+    
+    if (ImGui::Selectable(RawName.c_str(), isSelected))
     {
         SelectedEmitter    = Emitter;
-        SelectedModuleName = ModuleName;
+        SelectedModuleName = RawName;
         SelectedModule     = Module;
     }
 }
