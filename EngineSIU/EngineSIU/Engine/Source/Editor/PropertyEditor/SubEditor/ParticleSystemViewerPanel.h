@@ -44,7 +44,6 @@ private:
     int DefaultEmitterIndex = -1;
 };
 
-
 template<typename T>
 void ParticleSystemViewerPanel::RenderProperties(T* Obj)
 {

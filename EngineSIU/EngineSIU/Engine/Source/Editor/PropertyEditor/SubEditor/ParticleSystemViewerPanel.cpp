@@ -133,7 +133,11 @@ void ParticleSystemViewerPanel::RenderDetails()
         ImGui::Text("Emitter : %s", EmitterName.c_str());
     }
     if (SelectedModule)
-        ImGui::Text("Module  : %s", SelectedModuleName.c_str());
+    {
+        
+        ImGui::Text("Module  : %s", *SelectedModule->GetName());
+        RenderProperties(SelectedModule);
+    }
     ImGui::End();
 }
 

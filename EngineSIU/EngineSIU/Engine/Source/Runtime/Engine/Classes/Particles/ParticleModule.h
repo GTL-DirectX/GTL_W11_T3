@@ -42,7 +42,7 @@ public:
 public:
 
     // ParticleModule 의 속성들 일단은 None 으로 설정
-    UPROPERTY(None, uint8, bSpawnModule)
+    UPROPERTY(EditAnywhere, bool, bSpawnModule)
     // UPROPERTY(EditAnywhere, uint8, bSpawnModule)
     /*uint8 bSpawnModule : 1;*/
 
