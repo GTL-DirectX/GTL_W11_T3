@@ -32,6 +32,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
     ComputeTickComponent_Concurrent(DeltaTime);
     //FinalizeTickComponent();
+
+    //CreateDynamicData();
 }
 
 void UParticleSystemComponent::FinalizeTickComponent()
@@ -127,14 +129,14 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent(float DeltaTimeTi
             // [간략] : Significance 관리 없이 Tick 수행
             if (SpriteLODLevel && SpriteLODLevel->bEnabled)
             {
-                UE_LOG(ELogLevel::Error,
+                /*UE_LOG(ELogLevel::Error,
                     TEXT("[Tick] Emitter[%d] Pos=(%.1f,%.1f,%.1f) VelSample=(%.1f,%.1f,%.1f) Active=%d"), EmitterIndex,
                     Inst->Location.X, Inst->Location.Y, Inst->Location.Z,
                     Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.X : 0.f,
                     Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Y : 0.f,
                     Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Z : 0.f,
                     Inst->ActiveParticles
-                );
+                );*/
 
                 Inst->Tick(DeltaTimeTick, bSuppressSpawning);
                 // Tick_MaterialOverrides(EmitterIndex);
