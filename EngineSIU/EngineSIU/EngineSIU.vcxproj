@@ -347,7 +347,11 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Level.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitter.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleLODLevel.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModule.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Location.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Velocity.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystem.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\UnrealClient.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\UserInterface\Console.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\World\World.cpp" />
@@ -512,6 +516,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\CoreUObject\UObject\PropertyTypes.h" />
     <ClInclude Include="Engine\Source\Contents\MyAnimInstance.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Container\Helpers.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Templates\AlignmentTemplates.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNode_State.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState_SlowMotion.h" />

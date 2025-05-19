@@ -22,18 +22,21 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         //for (APlayerController*& : TObjectRange<>)
     }
 
-
-    
-
-    // 최초 한 번만 파티클 이터레이터 인스턴스 생성
+    // [테스트 용] : 최초 한 번만 파티클 이터레이터 인스턴스 생성
+    // [디버그 후] : SetTemplate()에서 호출해줘야 마땅함
     if (EmitterInstances.Num() == 0)
     {
-        InitParticles();
+        InitializeSystem();
     }
 
 
     ComputeTickComponent_Concurrent(DeltaTime);
+    //FinalizeTickComponent();
+}
 
+void UParticleSystemComponent::FinalizeTickComponent()
+{
+    //CreateDynamicData();
     if (IsActive())
     {
         EmitterRenderData.Empty();
@@ -47,7 +50,16 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
             }
         }
     }
+}
 
+void UParticleSystemComponent::InitializeSystem()
+{
+    /* 초기값 false, 파티클 항상 생성토록 함 */
+    bSuppressSpawning = false;
+
+    UE_LOG(ELogLevel::Error, "InitializeSystem() Start :  Template=%p", Template);
+    InitParticles();
+    UE_LOG(ELogLevel::Error, "InitializeSystem() End : EmitterInstances.Num=%d", EmitterInstances.Num());
 }
 
 void UParticleSystemComponent::ResetParticles()
@@ -62,9 +74,11 @@ void UParticleSystemComponent::ResetParticles()
     }
     EmitterInstances.Empty();
 }
-
 void UParticleSystemComponent::InitParticles()
 {
+    /* 반드시 호출해야 Inst->Init에서 올바른 값을 참조 (SpriteTemplate의 모든 변수) */
+    Template->BuildEmitters();
+
     ResetParticles();
 
     const int32 NumEmitters = Template->Emitters.Num();
@@ -78,66 +92,16 @@ void UParticleSystemComponent::InitParticles()
             continue;
         }
 
-        UParticleModuleRequired* Required = EmitterTemplate->LODLevels[0]->RequiredModule;
-        int32 MaxParts = 0;
-
-        
+        // 1. 인스턴스 생성 
         FParticleEmitterInstance* Inst = new FParticleEmitterInstance();
-
-        Inst->Component = this;
-        Inst->SpriteTemplate = EmitterTemplate;
-
-        Inst->CurrentLODLevelIndex = 0;
-        Inst->CurrentLODLevel = EmitterTemplate->LODLevels[0]; // LOD 기본 0
-
-
-        //Inst->MaxActiveParticles = MaxParts;
-        Inst->ParticleSize = sizeof(FBaseParticle);
-        //Inst->InstancePayloadSize = Required->InstancePayloadSize;
-        Inst->ParticleStride = Inst->ParticleSize + Inst->InstancePayloadSize;
-        Inst->PayloadOffset = Inst->ParticleSize;
-
-        // 파티클 풀 메모리 할당
-        Inst->ParticleData = (uint8*)malloc(Inst->ParticleStride * MaxParts);
-        Inst->ParticleIndices = (uint16*)malloc(sizeof(uint16) * MaxParts);
-        Inst->InstanceData = nullptr;
-
-        // 초기 파티클 상태
-        Inst->ActiveParticles = 0;
-        Inst->SpawnFraction = 0.f;
-        Inst->EmitterTime = 0.f;
-        Inst->bEnabled = true;
+        // 2. 사이즈 계산 + 풀 할당 - EmitterIndex는 internal에서 사용됨
+        Inst->Init(this, EmitterIndex);
 
         EmitterInstances.Add(Inst);
         
     }
 }
 
-/* 파티클 시스템을 더 이상 활성 상태로 두지 않음을 의미
- * 1. 더이상 파티클을 생성하지 않음
- * 2. bKillOnDeactivate에 따라 EmitterInstance를 즉시 삭제 / 잔여 파티클 자연 소멸
- */
-void UParticleSystemComponent::DeactivateSystem()
-{
-    //
-    for (int32 i = 0; i < EmitterInstances.Num(); i++)
-    {
-        FParticleEmitterInstance* Instance = EmitterInstances[i];
-        // if instance bKillOnDeactivate is true, kill it
-        if (Instance)
-        {
-            // clean up other instances that may point to this one
-            // ... //
-
-            delete Instance;
-            EmitterInstances[i] = nullptr;
-        }
-        else
-        {
-            //Instance->OnDeactivateSystem();
-        }
-    }
-}
 
 /*
  * @brief TickComponent_Concurrent
@@ -150,17 +114,35 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent(float DeltaTimeTi
 {
     for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
     {
-        FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
-        if (Instance && Instance->SpriteTemplate)
+        FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex];
+        if (!Inst || !Inst->SpriteTemplate)
         {
-
+            UE_LOG(ELogLevel::Error, TEXT("ComputeTickComponent_Concurrent() : EmitterInstance %d is NULL"), EmitterIndex);
+            continue;
+        }
+        if (Inst && Inst->SpriteTemplate)
+        {
             // 1) Emitter가 어떤 LOD를 사용할지 결정
-            UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+            UParticleLODLevel* SpriteLODLevel = Inst->SpriteTemplate->GetCurrentLODLevel(Inst);
             // [간략] : Significance 관리 없이 Tick 수행
             if (SpriteLODLevel && SpriteLODLevel->bEnabled)
             {
-                Instance->Tick(DeltaTimeTick, bSuppressSpawning);
+                UE_LOG(ELogLevel::Error,
+                    TEXT("[Tick] Emitter[%d] Pos=(%.1f,%.1f,%.1f) VelSample=(%.1f,%.1f,%.1f) Active=%d"), EmitterIndex,
+                    Inst->Location.X, Inst->Location.Y, Inst->Location.Z,
+                    Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.X : 0.f,
+                    Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Y : 0.f,
+                    Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Z : 0.f,
+                    Inst->ActiveParticles
+                );
+
+                Inst->Tick(DeltaTimeTick, bSuppressSpawning);
                 // Tick_MaterialOverrides(EmitterIndex);
+            }
+            // 디버깅용 
+            else
+            {
+                UE_LOG(ELogLevel::Error, TEXT("ComputeTickComponent_Concurrent() : EmitterInstance %d LODLevel is NULL"), EmitterIndex);
             }
         }
     }
@@ -204,4 +186,45 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay(
     }
 
     return DynData;
+}
+
+/* 파티클 시스템을 더 이상 활성 상태로 두지 않음을 의미
+ * 1. 더이상 파티클을 생성하지 않음
+ * 2. bKillOnDeactivate에 따라 EmitterInstance를 즉시 삭제 / 잔여 파티클 자연 소멸
+ */
+void UParticleSystemComponent::DeactivateSystem()
+{
+    //
+    for (int32 i = 0; i < EmitterInstances.Num(); i++)
+    {
+        FParticleEmitterInstance* Instance = EmitterInstances[i];
+        // if instance bKillOnDeactivate is true, kill it
+        if (Instance)
+        {
+            // clean up other instances that may point to this one
+            // ... //
+
+            delete Instance;
+            EmitterInstances[i] = nullptr;
+        }
+        else
+        {
+            //Instance->OnDeactivateSystem();
+        }
+    }
+    /* 더이상 새로운 파티클이 나오지 않게 하기 위해 true로 변경 */
+    bSuppressSpawning = true;
+}
+
+
+/*
+ * [ImGui/코드]에서 ParticleSystem 생성후 Component에 할당할 때에 호출
+ */
+void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
+{
+    if (Template != NewTemplate)
+    {
+        Template = NewTemplate;
+        InitializeSystem();         // 내부에서 InitParticles() 호출
+    }
 }

@@ -49,16 +49,6 @@ void UnrealEd::Initialize()
     PropertyPanelq->Handle = GEngineLoop.ParticleSystemViewerAppWnd;
     PropertyPanelq->GuiContext = GEngineLoop.WndImGuiContextMap[GEngineLoop.ParticleSystemViewerAppWnd];
     AddEditorPanel("ParticleSystemViewerPanel", PropertyPanelq, true);
-
-    Init();
-}
-
-void UnrealEd::Init() const
-{
-    for (const auto& Panel : Panels)
-    {
-        Panel.Value->Init();
-    }
 }
 
 void UnrealEd::Render() const
