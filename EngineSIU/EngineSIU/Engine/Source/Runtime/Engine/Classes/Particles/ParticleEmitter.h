@@ -34,7 +34,7 @@ public:
 
     FName EmitterName;
     int32 ParticleSize;
-    int32 InitialAllocationCount;
+    int32 InitialAllocationCount = 100;
     int32 ReqInstanceBytes;
 
 

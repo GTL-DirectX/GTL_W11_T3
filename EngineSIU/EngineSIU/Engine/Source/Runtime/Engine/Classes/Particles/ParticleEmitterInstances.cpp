@@ -49,17 +49,27 @@ void FParticleDataContainer::Free()
 
 /*
  * 수명 다한 파티클 제거. (Active array로부터 제거)
+ * 뒤에서부터 검사해야 스왑해서 줄인 인덱스가 아직 남은 루프에 영향을 주지 않음
  */
 void FParticleEmitterInstance::KillParticles()
 {
-    for (int32 i = ActiveParticles - 1; i >= 0; --i)
+    int32 i = ActiveParticles;
+    // 뒤에서부터 순회해서 swap & pop
+    while (i-- > 0)
     {
-        FBaseParticle* Particle = (FBaseParticle*)(ParticleData + i * ParticleStride);
-        if (Particle->RelativeTime >= 1.0f)
+        int32 DataIdx = ParticleIndices[i];
+        FBaseParticle* P = (FBaseParticle*)(ParticleData + DataIdx * ParticleStride);
+        if (P->RelativeTime >= 1.0f)
         {
-            // KillCurrentParticle(ParticleIndices[i]);
-            ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
-            ParticleIndices[ActiveParticles - 1] = i;
+            UE_LOG(ELogLevel::Error,
+                TEXT("KillParticles(): Active=%d, removing slot %d"),
+                ActiveParticles, DataIdx);
+
+            // swap i <-> tail
+            /*ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
+            ParticleIndices[ActiveParticles - 1] = DataIdx;
+            --ActiveParticles;*/
+			std::swap(ParticleIndices[i], ParticleIndices[ActiveParticles - 1]);
             --ActiveParticles;
         }
     }
@@ -70,6 +80,7 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 {
     if (Index >= 0 && Index < ActiveParticles)
     {
+        UE_LOG(ELogLevel::Error, TEXT("Active Particles : %d Kill Particle Index = %d"), ActiveParticles, Index);
         ParticleIndices[Index] = ParticleIndices[ActiveParticles - 1];
         ParticleIndices[ActiveParticles - 1] = Index;
         --ActiveParticles;
@@ -333,8 +344,9 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     Particle->RelativeTime = 0.0f;
     float& Lifetime = CurrentLODLevel->RequiredModule->EmitterDuration;
     Particle->OneOverMaxLifetime = Lifetime > 0.f
-        ? 1.f / Lifetime// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
+        ? 1.f / (Lifetime * 6)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
         : 1.f;
+    // 생명 6배, 6개 동시존재가능
 }
 
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
@@ -374,11 +386,15 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 
 
          /* 현재 파티클 인덱스 */
-         const uint32 CurrIdx = ActiveParticles++;
-         ParticleIndices[CurrIdx] = CurrIdx;
+         /*const uint32 CurrIdx = ActiveParticles++;
+         ParticleIndices[CurrIdx] = CurrIdx;*/
 
-         // 실제 버퍼 위치 계산할때 CurrIdx 사용
-         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ParticleStride * CurrIdx));
+		 // 1) 이 프레임에 할당할 “데이터 인덱스” 꺼내기
+		 const uint32 SlotIdx = ActiveParticles++;
+		 const uint32 DataIdx = ParticleIndices[SlotIdx];
+
+         // 실제 버퍼 위치 계산할때 DataIdx 사용
+         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ParticleStride * DataIdx));
 
          // 언리얼에선 bLegacySpawnBehavior가 true일때 아래와 같이 반영
          SpawnTime -= Increment;
@@ -412,7 +428,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 
          if (Particle->RelativeTime > 1.0f)
          {
-             KillParticle(CurrIdx);
+             //KillParticle(CurrIdx);
 
              // Process next particle
              continue;
@@ -425,7 +441,9 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
              Particle->Velocity.X, Particle->Velocity.Y, Particle->Velocity.Z
          );
 
-         UE_LOG(ELogLevel::Display, "SpawnParticles() : Particle %d Spawned", Index+1);
+		 UE_LOG(ELogLevel::Display,
+			 TEXT("Spawned #%d: SlotIdx=%d DataIdx=%d Active=%d"),
+			 Index + 1, SlotIdx, DataIdx, ActiveParticles);
      }
 }
 
@@ -565,15 +583,30 @@ bool FParticleEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSetMaxA
         (NewMaxActiveParticles - MaxActiveParticles) * ParticleStride
     );
 
+	uint16* OldIndices = ParticleIndices;
     ParticleIndices = (uint16*)FPlatformMemory::Realloc<EAT_Container>(
         ParticleIndices,
         sizeof(uint16) * (NewMaxActiveParticles + 1)
     );
 
-    for (int32 i = MaxActiveParticles; i < NewMaxActiveParticles; ++i)
-    {
-        ParticleIndices[i] = i;
-    }
+	// **1) 만약 처음 할당(OldIndices==nullptr)이면, 0..NewMax-1 전체를 채우고**
+	// **2) 아니라면(늘어날 때)엔 old..new-1만 채워 주고**
+	if (OldIndices == nullptr)
+	{
+		// 첫 할당인 경우
+		for (int32 i = 0; i < NewMaxActiveParticles; ++i)
+		{
+			ParticleIndices[i] = i;
+		}
+	}
+	else
+	{
+		// 단순 확대인 경우
+		for (int32 i = MaxActiveParticles; i < NewMaxActiveParticles; ++i)
+		{
+			ParticleIndices[i] = i;
+		}
+	}
 
     MaxActiveParticles = NewMaxActiveParticles;
 
