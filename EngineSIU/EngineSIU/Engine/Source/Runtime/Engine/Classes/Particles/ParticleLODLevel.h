@@ -16,12 +16,8 @@ public:
     int32 LODLevel;
     bool bEnabled;
 
-
     class UParticleModuleRequired* RequiredModule;
     // Particle Module
     TArray<UParticleModule*> Modules;
     class UParticleModuleTypeDataBase* TypeDataModule;
-   
-    
-
 };

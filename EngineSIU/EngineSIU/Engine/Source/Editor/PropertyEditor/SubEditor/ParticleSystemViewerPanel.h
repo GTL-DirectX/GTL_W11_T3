@@ -3,6 +3,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "UnrealEd/EditorPanel.h"
 
+class UParticleModule;
+class UParticleEmitter;
 #include "PropertyEditor/ImGuiInspector.h"
 
 class UParticleSystem;
@@ -13,7 +15,6 @@ public:
     ParticleSystemViewerPanel() = default;
     ~ParticleSystemViewerPanel() = default;
 
-    virtual void Init() override;
     virtual void Render() override;
     virtual void OnResize(HWND hWnd) override;
 
@@ -26,14 +27,21 @@ private:
     template <class T>
     void RenderProperties(T* Obj);
 
+    void RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module, const std::string& ModuleName);
+    
+    // Test
+    UParticleEmitter* CreateDefaultEmitter(int32 Index);
+    
 private:
     float Width = 800, Height = 600;
 
-    UParticleSystem* SelectedParticleSystem = nullptr;
-    UParticleSystemComponent* SelectedParticleSystemComponent = nullptr;
-    TArray<struct FDynamicEmitterDataBase*> EmitterRenderData;
-
-    int SelectedEmitterIndex = -1;
+    UParticleSystem* CurrentParticleSystem = nullptr;
+    UParticleSystemComponent* CurrentParticleSystemComponent = nullptr;
+    
+    UParticleEmitter* SelectedEmitter = nullptr;
+    std::string SelectedModuleName;
+    UParticleModule* SelectedModule = nullptr;
+    int DefaultEmitterIndex = -1;
 };
 
 

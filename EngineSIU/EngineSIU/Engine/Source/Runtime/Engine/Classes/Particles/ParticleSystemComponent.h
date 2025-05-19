@@ -25,17 +25,16 @@ public:
 
     TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
     UParticleSystem* GetParticleSystem() { return Template; }
+    void SetParticleSystem(UParticleSystem* system) { Template = system; }
 
 public:
     TArray<struct FParticleEmitterInstance*> EmitterInstances;
 
 private:
-    UParticleSystem* Template;
+    UParticleSystem* Template = nullptr;
 
     TArray<struct FDynamicEmitterDataBase*> EmitterRenderData; // UE 클래스에서는 이 변수는 없고 CreateDynamicDataFromReplay() 함수가 있음
 
     uint8 bSuppressSpawning : 1 = true;
-
-
 };
 

@@ -42,16 +42,6 @@ void UnrealEd::Initialize()
     auto PropertyPanelq = std::make_shared<ParticleSystemViewerPanel>();
     PropertyPanelq->Handle = GEngineLoop.ParticleSystemViewerAppWnd;
     AddEditorPanel("ParticleSystemViewerPanel", PropertyPanelq, true);
-
-    Init();
-}
-
-void UnrealEd::Init() const
-{
-    for (const auto& Panel : Panels)
-    {
-        Panel.Value->Init();
-    }
 }
 
 void UnrealEd::Render() const
