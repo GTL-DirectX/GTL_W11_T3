@@ -5,7 +5,9 @@
 #include "Math/Matrix.h"
 #include "Math/Color.h"
 #include "Container/Array.h"
+#include "DirectXTK/BufferHelpers.h"
 
+class UMaterial;
 /*-----------------------------------------------------------------------------
     Forward declarations
 -----------------------------------------------------------------------------*/
@@ -609,7 +611,7 @@ struct FDynamicEmitterReplayDataBase
         ActiveParticleCount(0),
         ParticleStride(0),
         Scale(FVector(1.0f)),
-        SortMode(0)	// Default to PSORTMODE_None		  
+        SortMode(0)	// Default to PSORTMODE_None
     {
     }
 
@@ -673,7 +675,7 @@ struct FDynamicEmitterReplayDataBase
 struct FDynamicSpriteEmitterReplayDataBase
     : public FDynamicEmitterReplayDataBase
 {
-    //UMaterialInterface* MaterialInterface; // TODO: 머티리얼 관련 부분 Interface 사용하도록 바꿔줘야 할 듯. 아니면 Material 객체로 대체.
+    UMaterial* Material; // TODO: 머티리얼 관련 부분 Interface 사용하도록 바꿔줘야 할 듯. 아니면 Material 객체로 대체.
     struct FParticleRequiredModule* RequiredModule;
     FVector							NormalsSphereCenter;
     FVector							NormalsCylinderDirection;
@@ -688,17 +690,17 @@ struct FDynamicSpriteEmitterReplayDataBase
     int32							SubUVDataOffset;
     int32							SubImages_Horizontal;
     int32							SubImages_Vertical;
-    bool						bUseLocalSpace;
-    bool						bLockAxis;
-    uint8						ScreenAlignment;
-    uint8						LockAxisFlag;
-    uint8						EmitterRenderMode;
-    uint8						EmitterNormalsMode;
-    FVector2D					PivotOffset;
-    bool						bUseVelocityForMotionBlur;
-    bool						bRemoveHMDRoll;
-    float						MinFacingCameraBlendDistance;
-    float						MaxFacingCameraBlendDistance;
+    bool						    bUseLocalSpace;
+    bool						    bLockAxis;
+    uint8						    ScreenAlignment;
+    uint8						    LockAxisFlag;
+    uint8						    EmitterRenderMode;
+    uint8						    EmitterNormalsMode;
+    FVector2D					    PivotOffset;
+    bool						    bUseVelocityForMotionBlur;
+    bool						    bRemoveHMDRoll;
+    float						    MinFacingCameraBlendDistance;
+    float						    MaxFacingCameraBlendDistance;
 
     /** Constructor */
     FDynamicSpriteEmitterReplayDataBase();
@@ -708,7 +710,6 @@ struct FDynamicSpriteEmitterReplayDataBase
     virtual void Serialize(FArchive& Ar);
 
 };
-
 
 struct FDynamicMeshEmitterReplayData
     : public FDynamicSpriteEmitterReplayDataBase
@@ -836,11 +837,9 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
         FDynamicSpriteEmitterDataBase(RequiredModule)
     {
     }
-
     ~FDynamicSpriteEmitterData() {}
 
     void Init(bool bInSelected);
-
     
     virtual int32 GetDynamicVertexStride(/*ERHIFeatureLevel::Type InFeatureLevel*/) const override // ERHIFeatureLevel::Type 은 렌더 플랫폼에 관련된 정보이므로 필요 없음.
     {
@@ -857,14 +856,18 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
         return &Source;
     }
 
-    bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, uint32 InstanceFactor) const;
-
-    bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const;
-
     virtual const FDynamicEmitterReplayDataBase& GetSource() const override
     {
         return Source;
     }
+
+    bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, uint32 InstanceFactor) const;
+
+    bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const;
+
+    ID3D11Buffer* VertexBuffer       = nullptr;  // 정점 버퍼 (퍼-프레임 동적 업데이트)
+    ID3D11Buffer* IndexBuffer        = nullptr;  // 인덱스 버퍼
+    ID3D11Buffer* DynamicParamBuffer = nullptr;  // (옵션) 다이나믹 파라미터용 상수 버퍼
 
     FDynamicSpriteEmitterReplayDataBase Source;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ParticleModule.h"
+#include "Particles/ParticleModule.h"
 
 class UParticleModuleTypeDataBase : public UParticleModule
 {
@@ -9,5 +9,5 @@ class UParticleModuleTypeDataBase : public UParticleModule
 public:
     UParticleModuleTypeDataBase() = default;
     
-
+    
 };

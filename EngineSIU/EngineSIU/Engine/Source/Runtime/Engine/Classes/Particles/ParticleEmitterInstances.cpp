@@ -5,7 +5,7 @@
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModuleRequired.h"
-#include "ParticleModuleTypeDataBase.h"
+#include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleSystem.h"
 #include "ParticleSystemComponent.h"
 #include "Templates/AlignmentTemplates.h"
@@ -25,6 +25,7 @@ void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticl
     MemBlockSize = ParticleDataNumBytes + ParticleIndicesNumShorts * sizeof(uint16);
 
     //ParticleData = (uint8*)FastParticleSmallBlockAlloc(MemBlockSize); // 메모리 할당 로직 정의 필요.
+    ParticleData = static_cast<uint8*>(FPlatformMemory::Malloc<EAT_Object>(MemBlockSize));
     ParticleIndices = (uint16*)(ParticleData + ParticleDataNumBytes);
 }
 
@@ -127,8 +128,8 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
         return nullptr;
     }
 
-    NewEmitterData->bSelected = bSelected;
-    NewEmitterData->Init(bSelected);
+    // NewEmitterData->bSelected = bSelected;
+    // NewEmitterData->Init(bSelected);
 
     return NewEmitterData;
 }
@@ -661,8 +662,125 @@ FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* 
 void FDynamicSpriteEmitterData::Init(bool bInSelected)
 {
     bSelected = bInSelected;
-    // Material NULL Slot
-    // TODO : 정렬, VertexBuffer 생성, BuildIndexBuffer 필요
+
+    const int32 NumParticles = Source.ActiveParticleCount;
+    const int32 NumVert      = NumParticles * 4;
+    const int32 NumIdx       = NumParticles * 6;
+
+    // 기존 버퍼 해제
+    if (VertexBuffer)       { VertexBuffer->Release();       VertexBuffer = nullptr; }
+    if (IndexBuffer)        { IndexBuffer->Release();        IndexBuffer = nullptr; }
+    if (DynamicParamBuffer) { DynamicParamBuffer->Release(); DynamicParamBuffer = nullptr; }
+    
+    // 버퍼 생성
+    D3D11_BUFFER_DESC desc = {};
+    desc.Usage          = D3D11_USAGE_DYNAMIC;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    // VertexBuffer
+    desc.BindFlags  = D3D11_BIND_VERTEX_BUFFER;
+    desc.ByteWidth  = NumVert * GetDynamicVertexStride();
+    FEngineLoop::GraphicDevice.Device->CreateBuffer(&desc, nullptr, &VertexBuffer);
+
+    // IndexBuffer
+    desc.BindFlags  = D3D11_BIND_INDEX_BUFFER;
+    desc.ByteWidth  = NumIdx * sizeof(uint16);
+    FEngineLoop::GraphicDevice.Device->CreateBuffer(&desc, nullptr, &IndexBuffer);
+
+    // DynamicParamBuffer (필요 시)
+    desc.BindFlags  = D3D11_BIND_CONSTANT_BUFFER;
+    desc.ByteWidth  = NumParticles * GetDynamicParameterVertexStride();
+    FEngineLoop::GraphicDevice.Device->CreateBuffer(&desc, nullptr, &DynamicParamBuffer);
+}
+
+bool FDynamicSpriteEmitterData::GetVertexAndIndexData(
+    void* VertexData,
+    void* DynamicParameterVertexData,
+    void* FillIndexData,
+    FParticleOrder* ParticleOrder,
+    const FVector& InCameraPosition,
+    const FMatrix& InLocalToWorld,
+    uint32 InstanceFactor
+) const
+{
+    auto* VertPtr = static_cast<FParticleSpriteVertex*>(VertexData);
+    auto* ParamPtr = static_cast<FParticleVertexDynamicParameter*>(DynamicParameterVertexData);
+
+    for (int32 i = 0; i < Source.ActiveParticleCount; ++i)
+    {
+        int32 ParticleIdx = ParticleOrder ? ParticleOrder[i].ParticleIndex : i;
+        const uint8* ParticleBase = Source.DataContainer.ParticleData + ParticleIdx * Source.ParticleStride;
+
+        // 1) FBaseParticle 정보 읽기 (Position, RelativeTime 등)
+        FBaseParticle* Base = (FBaseParticle*)ParticleBase;
+        FVector Pos         = InLocalToWorld.TransformPosition(Base->Location);
+        float  RelTime     = Base->RelativeTime;
+
+        // 2) 스프라이트 페이로드 읽기 (회전, 크기, SubUV 등)
+        //    FSpriteParticlePayload* Payload = (FSpriteParticlePayload*)(ParticleBase + PayloadOffset);
+        //    float Rot = Payload->Rotation; FVector2D Size = Payload->Size; uint8 SubImage = Payload->SubImageIndex;
+
+        // 3) Instancing용 정점 채우기
+        VertPtr[i].Position      = Pos;
+        VertPtr[i].RelativeTime  = RelTime;
+        VertPtr[i].OldPosition   = InLocalToWorld.TransformPosition(Base->OldLocation);
+        VertPtr[i].ParticleId    = (float)ParticleIdx;
+        VertPtr[i].Size          = /*Payload->Size*/ FVector2D(1,1);
+        VertPtr[i].Rotation      = /*Payload->Rotation*/ 0.0f;
+        VertPtr[i].SubImageIndex = /*(float)Payload->SubImageIndex*/ 0.0f;
+        VertPtr[i].Color         = FLinearColor::White;
+
+        // 4) DynamicParameter 채우기 (필요 시)
+        // if (DynamicParameterVertexData)
+        // {
+        //     ParamPtr[i].DynamicValue[0] = 
+        // }
+    }
+    return true;
+}
+
+bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(
+    void*           VertexData,
+    void*           DynamicParameterVertexData,
+    void*           FillIndexData,
+    FParticleOrder* ParticleOrder,
+    const FVector&  InCameraPosition,
+    const FMatrix&  InLocalToWorld,
+    int32           NumVerticesPerParticle
+) const
+{
+    auto* VertPtr  = static_cast<FParticleSpriteVertexNonInstanced*>(VertexData);
+    auto* IdxPtr   = static_cast<uint16*>(FillIndexData);
+
+    const int32 Stride = Source.ParticleStride;
+    for (int32 i = 0; i < Source.ActiveParticleCount; ++i)
+    {
+        int32 ParticleIdx = ParticleOrder ? ParticleOrder[i].ParticleIndex : i;
+        const uint8* ParticleBase = Source.DataContainer.ParticleData + ParticleIdx * Stride;
+        FBaseParticle* Base = (FBaseParticle*)ParticleBase;
+        FVector Pos = InLocalToWorld.TransformPosition(Base->Location);
+        // ... 스프라이트 페이로드 읽기 ...
+
+        // 4개 정점 채우기
+        for (int corner = 0; corner < 4; ++corner)
+        {
+            int32 VertIndex = i * 4 + corner;
+            // VertPtr[VertIndex].UV = ...;
+            // VertPtr[VertIndex].Position     = ...; // Pivot 오프셋, 회전 적용
+            // VertPtr[VertIndex].RelativeTime = Base->RelativeTime;
+            // ...
+        }
+
+        // 6개 인덱스 채우기 (두 삼각형)
+        const int32 BaseVertexIndex = i * 4;
+        IdxPtr[i*6 + 0] = BaseVertexIndex + 0;
+        IdxPtr[i*6 + 1] = BaseVertexIndex + 1;
+        IdxPtr[i*6 + 2] = BaseVertexIndex + 2;
+        IdxPtr[i*6 + 3] = BaseVertexIndex + 2;
+        IdxPtr[i*6 + 4] = BaseVertexIndex + 1;
+        IdxPtr[i*6 + 5] = BaseVertexIndex + 3;
+    }
+    return true;
 }
 
 FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()

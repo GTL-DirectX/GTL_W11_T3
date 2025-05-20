@@ -6,8 +6,9 @@
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModuleLocation.h"
-#include "ParticleModuleTypeDataBase.h"
+#include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleVelocity.h"
+#include "TypeData/ParticleModuleTypeDataSprite.h"
 
 void AParticleActor::PostSpawnInitialize()
 {
@@ -26,9 +27,9 @@ void AParticleActor::PostSpawnInitialize()
     ReqMod->EmitterDuration = 3.0f;
     ReqMod->SpawnRate = 1.0f / ReqMod->EmitterDuration;  // 3초의 Emitter Cycle동안 1개의 파티클 생성
 
-    // TypeDataModule 생성 및 세팅
-    UParticleModuleTypeDataBase* TypeData = FObjectFactory::ConstructObject<UParticleModuleTypeDataBase>(nullptr);
-    TypeData->bEnabled = true;
+    // TypeDataModule 생성 및 세팅 (현재는 Sprite Type이라고 가정하고 일단 아래처럼 구현)
+    UParticleModuleTypeDataSprite* SpriteTypeData = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(nullptr);
+    SpriteTypeData->bEnabled = true;
 
     // Location 모듈 생성
     UParticleModuleLocation* LocMod = FObjectFactory::ConstructObject<UParticleModuleLocation>(nullptr);
@@ -48,11 +49,11 @@ void AParticleActor::PostSpawnInitialize()
     Emitter->LODLevels.Add(LOD);
 
     LOD->RequiredModule = ReqMod;
-    LOD->TypeDataModule = TypeData;
+    LOD->TypeDataModule = SpriteTypeData;
 
-    LOD->Modules = { ReqMod, TypeData, LocMod, VelMod };
-    LOD->SpawnModules = { ReqMod, TypeData, LocMod, VelMod };  // Spawn 시에만 위치+속도 세팅
-    LOD->UpdateModules = { TypeData };
+    LOD->Modules = { ReqMod, SpriteTypeData, LocMod, VelMod };
+    LOD->SpawnModules = { ReqMod, SpriteTypeData, LocMod, VelMod };  // Spawn 시에만 위치+속도 세팅
+    LOD->UpdateModules = { SpriteTypeData };
 
     // Offset/Size 계산
     PS->BuildEmitters();
@@ -71,14 +72,12 @@ void AParticleActor::PostSpawnInitialize()
         ReqMod->SpawnRate,
         LOD->Modules.Num()
     );
-
 }
 
 UObject* AParticleActor::Duplicate(UObject* InOuter)
 {
     ThisClass* NewActor = Cast<ThisClass>(Super::Duplicate(InOuter));
     NewActor->ParticleSystemComponent = Cast<UParticleSystemComponent>(ParticleSystemComponent->Duplicate(InOuter));
-
 
     return NewActor;
 }

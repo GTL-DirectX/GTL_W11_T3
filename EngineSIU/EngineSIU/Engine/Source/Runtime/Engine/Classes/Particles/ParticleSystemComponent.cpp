@@ -5,6 +5,7 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModuleRequired.h"
 #include "ParticleSystem.h"
+#include "sol/sol.hpp"
 #include "World/World.h"
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
@@ -14,7 +15,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     if (Template == nullptr /*|| Template->Emitters.Num() == 0*/)
     {
         return; // SetComponentTickEnabled(false);
-        
     }
 
     if (GetWorld()->IsGameWorld())
@@ -28,23 +28,20 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     {
         InitializeSystem();
     }
-
-
+    
     ComputeTickComponent_Concurrent(DeltaTime);
-    //FinalizeTickComponent();
-
-    //CreateDynamicData();
+    FinalizeTickComponent();
 }
 
 void UParticleSystemComponent::FinalizeTickComponent()
 {
-    //CreateDynamicData();
     if (IsActive())
     {
         EmitterRenderData.Empty();
         // [언리얼] : CPU의 파티클 데이터를 렌더 스레드에 전달하는 Send.._Concurrent() 존재
         for (FParticleEmitterInstance*& Inst : EmitterInstances)
         {
+            // 렌더링용 객체 업데이트
             FDynamicEmitterDataBase* Dyn = Inst->GetDynamicData(false);
             if (Dyn)
             {
@@ -76,6 +73,7 @@ void UParticleSystemComponent::ResetParticles()
     }
     EmitterInstances.Empty();
 }
+
 void UParticleSystemComponent::InitParticles()
 {
     /* 반드시 호출해야 Inst->Init에서 올바른 값을 참조 (SpriteTemplate의 모든 변수) */
@@ -103,7 +101,6 @@ void UParticleSystemComponent::InitParticles()
         
     }
 }
-
 
 /*
  * @brief TickComponent_Concurrent
@@ -164,7 +161,6 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay(
     FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected
 )
 {
-
     FDynamicEmitterDataBase* DynData = nullptr;
     switch (EmitterReplayData->eEmitterType)
     {

@@ -34,8 +34,7 @@ public:
     UParticleModuleRequired() = default;
 
 public:
-
-    // class UMaterialInterface* Material;
+    UMaterial* Material;
     
     UPROPERTY(EditAnywhere, FVector, EmitterOrigin)
     

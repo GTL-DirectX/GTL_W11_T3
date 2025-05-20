@@ -5,7 +5,7 @@
 #include "UObject/UObjectIterator.h"
 
 FParticleRenderPass::FParticleRenderPass()
-    :BufferManager(nullptr)
+    : BufferManager(nullptr)
     , Graphics(nullptr)
     , ShaderManager(nullptr)
 {
@@ -13,8 +13,16 @@ FParticleRenderPass::FParticleRenderPass()
 
 FParticleRenderPass::~FParticleRenderPass()
 {
-    if (AlphaBlendState) { AlphaBlendState->Release(); AlphaBlendState = nullptr; }
-    if (AdditiveBlendState) { AdditiveBlendState->Release(); AdditiveBlendState = nullptr; }
+    if (AlphaBlendState)
+    {
+        AlphaBlendState->Release();
+        AlphaBlendState = nullptr;
+    }
+    if (AdditiveBlendState)
+    {
+        AdditiveBlendState->Release();
+        AdditiveBlendState = nullptr;
+    }
 }
 
 void FParticleRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager)
@@ -22,7 +30,23 @@ void FParticleRenderPass::Initialize(FDXDBufferManager* InBufferManager, FGraphi
     BufferManager = InBufferManager;
     Graphics = InGraphics;
     ShaderManager = InShaderManager;
+    CreateShader();
     CreateBlendState();
+}
+
+void FParticleRenderPass::CreateShader()
+{
+    D3D11_INPUT_ELEMENT_DESC ParticleSpriteLayoutDesc[] =
+    {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},       // RelativeTime
+        {"TEXCOORD", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0}, // OldPosition
+        {"TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},       // ParticleId
+        {"TEXCOORD", 3, DXGI_FORMAT_R32G32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},    // Size
+        {"TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 0, 40, D3D11_INPUT_PER_VERTEX_DATA, 0},       // Rotation
+        {"TEXCOORD", 5, DXGI_FORMAT_R32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0},       // SubImageIndex
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0}, // Color
+    };
 }
 
 void FParticleRenderPass::CreateBlendState()
@@ -70,7 +94,7 @@ void FParticleRenderPass::PrepareRenderArr()
             {
                 if (EmitterData)
                 {
-                    ParticleRenderEntries.Add({ Component, EmitterData });
+                    ParticleRenderEntries.Add({Component, EmitterData});
                 }
             }
         }
@@ -79,7 +103,6 @@ void FParticleRenderPass::PrepareRenderArr()
 
 void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Viewport)
 {
-    
 }
 
 void FParticleRenderPass::ClearRenderArr()
