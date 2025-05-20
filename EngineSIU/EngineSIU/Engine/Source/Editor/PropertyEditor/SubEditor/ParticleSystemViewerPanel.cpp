@@ -4,7 +4,6 @@
 #include "Engine/EditorEngine.h"
 #include "GameFramework/Actor.h"
 #include "ImGui/imgui_internal.h"
-#include "LevelEditor/SLevelEditor.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"

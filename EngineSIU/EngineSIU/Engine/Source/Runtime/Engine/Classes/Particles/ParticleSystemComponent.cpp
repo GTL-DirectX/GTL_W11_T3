@@ -5,6 +5,7 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModuleRequired.h"
 #include "ParticleSystem.h"
+#include "sol/sol.hpp"
 #include "World/World.h"
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
@@ -14,7 +15,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     if (Template == nullptr /*|| Template->Emitters.Num() == 0*/)
     {
         return; // SetComponentTickEnabled(false);
-        
     }
 
     if (GetWorld()->IsGameWorld())
@@ -28,21 +28,20 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     {
         InitializeSystem();
     }
-
-
+    
     ComputeTickComponent_Concurrent(DeltaTime);
-    //FinalizeTickComponent();
+    FinalizeTickComponent();
 }
 
 void UParticleSystemComponent::FinalizeTickComponent()
 {
-    //CreateDynamicData();
     if (IsActive())
     {
         EmitterRenderData.Empty();
         // [언리얼] : CPU의 파티클 데이터를 렌더 스레드에 전달하는 Send.._Concurrent() 존재
         for (FParticleEmitterInstance*& Inst : EmitterInstances)
         {
+            // 렌더링용 객체 업데이트
             FDynamicEmitterDataBase* Dyn = Inst->GetDynamicData(false);
             if (Dyn)
             {
@@ -74,6 +73,7 @@ void UParticleSystemComponent::ResetParticles()
     }
     EmitterInstances.Empty();
 }
+
 void UParticleSystemComponent::InitParticles()
 {
     /* 반드시 호출해야 Inst->Init에서 올바른 값을 참조 (SpriteTemplate의 모든 변수) */
@@ -98,10 +98,8 @@ void UParticleSystemComponent::InitParticles()
         Inst->Init(this, EmitterIndex);
 
         EmitterInstances.Add(Inst);
-        
     }
 }
-
 
 /*
  * @brief TickComponent_Concurrent
@@ -127,14 +125,14 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent(float DeltaTimeTi
             // [간략] : Significance 관리 없이 Tick 수행
             if (SpriteLODLevel && SpriteLODLevel->bEnabled)
             {
-                UE_LOG(ELogLevel::Error,
+                /*UE_LOG(ELogLevel::Error,
                     TEXT("[Tick] Emitter[%d] Pos=(%.1f,%.1f,%.1f) VelSample=(%.1f,%.1f,%.1f) Active=%d"), EmitterIndex,
                     Inst->Location.X, Inst->Location.Y, Inst->Location.Z,
                     Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.X : 0.f,
                     Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Y : 0.f,
                     Inst->ParticleData ? ((FBaseParticle*)(Inst->ParticleData))->Velocity.Z : 0.f,
                     Inst->ActiveParticles
-                );
+                );*/
 
                 Inst->Tick(DeltaTimeTick, bSuppressSpawning);
                 // Tick_MaterialOverrides(EmitterIndex);
@@ -162,7 +160,6 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay(
     FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected
 )
 {
-
     FDynamicEmitterDataBase* DynData = nullptr;
     switch (EmitterReplayData->eEmitterType)
     {

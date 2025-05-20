@@ -111,6 +111,7 @@ public:
     FCameraEffectRenderPass* CameraEffectRenderPass = nullptr;
     FEditorRenderPass* EditorRenderPass = nullptr;
     
+    
     FDepthPrePass* DepthPrePass = nullptr;
     FTileLightCullingPass* TileLightCullingPass = nullptr;
     FLightHeatMapRenderPass* LightHeatMapRenderPass = nullptr;

@@ -5,8 +5,10 @@
 #include "Math/Matrix.h"
 #include "Math/Color.h"
 #include "Container/Array.h"
+#include "DirectXTK/BufferHelpers.h"
 #include "Components/Material/Material.h"
 
+class UMaterial;
 /*-----------------------------------------------------------------------------
     Forward declarations
 -----------------------------------------------------------------------------*/
@@ -174,6 +176,18 @@ struct FParticleSpriteVertex
     float Rotation;
     float SubImageIndex;
     FLinearColor Color;
+
+    inline const static D3D11_INPUT_ELEMENT_DESC LayoutDesc[] =
+    {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},       // RelativeTime
+        {"TEXCOORD", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0}, // OldPosition
+        {"TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},       // ParticleId
+        {"TEXCOORD", 3, DXGI_FORMAT_R32G32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},    // Size
+        {"TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT, 0, 40, D3D11_INPUT_PER_VERTEX_DATA, 0},       // Rotation
+        {"TEXCOORD", 5, DXGI_FORMAT_R32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0},       // SubImageIndex
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0}, // Color
+    };
 };
 
 /**
@@ -610,7 +624,7 @@ struct FDynamicEmitterReplayDataBase
         ActiveParticleCount(0),
         ParticleStride(0),
         Scale(FVector(1.0f)),
-        SortMode(0)	// Default to PSORTMODE_None		  
+        SortMode(0)	// Default to PSORTMODE_None
     {
     }
 
@@ -689,17 +703,17 @@ struct FDynamicSpriteEmitterReplayDataBase
     int32							SubUVDataOffset;
     int32							SubImages_Horizontal;
     int32							SubImages_Vertical;
-    bool						bUseLocalSpace;
-    bool						bLockAxis;
-    uint8						ScreenAlignment;
-    uint8						LockAxisFlag;
-    uint8						EmitterRenderMode;
-    uint8						EmitterNormalsMode;
-    FVector2D					PivotOffset;
-    bool						bUseVelocityForMotionBlur;
-    bool						bRemoveHMDRoll;
-    float						MinFacingCameraBlendDistance;
-    float						MaxFacingCameraBlendDistance;
+    bool						    bUseLocalSpace;
+    bool						    bLockAxis;
+    uint8						    ScreenAlignment;
+    uint8						    LockAxisFlag;
+    uint8						    EmitterRenderMode;
+    uint8						    EmitterNormalsMode;
+    FVector2D					    PivotOffset;
+    bool						    bUseVelocityForMotionBlur;
+    bool						    bRemoveHMDRoll;
+    float						    MinFacingCameraBlendDistance;
+    float						    MaxFacingCameraBlendDistance;
 
     /** Constructor */
     FDynamicSpriteEmitterReplayDataBase();
@@ -709,7 +723,6 @@ struct FDynamicSpriteEmitterReplayDataBase
     virtual void Serialize(FArchive& Ar);
 
 };
-
 
 struct FDynamicMeshEmitterReplayData
     : public FDynamicSpriteEmitterReplayDataBase
@@ -837,11 +850,9 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
         FDynamicSpriteEmitterDataBase(RequiredModule)
     {
     }
-
     ~FDynamicSpriteEmitterData() {}
 
     void Init(bool bInSelected);
-
     
     virtual int32 GetDynamicVertexStride(/*ERHIFeatureLevel::Type InFeatureLevel*/) const override // ERHIFeatureLevel::Type 은 렌더 플랫폼에 관련된 정보이므로 필요 없음.
     {
@@ -858,14 +869,18 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
         return &Source;
     }
 
-    bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, uint32 InstanceFactor) const;
-
-    bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const;
-
     virtual const FDynamicEmitterReplayDataBase& GetSource() const override
     {
         return Source;
     }
+
+    bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, uint32 InstanceFactor) const;
+
+    bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, int32 NumVerticesPerParticle) const;
+
+    ID3D11Buffer* VertexBuffer       = nullptr;  // 정점 버퍼 (퍼-프레임 동적 업데이트)
+    ID3D11Buffer* IndexBuffer        = nullptr;  // 인덱스 버퍼
+    ID3D11Buffer* DynamicParamBuffer = nullptr;  // (옵션) 다이나믹 파라미터용 상수 버퍼
 
     FDynamicSpriteEmitterReplayDataBase Source;
 };

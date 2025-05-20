@@ -1,5 +1,5 @@
 #include "ParticleModule.h"
-#include "ParticleModuleTypeDataBase.h"
+#include "TypeData/ParticleModuleTypeDataBase.h"
 
 
 void UParticleModule::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)

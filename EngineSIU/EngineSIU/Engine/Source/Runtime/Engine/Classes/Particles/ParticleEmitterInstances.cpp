@@ -5,7 +5,7 @@
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModuleRequired.h"
-#include "ParticleModuleTypeDataBase.h"
+#include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleSystem.h"
 #include "ParticleSystemComponent.h"
 #include "Templates/AlignmentTemplates.h"
@@ -25,6 +25,7 @@ void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticl
     MemBlockSize = ParticleDataNumBytes + ParticleIndicesNumShorts * sizeof(uint16);
 
     //ParticleData = (uint8*)FastParticleSmallBlockAlloc(MemBlockSize); // 메모리 할당 로직 정의 필요.
+    ParticleData = static_cast<uint8*>(FPlatformMemory::Malloc<EAT_Object>(MemBlockSize));
     ParticleIndices = (uint16*)(ParticleData + ParticleDataNumBytes);
 }
 
@@ -49,17 +50,27 @@ void FParticleDataContainer::Free()
 
 /*
  * 수명 다한 파티클 제거. (Active array로부터 제거)
+ * 뒤에서부터 검사해야 스왑해서 줄인 인덱스가 아직 남은 루프에 영향을 주지 않음
  */
 void FParticleEmitterInstance::KillParticles()
 {
-    for (int32 i = ActiveParticles - 1; i >= 0; --i)
+    int32 i = ActiveParticles;
+    // 뒤에서부터 순회해서 swap & pop
+    while (i-- > 0)
     {
-        FBaseParticle* Particle = (FBaseParticle*)(ParticleData + i * ParticleStride);
-        if (Particle->RelativeTime >= 1.0f)
+        int32 DataIdx = ParticleIndices[i];
+        FBaseParticle* P = (FBaseParticle*)(ParticleData + DataIdx * ParticleStride);
+        if (P->RelativeTime >= 1.0f)
         {
-            // KillCurrentParticle(ParticleIndices[i]);
-            ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
-            ParticleIndices[ActiveParticles - 1] = i;
+            UE_LOG(ELogLevel::Error,
+                TEXT("KillParticles(): Active=%d, removing slot %d"),
+                ActiveParticles, DataIdx);
+
+            // swap i <-> tail
+            /*ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
+            ParticleIndices[ActiveParticles - 1] = DataIdx;
+            --ActiveParticles;*/
+			std::swap(ParticleIndices[i], ParticleIndices[ActiveParticles - 1]);
             --ActiveParticles;
         }
     }
@@ -70,6 +81,7 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 {
     if (Index >= 0 && Index < ActiveParticles)
     {
+        UE_LOG(ELogLevel::Error, TEXT("Active Particles : %d Kill Particle Index = %d"), ActiveParticles, Index);
         ParticleIndices[Index] = ParticleIndices[ActiveParticles - 1];
         ParticleIndices[ActiveParticles - 1] = Index;
         --ActiveParticles;
@@ -116,8 +128,27 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
         return nullptr;
     }
 
+    NewEmitterData->bValid = true;
     NewEmitterData->bSelected = bSelected;
-    NewEmitterData->Init(bSelected);
+    // NewEmitterData->Init(bSelected);
+
+    // 3) DataContainer 내부 순회하며 파티클 위치/속도 로그 출력
+    {
+        uint8*       RawBuffer = NewEmitterData->Source.DataContainer.ParticleData;
+        int32        Stride    = NewEmitterData->Source.ParticleStride;
+        int32        Count     = NewEmitterData->Source.ActiveParticleCount;
+
+        for (int32 i = 0; i < Count; ++i)
+        {
+            FBaseParticle* P = reinterpret_cast<FBaseParticle*>(RawBuffer + NewEmitterData->Source.DataContainer.ParticleIndices[i] * Stride);
+            UE_LOG(ELogLevel::Error,
+                   TEXT("GetDynamicData(): Particle[%d] Loc=(%.2f, %.2f, %.2f) Vel=(%.2f, %.2f, %.2f)"),
+                   i,
+                   P->Location.X, P->Location.Y, P->Location.Z,
+                   P->Velocity.X, P->Velocity.Y, P->Velocity.Z);
+        }
+    }
+
 
     return NewEmitterData;
 }
@@ -143,16 +174,37 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     int32 TotalIndices = ActiveParticles;                       // 인덱스 개수
     OutData.DataContainer.Alloc(TotalDataBytes, TotalIndices);
 
+    int32 Count = ActiveParticles;
+    for (uint32 i = 0; i < ActiveParticles; ++i)
+    {
+        FBaseParticle Particle = *(FBaseParticle*)(ParticleData + ParticleIndices[i] * ParticleStride);
+        UE_LOG(ELogLevel::Error, TEXT("FillReplayData() : Particle[%d] Loc %.2f %.2f %.2f"), i, Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
+    }
+
     // 실제 데이터 복사 : OutData.DataContainer로 파티클 데이터 / 파티클 인덱스 깊은 복사
-    memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
-    memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));
+    /*memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
+    memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));*/
+
+    // 1) 각 활성 파티클을 순서대로 복사
+    for (int32 i = 0; i < Count; ++i)
+    {
+        uint16 SrcIdx = ParticleIndices[i];
+        // 원본 풀에서 SrcIdx 번 슬롯만 복사
+        memcpy(
+            OutData.DataContainer.ParticleData + i * ParticleStride,
+            ParticleData + SrcIdx * ParticleStride,
+            ParticleStride
+        );
+        // 새 인덱스는 0…Count-1 로 재매핑
+        OutData.DataContainer.ParticleIndices[i] = i;
+    }
 
     return true;
 }
 
 void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 {
-    UE_LOG(ELogLevel::Error, "Tick() Start: DeltaTime=%.4f, Active=%d", DeltaTime, ActiveParticles);
+    //UE_LOG(ELogLevel::Error, "Tick() Start: DeltaTime=%.4f, Active=%d", DeltaTime, ActiveParticles);
 
     UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
     float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
@@ -165,14 +217,14 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
         // 이유 : Kill before the spawn... Otherwise, we can get 'flashing' (beam2Emitter)
         KillParticles();
 
-        UE_LOG(ELogLevel::Error, "  Before Update: Loc=%s", *Location.ToString());
+        //UE_LOG(ELogLevel::Error, "  Before Update: Loc=%s", *Location.ToString());
 
         Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-        UE_LOG(ELogLevel::Error, "  After Update: Loc=%s", *Location.ToString());
+        //UE_LOG(ELogLevel::Error, "  After Update: Loc=%s", *Location.ToString());
         SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
 
-        UE_LOG(ELogLevel::Error, "  SpawnFraction=%.4f", SpawnFraction);
+        //UE_LOG(ELogLevel::Error, "  SpawnFraction=%.4f", SpawnFraction);
 
         // beams의 경우 postupdate 추가 필요
         if (ActiveParticles > 0)
@@ -190,7 +242,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
             bFirstTime = true;
         }
 
-        UE_LOG(ELogLevel::Error, "Tick() End : EmitterTime=%.4f, ActiveParticles=%d\n", EmitterTime, ActiveParticles);
+        //UE_LOG(ELogLevel::Error, "Tick() End : EmitterTime=%.4f, ActiveParticles=%d\n", EmitterTime, ActiveParticles);
     }
 
 }
@@ -331,9 +383,11 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
 
     // 생명 시간
     Particle->RelativeTime = 0.0f;
-    Particle->OneOverMaxLifetime = CurrentLODLevel->RequiredModule->EmitterDuration > 0.f
-        ? 1.f / CurrentLODLevel->RequiredModule->EmitterDuration
+    float& Lifetime = CurrentLODLevel->RequiredModule->EmitterDuration;
+    Particle->OneOverMaxLifetime = Lifetime > 0.f
+        ? 1.f / (Lifetime * 6)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
         : 1.f;
+    // 생명 6배, 6개 동시존재가능
 }
 
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
@@ -343,7 +397,9 @@ void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float Interpol
     // 현재 스프라이트엔 특별 후처리 없음
     // Offset caused by any velocity
     Particle->OldLocation = Particle->Location;
-    Particle->Location += SpawnTime * FVector(Particle->Velocity);
+
+	/* Spawn 시점이 프레임 시작과 달라 생기는 위치 보정, 현재는 적용 X  */
+    //Particle->Location += SpawnTime * FVector(Particle->Velocity); // 다음 코드가
 
     // Store a sequence counter
     Particle->Flags |= STATE_Particle_JustSpawned;
@@ -369,39 +425,66 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
              break;
          }
 
-         // Macro 추가 필요.
-         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ParticleStride * Index));
-         const uint32 CurrentParticleIndex = ActiveParticles++;
+
+         /* 현재 파티클 인덱스 */
+         /*const uint32 CurrIdx = ActiveParticles++;
+         ParticleIndices[CurrIdx] = CurrIdx;*/
+
+		 // 1) 이 프레임에 할당할 “데이터 인덱스” 꺼내기
+		 const uint32 SlotIdx = ActiveParticles++;
+		 const uint32 DataIdx = ParticleIndices[SlotIdx];
+
+         // 실제 버퍼 위치 계산할때 DataIdx 사용
+         DECLARE_PARTICLE_PTR(Particle, ParticleData + (ParticleStride * DataIdx));
 
          // 언리얼에선 bLegacySpawnBehavior가 true일때 아래와 같이 반영
          SpawnTime -= Increment;
          Interp -= InterpDelta;
 
-         //PreSpawn(Particle, InitialLocation, InitialVelocity);
-         PreSpawn(Particle, Component->InitialLocationHardcoded, Component->InitialVelocityHardcoded);
+         PreSpawn(Particle, InitialLocation, InitialVelocity);
+         //PreSpawn(Particle, Component->InitialLocationHardcoded, Component->InitialVelocityHardcoded);
 
          for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->SpawnModules.Num(); ModuleIndex++)
          {
              UParticleModule* SpawnModule = CurrentLODLevel->SpawnModules[ModuleIndex];
              if (SpawnModule->bEnabled)
              {
-                 UParticleModule* OffsetModule = HighLODLevel->SpawnModules[ModuleIndex];
-                 SpawnModule->Spawn(this, GetModuleDataOffset(OffsetModule), SpawnTime, Particle);
+                 UParticleModule* OffsetModule = HighLODLevel->SpawnModules[ModuleIndex]; //기존
+
+                 // 모듈 자신을 넘겨야 올바른 오프셋이 리턴됨
+                 uint32 DataOffset = GetModuleDataOffset(OffsetModule);
+                 SpawnModule->Spawn(this, DataOffset, SpawnTime, Particle);
              }
          }
+
+         
+
+         // 3) VelocityModule 에서 누적된 최종 속도를
+        //    Particle.Velocity 로부터 읽어서 Old/BaseVelocity 동기화
+         Particle->OldLocation = Particle->Location;
+         Particle->BaseVelocity = Particle->Velocity;
+
          
          PostSpawn(Particle, Interp, StartTime);
 
          if (Particle->RelativeTime > 1.0f)
          {
-             KillParticle(CurrentParticleIndex);
+             //KillParticle(CurrIdx);
 
              // Process next particle
              continue;
          }
-         
 
-         UE_LOG(ELogLevel::Display, "SpawnParticles() : Particle %d Spawned", Index+1);
+         UE_LOG(ELogLevel::Display,
+             TEXT("Spawned #%d: Loc=(%.1f,%.1f,%.1f) Vel=(%.1f,%.1f,%.1f)"),
+             Index + 1,
+             Particle->Location.X, Particle->Location.Y, Particle->Location.Z,
+             Particle->Velocity.X, Particle->Velocity.Y, Particle->Velocity.Z
+         );
+
+		 UE_LOG(ELogLevel::Display,
+			 TEXT("Spawned #%d: SlotIdx=%d DataIdx=%d Active=%d"),
+			 Index + 1, SlotIdx, DataIdx, ActiveParticles);
      }
 }
 
@@ -541,15 +624,30 @@ bool FParticleEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSetMaxA
         (NewMaxActiveParticles - MaxActiveParticles) * ParticleStride
     );
 
+	uint16* OldIndices = ParticleIndices;
     ParticleIndices = (uint16*)FPlatformMemory::Realloc<EAT_Container>(
         ParticleIndices,
         sizeof(uint16) * (NewMaxActiveParticles + 1)
     );
 
-    for (int32 i = MaxActiveParticles; i < NewMaxActiveParticles; ++i)
-    {
-        ParticleIndices[i] = i;
-    }
+	// **1) 만약 처음 할당(OldIndices==nullptr)이면, 0..NewMax-1 전체를 채우고**
+	// **2) 아니라면(늘어날 때)엔 old..new-1만 채워 주고**
+	if (OldIndices == nullptr)
+	{
+		// 첫 할당인 경우
+		for (int32 i = 0; i < NewMaxActiveParticles; ++i)
+		{
+			ParticleIndices[i] = i;
+		}
+	}
+	else
+	{
+		// 단순 확대인 경우
+		for (int32 i = MaxActiveParticles; i < NewMaxActiveParticles; ++i)
+		{
+			ParticleIndices[i] = i;
+		}
+	}
 
     MaxActiveParticles = NewMaxActiveParticles;
 
@@ -604,8 +702,125 @@ FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* 
 void FDynamicSpriteEmitterData::Init(bool bInSelected)
 {
     bSelected = bInSelected;
-    // Material NULL Slot
-    // TODO : 정렬, VertexBuffer 생성, BuildIndexBuffer 필요
+
+    const int32 NumParticles = Source.ActiveParticleCount;
+    const int32 NumVert      = NumParticles * 4;
+    const int32 NumIdx       = NumParticles * 6;
+
+    // 기존 버퍼 해제
+    if (VertexBuffer)       { VertexBuffer->Release();       VertexBuffer = nullptr; }
+    if (IndexBuffer)        { IndexBuffer->Release();        IndexBuffer = nullptr; }
+    if (DynamicParamBuffer) { DynamicParamBuffer->Release(); DynamicParamBuffer = nullptr; }
+    
+    // 버퍼 생성
+    D3D11_BUFFER_DESC desc = {};
+    desc.Usage          = D3D11_USAGE_DYNAMIC;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    // VertexBuffer
+    desc.BindFlags  = D3D11_BIND_VERTEX_BUFFER;
+    desc.ByteWidth  = NumVert * GetDynamicVertexStride();
+    FEngineLoop::GraphicDevice.Device->CreateBuffer(&desc, nullptr, &VertexBuffer);
+
+    // IndexBuffer
+    desc.BindFlags  = D3D11_BIND_INDEX_BUFFER;
+    desc.ByteWidth  = NumIdx * sizeof(uint16);
+    FEngineLoop::GraphicDevice.Device->CreateBuffer(&desc, nullptr, &IndexBuffer);
+
+    // DynamicParamBuffer (필요 시)
+    desc.BindFlags  = D3D11_BIND_CONSTANT_BUFFER;
+    desc.ByteWidth  = NumParticles * GetDynamicParameterVertexStride();
+    FEngineLoop::GraphicDevice.Device->CreateBuffer(&desc, nullptr, &DynamicParamBuffer);
+}
+
+bool FDynamicSpriteEmitterData::GetVertexAndIndexData(
+    void* VertexData,
+    void* DynamicParameterVertexData,
+    void* FillIndexData,
+    FParticleOrder* ParticleOrder,
+    const FVector& InCameraPosition,
+    const FMatrix& InLocalToWorld,
+    uint32 InstanceFactor
+) const
+{
+    auto* VertPtr = static_cast<FParticleSpriteVertex*>(VertexData);
+    auto* ParamPtr = static_cast<FParticleVertexDynamicParameter*>(DynamicParameterVertexData);
+
+    for (int32 i = 0; i < Source.ActiveParticleCount; ++i)
+    {
+        int32 ParticleIdx = ParticleOrder ? ParticleOrder[i].ParticleIndex : i;
+        const uint8* ParticleBase = Source.DataContainer.ParticleData + ParticleIdx * Source.ParticleStride;
+
+        // 1) FBaseParticle 정보 읽기 (Position, RelativeTime 등)
+        FBaseParticle* Base = (FBaseParticle*)ParticleBase;
+        FVector Pos         = InLocalToWorld.TransformPosition(Base->Location);
+        float  RelTime     = Base->RelativeTime;
+
+        // 2) 스프라이트 페이로드 읽기 (회전, 크기, SubUV 등)
+        //    FSpriteParticlePayload* Payload = (FSpriteParticlePayload*)(ParticleBase + PayloadOffset);
+        //    float Rot = Payload->Rotation; FVector2D Size = Payload->Size; uint8 SubImage = Payload->SubImageIndex;
+
+        // 3) Instancing용 정점 채우기
+        VertPtr[i].Position      = Pos;
+        VertPtr[i].RelativeTime  = RelTime;
+        VertPtr[i].OldPosition   = InLocalToWorld.TransformPosition(Base->OldLocation);
+        VertPtr[i].ParticleId    = (float)ParticleIdx;
+        VertPtr[i].Size          = /*Payload->Size*/ FVector2D(1,1);
+        VertPtr[i].Rotation      = /*Payload->Rotation*/ 0.0f;
+        VertPtr[i].SubImageIndex = /*(float)Payload->SubImageIndex*/ 0.0f;
+        VertPtr[i].Color         = FLinearColor::White;
+
+        // 4) DynamicParameter 채우기 (필요 시)
+        // if (DynamicParameterVertexData)
+        // {
+        //     ParamPtr[i].DynamicValue[0] = 
+        // }
+    }
+    return true;
+}
+
+bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(
+    void*           VertexData,
+    void*           DynamicParameterVertexData,
+    void*           FillIndexData,
+    FParticleOrder* ParticleOrder,
+    const FVector&  InCameraPosition,
+    const FMatrix&  InLocalToWorld,
+    int32           NumVerticesPerParticle
+) const
+{
+    auto* VertPtr  = static_cast<FParticleSpriteVertexNonInstanced*>(VertexData);
+    auto* IdxPtr   = static_cast<uint16*>(FillIndexData);
+
+    const int32 Stride = Source.ParticleStride;
+    for (int32 i = 0; i < Source.ActiveParticleCount; ++i)
+    {
+        int32 ParticleIdx = ParticleOrder ? ParticleOrder[i].ParticleIndex : i;
+        const uint8* ParticleBase = Source.DataContainer.ParticleData + ParticleIdx * Stride;
+        FBaseParticle* Base = (FBaseParticle*)ParticleBase;
+        FVector Pos = InLocalToWorld.TransformPosition(Base->Location);
+        // ... 스프라이트 페이로드 읽기 ...
+
+        // 4개 정점 채우기
+        for (int corner = 0; corner < 4; ++corner)
+        {
+            int32 VertIndex = i * 4 + corner;
+            // VertPtr[VertIndex].UV = ...;
+            // VertPtr[VertIndex].Position     = ...; // Pivot 오프셋, 회전 적용
+            // VertPtr[VertIndex].RelativeTime = Base->RelativeTime;
+            // ...
+        }
+
+        // 6개 인덱스 채우기 (두 삼각형)
+        const int32 BaseVertexIndex = i * 4;
+        IdxPtr[i*6 + 0] = BaseVertexIndex + 0;
+        IdxPtr[i*6 + 1] = BaseVertexIndex + 1;
+        IdxPtr[i*6 + 2] = BaseVertexIndex + 2;
+        IdxPtr[i*6 + 3] = BaseVertexIndex + 2;
+        IdxPtr[i*6 + 4] = BaseVertexIndex + 1;
+        IdxPtr[i*6 + 5] = BaseVertexIndex + 3;
+    }
+    return true;
 }
 
 FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()

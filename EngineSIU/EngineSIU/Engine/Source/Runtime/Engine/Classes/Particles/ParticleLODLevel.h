@@ -20,7 +20,6 @@ public:
     bool bEnabled;
     int32 PeakActiveParticles;
 
-
     TArray<UParticleModule*> Modules;
     /* 파티클이 생성될 떄 단 한번만 호출 : Location, Size, Velocity, Color*/
     TArray<UParticleModule*> SpawnModules;
@@ -29,7 +28,4 @@ public:
 
     UParticleModuleTypeDataBase* TypeDataModule;
     UParticleModuleRequired* RequiredModule;
-   
-    
-
 };

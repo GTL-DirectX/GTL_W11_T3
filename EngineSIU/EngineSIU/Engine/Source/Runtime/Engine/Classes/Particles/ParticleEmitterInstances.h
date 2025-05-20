@@ -2,7 +2,6 @@
 
 #include "HAL/PlatformType.h"
 #include "ParticleHelper.h"
-#include <UnrealEd/ImGuiWidget.h>
 
 class UParticleEmitter;
 class UParticleSystemComponent;
