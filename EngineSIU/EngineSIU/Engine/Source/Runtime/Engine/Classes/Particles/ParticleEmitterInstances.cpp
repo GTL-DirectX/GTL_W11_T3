@@ -128,7 +128,7 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
         return nullptr;
     }
 
-    // NewEmitterData->bSelected = bSelected;
+    NewEmitterData->bSelected = bSelected;
     // NewEmitterData->Init(bSelected);
 
     return NewEmitterData;

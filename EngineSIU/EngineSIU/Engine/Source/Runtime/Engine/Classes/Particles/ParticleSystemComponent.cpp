@@ -98,7 +98,6 @@ void UParticleSystemComponent::InitParticles()
         Inst->Init(this, EmitterIndex);
 
         EmitterInstances.Add(Inst);
-        
     }
 }
 

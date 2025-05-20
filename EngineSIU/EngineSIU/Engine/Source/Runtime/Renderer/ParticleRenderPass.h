@@ -28,7 +28,6 @@ public:
 
     virtual void ClearRenderArr() override;
 
-
 private:
     void CreateRenderStates();
     void CreateShader();
@@ -37,16 +36,18 @@ private:
     void PrepareRender(const std::shared_ptr<FEditorViewportClient>& Viewport);
     void CleanUpRender(const std::shared_ptr<FEditorViewportClient>& Viewport);
 
-
-
 private:
     TArray<FParticleRenderEntry> ParticleRenderEntries;
+    TArray<UParticleSystemComponent*> ParticleSystemComponents;
     
     FDXDBufferManager* BufferManager;
     FGraphicsDevice* Graphics;
     FDXDShaderManager* ShaderManager;
 
+    ID3D11VertexShader* VertexShader;
+    ID3D11PixelShader* PixelShader;
+    ID3D11InputLayout* InputLayout;
+
     ID3D11BlendState* AlphaBlendState = nullptr;
     ID3D11BlendState* AdditiveBlendState = nullptr;
-
 };
