@@ -241,7 +241,8 @@ void ParticleSystemViewerPanel::RenderEmitters()
         // ← 여기서 바로 “Add Module” 버튼을 추가
         if (ImGui::Button("Add Module"))
         {
-            PendingModuleIndex = 0;                // 리셋
+            // 이 블록의 Emitter 를 PendingEmitter 로 보관
+            PendingModuleIndex = 0;
             bOpenAddModulePopup = true;
             ImGui::OpenPopup("Add Module");
         }
@@ -254,7 +255,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
             // 3) 콤보박스로 리스트 보여주기
             ImGui::Combo("##ModuleType",
                 &PendingModuleIndex,
-                "Required\0"
+                // "Required\0" 는 필수 모듈이므로,
                 "Spawn\0"
                 "Lifetime\0"
                 "Size\0"
@@ -271,9 +272,52 @@ void ParticleSystemViewerPanel::RenderEmitters()
             // 4) 확인/취소 버튼
             if (ImGui::Button("OK", ImVec2(100, 0)))
             {
-                // PendingModuleIndex 에 따라 실제 모듈 생성
+                // 1) 선택된 Emitter 가져오기
+                //    (루프 안에서 i를 저장해 두셨다면 Emitters[i] 로 꺼내고,
+                //     아니면 SelectedEmitter 를 사용해도 됩니다.)
+                UParticleEmitter* Emitter = SelectedEmitter;
+                if (Emitter)
+                {
+                    UParticleLODLevel* LOD0 = Emitter->LODLevels[0];
 
+                    // 2) PendingModuleIndex 에 따라 직접 분기
+                    UParticleModule* NewMod = nullptr;
+                    switch (PendingModuleIndex)
+                    {
+                    case 0: // "Required"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
+                        break;
+                    case 1: // "Spawn"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleSpawn>(LOD0);
+                        break;
+                    case 2: // "Lifetime"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(LOD0);
+                        break;
+                    case 3: // "Size"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleSize>(LOD0);
+                        break;
+                    case 4: // "Velocity"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(LOD0);
+                        break;
+                    case 5: // "Color"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
+                        break;
+                        // ... 나머지 모듈도 같은 패턴으로 추가 ...
+                    default:
+                        break;
+                    }
 
+                    // 3) 리스트에 추가 & 선택 상태 갱신
+                    if (NewMod)
+                    {
+                        LOD0->Modules.Add(NewMod);
+                        SelectedModule = NewMod;
+                        SelectedEmitter = Emitter;
+                    }
+                }
+
+                // 4) 팝업 닫기
+                bOpenAddModulePopup = false;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
