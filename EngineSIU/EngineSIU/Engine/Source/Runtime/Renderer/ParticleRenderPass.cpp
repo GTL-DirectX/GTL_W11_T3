@@ -10,6 +10,7 @@
 #include "D3D11RHI/DXDShaderManager.h"
 
 #include "LevelEditor/SLevelEditor.h"
+#include "Particles/ParticleEmitterInstances.h"
 #include "UnrealEd/EditorViewportClient.h"
 
 FParticleRenderPass::FParticleRenderPass()
@@ -249,15 +250,15 @@ void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& V
             SpriteVertices.AddUninitialized(NumParticles * 4);
 
             // 핵심: 여기서 GetVertexAndIndexData() 호출
-            // SpriteData->GetVertexAndIndexData(
-            //                     /*VertexData=*/ SpriteVertices.GetData(),
-            //                     /*DynamicParameterVertexData=*/ nullptr,
-            //                     /*FillIndexData=*/ nullptr,
-            //                     /*ParticleOrder=*/ nullptr,
-            //                     /*InCameraPosition=*/ Viewport->GetCameraLocation(),
-            //                     /*InLocalToWorld=*/ ParticleSystemComp->,
-            //                     /*InstanceFactor=*/ 1
-            // );
+             SpriteData->GetVertexAndIndexData(
+                                 /*VertexData=*/ SpriteVertices.GetData(),
+                                 /*DynamicParameterVertexData=*/ nullptr,
+                                 /*FillIndexData=*/ nullptr,
+                                 /*ParticleOrder=*/ nullptr,
+                                 /*InCameraPosition=*/ Viewport->GetCameraLocation(),
+                                 /*InLocalToWorld=*/ ParticleSystemComp->EmitterInstances[0]->SimulationToWorld,
+                                 /*InstanceFactor=*/ 1
+             );
 
             SpriteVertices.Sort(
                 [Viewport](const FParticleSpriteVertex& A, const FParticleSpriteVertex& B)

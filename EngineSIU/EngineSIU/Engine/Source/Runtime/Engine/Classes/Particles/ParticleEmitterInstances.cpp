@@ -159,6 +159,7 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
     memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));
 
+
     return true;
 }
 
