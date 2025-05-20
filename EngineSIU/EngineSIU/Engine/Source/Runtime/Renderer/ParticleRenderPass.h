@@ -3,6 +3,9 @@
 #include "Container/Array.h"
 #include "UnrealClient.h"
 
+#include <d3d11.h>
+#include <dxgi.h>
+
 struct FDynamicEmitterDataBase;
 class UParticleSystemComponent;
 
@@ -20,17 +23,30 @@ public:
     virtual ~FParticleRenderPass() override;
 
     void Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager) override;
-    void CreateBlendState();
     virtual void PrepareRenderArr() override;
     virtual void Render(const std::shared_ptr<FEditorViewportClient>& Viewport) override;
+
     virtual void ClearRenderArr() override;
+
+
+private:
+    void CreateRenderStates();
+    void CreateShader();
+    void CreateBuffers();
+
+    void PrepareRender(const std::shared_ptr<FEditorViewportClient>& Viewport);
+    void CleanUpRender(const std::shared_ptr<FEditorViewportClient>& Viewport);
+
+
 
 private:
     TArray<FParticleRenderEntry> ParticleRenderEntries;
+    
     FDXDBufferManager* BufferManager;
     FGraphicsDevice* Graphics;
     FDXDShaderManager* ShaderManager;
 
     ID3D11BlendState* AlphaBlendState = nullptr;
     ID3D11BlendState* AdditiveBlendState = nullptr;
+
 };
