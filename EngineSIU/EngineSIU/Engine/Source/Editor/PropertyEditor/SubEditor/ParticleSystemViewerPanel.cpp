@@ -97,14 +97,57 @@ void ParticleSystemViewerPanel::RenderEmitters()
         }
     }
 
+    ////가로로 나열된 형태의 UI, Popup 형태 시도
+    //ImGui::SameLine();
+    //static char SaveSystemName[128] = "MyParticleSystem";
+    //
+    //ImGui::PushItemWidth(150);
+    //ImGui::InputText("##SaveSysName", SaveSystemName, IM_ARRAYSIZE(SaveSystemName));
+    //ImGui::PopItemWidth();
+
+
+
     ImGui::SameLine();
+
     if (ImGui::Button("Save System"))
     {
+        ImGui::OpenPopup("Save System");
     }
+
     ImGui::SameLine();
+
     if (ImGui::Button("Rename Emmiter"))
     {
+    }
 
+    // ─── 모달 팝업 처리 ───
+        // BeginPopupModal은 매 프레임 호출
+    if (ImGui::BeginPopupModal(
+        "Save System",   // ← OpenPopup의 ID와 정확히 일치해야 함
+        nullptr,         // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
+        ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        static char SaveSystemName[128] = "";
+
+        ImGui::Text("Enter name for this particle system:");
+        ImGui::PushItemWidth(200);
+        ImGui::InputText("##SaveSysName", SaveSystemName, IM_ARRAYSIZE(SaveSystemName));
+        ImGui::PopItemWidth();
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(100, 0)))
+        {
+            // TODO: SaveSystemName 을 이용해 실제 저장 처리
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(100, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
 
