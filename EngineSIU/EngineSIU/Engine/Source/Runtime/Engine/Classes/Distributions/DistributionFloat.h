@@ -30,7 +30,8 @@ public:
         , Distribution(nullptr)
     {
     }
-    float GetValue(float Time = 0.0f) const;
+    float GetValue(float Time = 0.0f, UObject* Data = nullptr, int32 Extreme = 0) const;
+
 };
 
 class UDistributionFloat : public UObject

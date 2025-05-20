@@ -10,7 +10,7 @@
 #include "UObject/Casts.h"
 #include "UObject/ObjectFactory.h"
 
-float FRawDistributionFloat::GetValue(float Time) const
+float FRawDistributionFloat::GetValue(float Time, UObject* Data, int32 Extreme) const
 {
     return Distribution ? Distribution->GetValue(Time) : 0.0f;
 }
