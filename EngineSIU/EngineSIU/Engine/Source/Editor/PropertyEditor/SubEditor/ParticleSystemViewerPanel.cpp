@@ -126,14 +126,19 @@ void ParticleSystemViewerPanel::RenderEmitters()
             // SaveSystemName 을 이용해 실제 저장 처리
             FString Key(SaveSystemName); 
 
-            // 1) Get() 으로 매니저 참조 가져오기
-            UAssetManager& AssetMgr = UAssetManager::Get();
-            //UAssetManager::Get().AddSavedParticle(Key, CurrentParticleSystem);
+            //// 1) Get() 으로 매니저 참조 가져오기
+            //UAssetManager& AssetMgr = UAssetManager::Get();
+            ////UAssetManager::Get().AddSavedParticle(Key, CurrentParticleSystem);
 
-            // 2) 바로 Map 참조 선언과 초기화
-            auto& Map = AssetMgr.SavedParticleSystemMap;
+            //// 2) 바로 Map 참조 선언과 초기화
+            //auto& Map = AssetMgr.SavedParticleSystemMap;
 
-            Map.Emplace(Key, CurrentParticleSystem);
+            //Map.Emplace(Key, CurrentParticleSystem);
+
+            UParticleSystem* SystemPtr = CurrentParticleSystem;
+
+            // Get() 이 반환하는 UAssetMaanger& 에 바로 호출
+            UAssetManager::Get().AddSavedParticleSystem(Key, SystemPtr);
    
             ImGui::CloseCurrentPopup();
         }

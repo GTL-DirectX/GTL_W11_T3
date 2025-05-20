@@ -3,6 +3,8 @@
 #include "UObject/ObjectMacros.h"
 #include "Core/Misc/Spinlock.h"
 
+class UParticleSystem;
+
 enum class EAssetType : uint8
 {
     StaticMesh,
@@ -63,18 +65,16 @@ public:
 
     void RemoveAsset(FString filePath);
 
-    ///** SavedParticleSystemMap에 안전하게 접근하기 위한 getter */
-    //const TMap<FString, UParticleSystem*>& GetSavedParticleSystemMap() const
-    //{
-    //    return SavedParticleSystemMap;
-    //}
+    void AddSavedParticleSystem(const FString& key, UParticleSystem*& system);
 
-    ///** 수정 가능하게도 필요하다면 non-const 버전 추가 */
-    //TMap<FString, UParticleSystem*>& GetSavedParticleSystemMap()
-    //{
-    //    return SavedParticleSystemMap;
-    //}
-    TMap<FString, class UParticleSystem*> SavedParticleSystemMap;
+    const TMap<FString, UParticleSystem*>& GetSavedParticleSystemMap() const
+    {
+        return SavedParticleSystemMap;
+    }
+    TMap<FString, UParticleSystem*>& GetSavedParticleSystemMap()
+    {
+        return SavedParticleSystemMap;
+    }
 
 private:
     void OnLoaded(const FString& filename);
@@ -89,5 +89,6 @@ private:
 
     FSpinLock RegistryLock; // AssetRegistry에 접근할 때 쓰는 스핀락
 
-    // TMap<FString, class UParticleSystem*> SavedParticleSystemMap;
+    TMap<FString, class UParticleSystem*> SavedParticleSystemMap;
 };
+

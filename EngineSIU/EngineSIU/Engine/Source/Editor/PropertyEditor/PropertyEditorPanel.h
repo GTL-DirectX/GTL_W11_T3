@@ -1,6 +1,4 @@
 #pragma once
-#include <vector>
-#include <string>
 
 #include "Actors/Player.h"
 #include "Components/ActorComponent.h"
@@ -136,12 +134,11 @@ private:
     FString SelectedAnimNameB;
 
     // ImGui 콤보박스용 문자열 보관
-    std::vector<std::string> SavedPSNamesUtf8;
-    std::vector<const char*> SavedPSNamesPtr;
+    TArray<FString> SavedParticleSystemNames;
+    TArray<const char*> SavedParticleSystemNamesPtrs;
 
     // 콤보박스 선택 인덱스
     int SelectedPSIndex = 0;
-
 };
 
 template <typename T> requires std::derived_from<T, UActorComponent>

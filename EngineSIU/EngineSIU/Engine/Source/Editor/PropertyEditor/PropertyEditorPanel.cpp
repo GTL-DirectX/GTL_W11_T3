@@ -1638,45 +1638,45 @@ void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* P
         UAssetManager& AssetMgr = UAssetManager::Get();
 
         // 2) 바로 Map 참조 선언과 초기화
-        auto& Map = AssetMgr.SavedParticleSystemMap;
+        auto& Map = AssetMgr.GetSavedParticleSystemMap();
 
         // 키 FString 목록 -> TArrtay<FString> 에 담기
-        TArray<FString> PSNames;
+        TArray<FString> ParticleSystemNames;
         for (auto& Pair : Map)
         {
-            PSNames.Add(Pair.Key);
+            ParticleSystemNames.Add(Pair.Key);
         }
 
         // FString -> UTF8 std::string 변환, 그리고 const char* ptr 배열 구성
-        SavedPSNamesUtf8.clear();
-        SavedPSNamesPtr.clear();
-        for (auto& Name : PSNames)
+        SavedParticleSystemNames.Empty();
+        SavedParticleSystemNamesPtrs.Empty();
+        for (auto& Name : ParticleSystemNames)
         {
             // TCHAR_TO_UTF8 매크로 임시 char* -> std::string 로 복사
             FString utf8 = Name.ToAnsiString();
             /*SavedPSNamesUtf8.emplace_back(std::move(utf8));
             SavedPSNamesPtr.push_back(SavedPSNamesUtf8.back().c_str());*/
 
-            SavedPSNamesPtr.push_back(*Name);
+            SavedParticleSystemNamesPtrs.Add(*Name);
 
         }
 
         // --- 4) ImGui 콤보박스 표시 ---
-        if (!SavedPSNamesPtr.empty())
+        if (!SavedParticleSystemNamesPtrs.IsEmpty())
         {
             ImGui::Text("Saved Systems:");
             ImGui::SameLine();
             ImGui::Combo(
                 "##ParticleSysCombo",
                 &SelectedPSIndex,
-                SavedPSNamesPtr.data(),
-                static_cast<int>(SavedPSNamesPtr.size())
+                SavedParticleSystemNamesPtrs.GetData(),
+                static_cast<int>(SavedParticleSystemNamesPtrs.Num())
             );
 
             // --- 5) 선택된 시스템을 컴포넌트에 적용 ---
-            if (SelectedPSIndex >= 0 && SelectedPSIndex < PSNames.Num())
+            if (SelectedPSIndex >= 0 && SelectedPSIndex < ParticleSystemNames.Num())
             {
-                UParticleSystem* ChosenPS = Map[PSNames[SelectedPSIndex]];
+                UParticleSystem* ChosenPS = Map[ParticleSystemNames[SelectedPSIndex]];
                 ParticleComponent->Template = ChosenPS;
             }
         }
