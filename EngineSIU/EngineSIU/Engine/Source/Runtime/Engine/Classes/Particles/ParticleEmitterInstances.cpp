@@ -128,8 +128,11 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
         return nullptr;
     }
 
+    NewEmitterData->bValid = true;
     NewEmitterData->bSelected = bSelected;
     // NewEmitterData->Init(bSelected);
+
+    
 
     return NewEmitterData;
 }
@@ -155,10 +158,15 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     int32 TotalIndices = ActiveParticles;                       // 인덱스 개수
     OutData.DataContainer.Alloc(TotalDataBytes, TotalIndices);
 
+    for (uint32 i = 0; i < ActiveParticles; ++i)
+    {
+        FBaseParticle Particle = *(FBaseParticle*)(ParticleData + ParticleIndices[i] * ParticleStride);
+        UE_LOG(ELogLevel::Error, TEXT("FillReplayData() : Particle[%d] Loc %.2f %.2f %.2f"), i, Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
+    }
+
     // 실제 데이터 복사 : OutData.DataContainer로 파티클 데이터 / 파티클 인덱스 깊은 복사
     memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
     memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));
-
 
     return true;
 }
