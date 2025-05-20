@@ -132,7 +132,23 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
     NewEmitterData->bSelected = bSelected;
     // NewEmitterData->Init(bSelected);
 
-    
+    // 3) DataContainer 내부 순회하며 파티클 위치/속도 로그 출력
+    {
+        uint8*       RawBuffer = NewEmitterData->Source.DataContainer.ParticleData;
+        int32        Stride    = NewEmitterData->Source.ParticleStride;
+        int32        Count     = NewEmitterData->Source.ActiveParticleCount;
+
+        for (int32 i = 0; i < Count; ++i)
+        {
+            FBaseParticle* P = reinterpret_cast<FBaseParticle*>(RawBuffer + NewEmitterData->Source.DataContainer.ParticleIndices[i] * Stride);
+            UE_LOG(ELogLevel::Error,
+                   TEXT("GetDynamicData(): Particle[%d] Loc=(%.2f, %.2f, %.2f) Vel=(%.2f, %.2f, %.2f)"),
+                   i,
+                   P->Location.X, P->Location.Y, P->Location.Z,
+                   P->Velocity.X, P->Velocity.Y, P->Velocity.Z);
+        }
+    }
+
 
     return NewEmitterData;
 }
@@ -158,6 +174,7 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     int32 TotalIndices = ActiveParticles;                       // 인덱스 개수
     OutData.DataContainer.Alloc(TotalDataBytes, TotalIndices);
 
+    int32 Count = ActiveParticles;
     for (uint32 i = 0; i < ActiveParticles; ++i)
     {
         FBaseParticle Particle = *(FBaseParticle*)(ParticleData + ParticleIndices[i] * ParticleStride);
@@ -165,8 +182,22 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     }
 
     // 실제 데이터 복사 : OutData.DataContainer로 파티클 데이터 / 파티클 인덱스 깊은 복사
-    memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
-    memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));
+    /*memcpy(OutData.DataContainer.ParticleData, ParticleData, TotalDataBytes);
+    memcpy(OutData.DataContainer.ParticleIndices, ParticleIndices, TotalIndices * sizeof(uint16));*/
+
+    // 1) 각 활성 파티클을 순서대로 복사
+    for (int32 i = 0; i < Count; ++i)
+    {
+        uint16 SrcIdx = ParticleIndices[i];
+        // 원본 풀에서 SrcIdx 번 슬롯만 복사
+        memcpy(
+            OutData.DataContainer.ParticleData + i * ParticleStride,
+            ParticleData + SrcIdx * ParticleStride,
+            ParticleStride
+        );
+        // 새 인덱스는 0…Count-1 로 재매핑
+        OutData.DataContainer.ParticleIndices[i] = i;
+    }
 
     return true;
 }
