@@ -110,12 +110,17 @@ ID3D11Texture2D* FGraphicsDevice::CreateTexture2D(const D3D11_TEXTURE2D_DESC& De
 void FGraphicsDevice::CreateDepthStencilState()
 {
     // DepthStencil 상태 설명 설정
-    D3D11_DEPTH_STENCIL_DESC DepthStencilStateDesc;
+    D3D11_DEPTH_STENCIL_DESC DepthStencilStateDesc = {};
 
     // Depth test parameters
     DepthStencilStateDesc.DepthEnable = true;
     DepthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     DepthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+    // Stencil test parameters
+    DepthStencilStateDesc.StencilEnable = true;
+    DepthStencilStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+    DepthStencilStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 
     // Stencil operations if pixel is front-facing
     DepthStencilStateDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -130,18 +135,37 @@ void FGraphicsDevice::CreateDepthStencilState()
     DepthStencilStateDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
     //// DepthStencil 상태 생성
-    HRESULT hr = Device->CreateDepthStencilState(&DepthStencilStateDesc, &DepthStencilStateTestLess);
+    HRESULT hr = Device->CreateDepthStencilState(&DepthStencilStateDesc, &DepthStencilState_Default);
     if (FAILED(hr))
     {
         // 오류 처리
         return;
     }
-    DepthStencilStateDesc.DepthEnable = false;
-    DepthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-    DepthStencilStateDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-    DepthStencilStateDesc.StencilEnable = FALSE;
 
-    hr = Device->CreateDepthStencilState(&DepthStencilStateDesc, &DepthStencilStateTestAlways);
+    // Depth test parameters
+    DepthStencilStateDesc.DepthEnable = true;
+    DepthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    DepthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+    // Stencil test parameters
+    DepthStencilStateDesc.StencilEnable = true;
+    DepthStencilStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+    DepthStencilStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+    // Stencil operations if pixel is front-facing
+    DepthStencilStateDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    DepthStencilStateDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+    DepthStencilStateDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    DepthStencilStateDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+    // Stencil operations if pixel is back-facing
+    DepthStencilStateDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    DepthStencilStateDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+    DepthStencilStateDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    DepthStencilStateDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+    //// DepthStencil 상태 생성
+    hr = Device->CreateDepthStencilState(&DepthStencilStateDesc, &DepthStencilState_DepthWriteDisabled);
     if (FAILED(hr))
     {
         // 오류 처리
@@ -312,16 +336,16 @@ void FGraphicsDevice::ReleaseRasterizerState()
 void FGraphicsDevice::ReleaseDepthStencilResources()
 {
     // 깊이/스텐실 상태 해제
-    if (DepthStencilStateTestAlways)
+    if (DepthStencilState_DepthWriteDisabled)
     {
-        DepthStencilStateTestAlways->Release();
-        DepthStencilStateTestAlways = nullptr;
+        DepthStencilState_DepthWriteDisabled->Release();
+        DepthStencilState_DepthWriteDisabled = nullptr;
     }
     // 깊이/스텐실 상태 해제
-    if (DepthStencilStateTestLess)
+    if (DepthStencilState_Default)
     {
-        DepthStencilStateTestLess->Release();
-        DepthStencilStateTestLess = nullptr;
+        DepthStencilState_Default->Release();
+        DepthStencilState_Default = nullptr;
     }
 }
 
