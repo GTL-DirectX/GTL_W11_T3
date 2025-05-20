@@ -74,6 +74,8 @@ public:
     FVector GetScaledAxis(int32 InAxis) const;
 
     FRotator Rotator() const;
+
+    FVector GetOrigin() const;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMatrix& M)

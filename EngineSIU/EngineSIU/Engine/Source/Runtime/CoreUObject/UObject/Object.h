@@ -59,6 +59,7 @@ public:
 
     UClass* GetClass() const { return ClassPrivate; }
 
+    virtual void PostInitProperties();
 
     /** this가 SomeBase인지, SomeBase의 자식 클래스인지 확인합니다. */
     bool IsA(const UClass* SomeBase) const;

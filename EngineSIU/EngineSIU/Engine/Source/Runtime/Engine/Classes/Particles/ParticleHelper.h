@@ -72,7 +72,10 @@ struct FParticleBeam2EmitterInstance;
 		continue;
 
 #define SPAWN_INIT																										\
-	check((Owner != NULL) && (Owner->Component != NULL));																\
+	if (Owner == NULL && Owner->Component == NULL) \
+    { \
+        return; \
+    }								\
 	const int32		ActiveParticles	= Owner->ActiveParticles;															\
 	const uint32		ParticleStride	= Owner->ParticleStride;															\
 	uint32			CurrentOffset	= Offset;																			\
@@ -130,7 +133,7 @@ struct FBaseParticle
     FLinearColor	Color;					
 
     // 16 bytes
-    FLinearColor	BaseColor;			
+    FLinearColor	BaseColor;
 
     // 16 bytes
     float			RelativeTime;			// Relative time, range is 0 (==spawn) to 1 (==death). RelativeTime >= 1.0f 이면 Kill. RelativeTime += DeltaTime / LifeTime.

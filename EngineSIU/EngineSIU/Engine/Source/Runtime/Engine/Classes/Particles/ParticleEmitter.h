@@ -17,6 +17,27 @@ enum class EEmitterRenderMode : int
     ERM_MAX,
 };
 
+struct FParticleBurst
+{
+    /* Burst 개수 */
+    int32 Count;
+
+    /* If >= 0, [CountLow .. Count] 범위 내에서 랜덤 개수 떠뜨림 | < 0면 Count 고정 사용 */
+    int32 CountLow;
+
+    /* Burst시키기 위한 특정 시점, 정규화된 Emitter 수명 기준 [0..1] */
+    float Time;
+
+    FParticleBurst()
+        : Count(0)
+        , CountLow(-1)		// Disabled by default...
+        , Time(0.0f)
+    {
+    }
+
+};
+
+
 
 class UParticleEmitter : public UObject
 {

@@ -1,6 +1,11 @@
 #include "ParticleModule.h"
 #include "TypeData/ParticleModuleTypeDataBase.h"
 
+#include "ParticleModuleLifeTimeBase.h"
+#include "ParticleModuleLifeTime.h"
+#include "ParticleModuleColorBase.h"
+#include "ParticleModuleColor.h"
+
 
 void UParticleModule::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
@@ -41,4 +46,9 @@ uint32 UParticleModule::PrepPerInstanceBlock(FParticleEmitterInstance* Owner, vo
     // FParticleCollisionInstancePayload* CollisionInstPayload = (FParticleCollisionInstancePayload*)(InstData);
     // CollisionInstPayload->CurrentLODBoundsCheckCount = 0;
     // return 0;
+}
+
+float UParticleModuleLifeTimeBase::GetLifetimeValue(FParticleEmitterInstance* Owner, float InTime, UObject* Data)
+{
+    return 0.0f;
 }

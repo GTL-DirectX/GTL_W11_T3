@@ -584,3 +584,8 @@ FRotator FMatrix::Rotator() const
     return Rotator;
 }
 
+FVector FMatrix::GetOrigin() const
+{
+    return FVector(M[3][0], M[3][1], M[3][2]);
+}
+

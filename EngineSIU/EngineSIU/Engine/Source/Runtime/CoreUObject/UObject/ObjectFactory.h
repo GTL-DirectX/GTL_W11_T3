@@ -25,6 +25,8 @@ public:
         Obj->UUID = Id;
         Obj->OuterPrivate = InOuter;
 
+        Obj->PostInitProperties();
+
         GUObjectArray.AddObject(Obj);
 
         UE_LOG(ELogLevel::Display, "Created New Object : %s", *Name);

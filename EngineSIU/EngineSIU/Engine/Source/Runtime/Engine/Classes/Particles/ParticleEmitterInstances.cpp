@@ -105,7 +105,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , ParticleStride(0)
     , ActiveParticles(0)
     , ParticleCounter(0)
-    , MaxActiveParticles(10)
+    , MaxActiveParticles(20)
     , SpawnFraction(0.0f)
     , EmitterTime(0.0f)
 {
@@ -385,7 +385,7 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     Particle->RelativeTime = 0.0f;
     float& Lifetime = CurrentLODLevel->RequiredModule->EmitterDuration;
     Particle->OneOverMaxLifetime = Lifetime > 0.f
-        ? 1.f / (Lifetime * 6)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
+        ? 1.f / (Lifetime * 2)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
         : 1.f;
     // 생명 6배, 6개 동시존재가능
 }
@@ -682,13 +682,13 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
         Particle.Location += Particle.Velocity * DeltaTime;
         Particle.RelativeTime += DeltaTime * Particle.OneOverMaxLifetime;
 
-        UE_LOG(ELogLevel::Error,
+        /*UE_LOG(ELogLevel::Error,
             TEXT("UpdateBoundingBox(): Index=%d, OldLoc=(%.2f, %.2f, %.2f), Vel=(%.2f, %.2f, %.2f), NewLoc=(%.2f, %.2f, %.2f), Life : (%.2f)"),
             i,
             Old.X, Old.Y, Old.Z,
             Particle.Velocity.X, Particle.Velocity.Y, Particle.Velocity.Z,
             Particle.Location.X, Particle.Location.Y, Particle.Location.Z, Particle.RelativeTime
-        );
+        );*/
     }
     END_MY_UPDATE_LOOP;
 }
