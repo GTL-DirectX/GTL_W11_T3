@@ -97,6 +97,18 @@ void ParticleSystemViewerPanel::RenderEmitters()
         }
     }
 
+    ImGui::SameLine();
+    if (ImGui::Button("Save System"))
+    {
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Rename Emmiter"))
+    {
+
+    }
+
+
+
     if (!CurrentParticleSystemComponent || !CurrentParticleSystem)
     {
         ImGui::End();
@@ -111,13 +123,24 @@ void ParticleSystemViewerPanel::RenderEmitters()
     for (int i = 0; i < Emitters.Num(); ++i)
     {
         UParticleEmitter* Emitter = Emitters[i];
-        ImGui::BeginChild(("Emitter" + std::to_string(i)).c_str(), ImVec2(EmitterWidth, 0), true);
+        bool isEmitterSelected = (Emitter == SelectedEmitter);
+
+        // 하이라이트 처리 : BeginChild 의 border 인자로 isSelected 전달
+        if (isEmitterSelected)
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2f, 0.4, 0.8, 0.25f));
+
+        ImGui::BeginChild(
+            ("Emitter" + std::to_string(i)).c_str(),
+            ImVec2(EmitterWidth, 0), 
+            isEmitterSelected // 여기에 true 이면 테두리가 그려짐. 
+        );
         
         //── 1. Emitter Base Info 선택 영역 ───────────────────────────────
         float regionWidth = ImGui::GetContentRegionAvail().x;
         ImVec2 regionSize = ImVec2(regionWidth, 100);
-        bool isEmitterSelected = Emitter == SelectedEmitter;
+        //bool isEmitterSelected = (Emitter == SelectedEmitter);
         std::string EmitterName = GetData(*Emitter->EmitterName.ToString());
+
         if (ImGui::Selectable(EmitterName.c_str(), isEmitterSelected, ImGuiSelectableFlags_None, regionSize))
         {
             SelectedEmitter = Emitter;
@@ -135,6 +158,10 @@ void ParticleSystemViewerPanel::RenderEmitters()
             RenderModuleItem(Emitter, Modules[m]);
         }
         ImGui::EndChild();
+
+        if (isEmitterSelected)
+            ImGui::PopStyleColor();
+
         ImGui::SameLine();
     }
     ImGui::End();
@@ -152,7 +179,6 @@ void ParticleSystemViewerPanel::RenderDetails()
     }
     if (SelectedModule)
     {
-        
         ImGui::Text("Module  : %s", *SelectedModule->GetName());
         RenderProperties(SelectedModule);
     }
