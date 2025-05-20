@@ -5,6 +5,7 @@
 
 #include "FbxManager.h"
 #include "Engine/FObjLoader.h"
+#include "Particles/ParticleSystem.h"
 
 inline UAssetManager::UAssetManager() {
     FFbxManager::Init();
@@ -63,6 +64,11 @@ void UAssetManager::InitAssetManager()
 const TMap<FName, FAssetInfo>& UAssetManager::GetAssetRegistry()
 {
     return AssetRegistry->PathNameToAssetInfo;
+}
+
+void UAssetManager::AddSavedParticleSystem(const FString& key, UParticleSystem*& system)
+{
+    SavedParticleSystemMap.Add(key, system);
 }
 
 bool UAssetManager::AddAsset(FString filePath)

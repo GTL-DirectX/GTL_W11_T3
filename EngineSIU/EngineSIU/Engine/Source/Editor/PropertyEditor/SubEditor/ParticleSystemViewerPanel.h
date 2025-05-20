@@ -55,6 +55,9 @@ private:
     std::string SelectedModuleName;
     UParticleModule* SelectedModule = nullptr;
     int DefaultEmitterIndex = -1;
+
+    bool bOpenAddModulePopup = false;
+    int  PendingModuleIndex = 0;   // 사용자가 콤보에서 고른 인덱스
 };
 
 template<typename T>

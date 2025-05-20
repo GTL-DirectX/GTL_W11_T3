@@ -6,6 +6,7 @@
 #include "Math/Color.h"
 #include "Container/Array.h"
 #include "DirectXTK/BufferHelpers.h"
+#include "Components/Material/Material.h"
 
 class UMaterial;
 /*-----------------------------------------------------------------------------
@@ -687,7 +688,7 @@ struct FDynamicEmitterReplayDataBase
 struct FDynamicSpriteEmitterReplayDataBase
     : public FDynamicEmitterReplayDataBase
 {
-    UMaterial* Material; // TODO: 머티리얼 관련 부분 Interface 사용하도록 바꿔줘야 할 듯. 아니면 Material 객체로 대체.
+    UMaterial* MaterialInterface;
     struct FParticleRequiredModule* RequiredModule;
     FVector							NormalsSphereCenter;
     FVector							NormalsCylinderDirection;

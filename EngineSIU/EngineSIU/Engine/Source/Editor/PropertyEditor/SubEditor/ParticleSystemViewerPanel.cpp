@@ -15,6 +15,7 @@
 #include "Particles/ParticleModuleVelocity.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "UnrealEd/EditorViewportClient.h"
+#include "Engine/AssetManager.h"
 
 void ParticleSystemViewerPanel::Render()
 {
@@ -81,7 +82,78 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGuiWindowFlags_NoCollapse
     );
     ImGui::SameLine();
-    if (ImGui::Button("Add Default Emitter"))
+    
+    if (ImGui::Button("Simulate"))
+    {
+        // simulation logic
+    }
+
+    ////가로로 나열된 형태의 UI, Popup 형태 시도
+    //ImGui::SameLine();
+    //static char SaveSystemName[128] = "MyParticleSystem";
+    //
+    //ImGui::PushItemWidth(150);
+    //ImGui::InputText("##SaveSysName", SaveSystemName, IM_ARRAYSIZE(SaveSystemName));
+    //ImGui::PopItemWidth();
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Save System"))
+    {
+        ImGui::OpenPopup("Save System");
+    }
+    // ─── 모달 팝업 처리 ───
+    // BeginPopupModal은 매 프레임 호출
+    if (ImGui::BeginPopupModal(
+        "Save System",   // ← OpenPopup의 ID와 정확히 일치해야 함
+        nullptr,         // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
+        ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        static char SaveSystemName[128] = "";
+
+        ImGui::Text("Enter name for this particle system:");
+        ImGui::PushItemWidth(200);
+        ImGui::InputText("##SaveSysName", SaveSystemName, IM_ARRAYSIZE(SaveSystemName));
+        ImGui::PopItemWidth();
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(100, 0)))
+        {
+            UE_LOG(ELogLevel::Warning, TEXT("CurrentParticleSystem is %s and name is %s"), CurrentParticleSystem != nullptr ? TEXT("Valid") : TEXT("Null"), SaveSystemName);
+
+            // SaveSystemName 을 이용해 실제 저장 처리
+            FString Key(SaveSystemName); 
+
+            //// 1) Get() 으로 매니저 참조 가져오기
+            //UAssetManager& AssetMgr = UAssetManager::Get();
+            ////UAssetManager::Get().AddSavedParticle(Key, CurrentParticleSystem);
+
+            //// 2) 바로 Map 참조 선언과 초기화
+            //auto& Map = AssetMgr.SavedParticleSystemMap;
+
+            //Map.Emplace(Key, CurrentParticleSystem);
+
+            UParticleSystem* SystemPtr = CurrentParticleSystem;
+
+            // Get() 이 반환하는 UAssetMaanger& 에 바로 호출
+            UAssetManager::Get().AddSavedParticleSystem(Key, SystemPtr);
+   
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(100, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    //ImGui::SameLine(); 한 줄 아래에 Add, Rename, Delete 버튼 배치
+    ImGui::Text("Emitter");
+    ImGui::SameLine();
+    if (ImGui::Button("Add"))
     {
         DefaultEmitterIndex++;
         UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
@@ -93,6 +165,26 @@ void ParticleSystemViewerPanel::RenderEmitters()
                 CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
             }
             CurrentParticleSystem->Emitters.Add(NewEmitter);
+        }
+    }
+
+    // 선택된 emitter 이름변경하기 제거하기
+    if (SelectedEmitter)
+    {
+        ImGui::SameLine();
+        if (ImGui::Button("Rename"))
+        {
+            ImGui::OpenPopup("Rename");
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Delete"))
+        {
+            // 배열에서 제거
+            auto& Emitters = CurrentParticleSystem->Emitters;
+            Emitters.RemoveSingle(SelectedEmitter);
+            // 선택 해제
+            SelectedEmitter = nullptr;
         }
     }
 
@@ -110,13 +202,24 @@ void ParticleSystemViewerPanel::RenderEmitters()
     for (int i = 0; i < Emitters.Num(); ++i)
     {
         UParticleEmitter* Emitter = Emitters[i];
-        ImGui::BeginChild(("Emitter" + std::to_string(i)).c_str(), ImVec2(EmitterWidth, 0), true);
+        bool isEmitterSelected = (Emitter == SelectedEmitter);
+
+        // 하이라이트 처리 : BeginChild 의 border 인자로 isSelected 전달
+        if (isEmitterSelected)
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2f, 0.4, 0.8, 0.25f));
+
+        ImGui::BeginChild(
+            ("Emitter" + std::to_string(i)).c_str(),
+            ImVec2(EmitterWidth, 0), 
+            isEmitterSelected // 여기에 true 이면 테두리가 그려짐. 
+        );
         
         //── 1. Emitter Base Info 선택 영역 ───────────────────────────────
         float regionWidth = ImGui::GetContentRegionAvail().x;
         ImVec2 regionSize = ImVec2(regionWidth, 100);
-        bool isEmitterSelected = Emitter == SelectedEmitter;
+        //bool isEmitterSelected = (Emitter == SelectedEmitter);
         std::string EmitterName = GetData(*Emitter->EmitterName.ToString());
+
         if (ImGui::Selectable(EmitterName.c_str(), isEmitterSelected, ImGuiSelectableFlags_None, regionSize))
         {
             SelectedEmitter = Emitter;
@@ -133,7 +236,104 @@ void ParticleSystemViewerPanel::RenderEmitters()
         {
             RenderModuleItem(Emitter, Modules[m]);
         }
-        ImGui::EndChild();
+
+        // ← 여기서 바로 “Add Module” 버튼을 추가
+        if (ImGui::Button("Add Module"))
+        {
+            // 이 블록의 Emitter 를 PendingEmitter 로 보관
+            PendingModuleIndex = 0;
+            bOpenAddModulePopup = true;
+            ImGui::OpenPopup("Add Module");
+        }
+        // 팝업 처리도 이 밑에 이어서…
+        // 2) 팝업 모달 (매 프레임 호출)
+        if (ImGui::BeginPopupModal("Add Module", &bOpenAddModulePopup, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Select Module Type:");
+
+            // 3) 콤보박스로 리스트 보여주기
+            ImGui::Combo("##ModuleType",
+                &PendingModuleIndex,
+                // "Required\0" 는 필수 모듈이므로,
+                "Spawn\0"
+                "Lifetime\0"
+                "Size\0"
+                "Velocity\0"
+                "Color\0"
+                "Rotation\0"
+                "Acceleration\0"
+                "Scale\0"
+                "Collision\0"
+            );
+
+            ImGui::Separator();
+
+            // 4) 확인/취소 버튼
+            if (ImGui::Button("OK", ImVec2(100, 0)))
+            {
+                // 1) 선택된 Emitter 가져오기
+                //    (루프 안에서 i를 저장해 두셨다면 Emitters[i] 로 꺼내고,
+                //     아니면 SelectedEmitter 를 사용해도 됩니다.)
+                UParticleEmitter* Emitter = SelectedEmitter;
+                if (Emitter)
+                {
+                    UParticleLODLevel* LOD0 = Emitter->LODLevels[0];
+
+                    // 2) PendingModuleIndex 에 따라 직접 분기
+                    UParticleModule* NewMod = nullptr;
+                    switch (PendingModuleIndex)
+                    {
+                    case 0: // "Required"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
+                        break;
+                    case 1: // "Spawn"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleSpawn>(LOD0);
+                        break;
+                    case 2: // "Lifetime"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(LOD0);
+                        break;
+                    case 3: // "Size"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleSize>(LOD0);
+                        break;
+                    case 4: // "Velocity"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(LOD0);
+                        break;
+                    case 5: // "Color"
+                        NewMod = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
+                        break;
+                        // ... 나머지 모듈도 같은 패턴으로 추가 ...
+                    default:
+                        break;
+                    }
+
+                    // 3) 리스트에 추가 & 선택 상태 갱신
+                    if (NewMod)
+                    {
+                        LOD0->Modules.Add(NewMod);
+                        SelectedModule = NewMod;
+                        SelectedEmitter = Emitter;
+                    }
+                }
+
+                // 4) 팝업 닫기
+                bOpenAddModulePopup = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(100, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+                bOpenAddModulePopup = false;
+            }
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::EndChild();    // ← EndChild 직전!
+
+        if (isEmitterSelected)
+            ImGui::PopStyleColor();
+
         ImGui::SameLine();
     }
     ImGui::End();
@@ -151,7 +351,6 @@ void ParticleSystemViewerPanel::RenderDetails()
     }
     if (SelectedModule)
     {
-        
         ImGui::Text("Module  : %s", *SelectedModule->GetName());
         RenderProperties(SelectedModule);
     }
