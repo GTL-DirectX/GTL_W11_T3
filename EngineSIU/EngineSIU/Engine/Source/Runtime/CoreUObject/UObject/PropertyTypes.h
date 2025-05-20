@@ -129,3 +129,10 @@ consteval EPropertyType GetPropertyType<FLinearColor>()
 {
     return EPropertyType::Color;
 }
+
+template<>
+consteval EPropertyType GetPropertyType<FColor>()
+{
+    return EPropertyType::Color;
+}
+

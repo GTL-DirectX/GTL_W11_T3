@@ -57,6 +57,9 @@ public:
 
     template <EAllocationType AllocType>
     static uint64 GetAllocationCount();
+
+    template <EAllocationType AllocType>
+    static void* Realloc(void* Address, size_t NewSize);
 };
 
 
@@ -192,5 +195,47 @@ uint64 FPlatformMemory::GetAllocationCount()
         //static_assert(false, "Unknown AllocationType");
         return -1;
     }
+}
+
+template <EAllocationType AllocType>
+void* FPlatformMemory::Realloc(void* Address, size_t NewSize)
+{
+    if (!Address)
+    {
+        // 새로운 할당
+        return Malloc<AllocType>(NewSize);
+    }
+    if (NewSize == 0)
+    {
+        // 크기 0이면 해제
+        Free<AllocType>(Address, 0);
+        return nullptr;
+    }
+
+    // 이전 할당 크기 조회 (통계 보정용)
+    size_t OldSize = 0;
+    OldSize = _msize(Address);
+
+    void* NewAddress = std::realloc(Address, NewSize);
+    if (NewAddress)
+    {
+        if (OldSize)
+        {
+            if (NewSize > OldSize)
+            {
+                IncrementStats<AllocType>(NewSize - OldSize);
+            }
+            else if (OldSize > NewSize)
+            {
+                DecrementStats<AllocType>(OldSize - NewSize);
+            }
+        }
+        else
+        {
+            // 이전 크기를 알 수 없으면 새 할당으로 간주
+            IncrementStats<AllocType>(NewSize);
+        }
+    }
+    return NewAddress;
 }
 

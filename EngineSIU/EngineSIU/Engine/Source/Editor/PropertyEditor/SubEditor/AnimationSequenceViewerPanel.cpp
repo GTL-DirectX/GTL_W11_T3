@@ -1,4 +1,4 @@
-#include "AnimationSequenceViewer.h"
+#include "AnimationSequenceViewerPanel.h"
 
 #include "Components/Mesh/SkeletalMesh.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -14,7 +14,7 @@
 // UI Sample
 //https://dev.epicgames.com/documentation/ko-kr/unreal-engine#%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98%EC%8B%9C%ED%80%80%EC%8A%A4%ED%8E%B8%EC%A7%91%ED%95%98%EA%B8%B0
 
-void AnimationSequenceViewer::Render()
+void AnimationSequenceViewerPanel::Render()
 {
     ImVec2 WinSize = ImVec2(Width, Height);
 
@@ -120,7 +120,7 @@ void AnimationSequenceViewer::Render()
     ImGui::End();
 }
 
-void AnimationSequenceViewer::OnResize(HWND hWnd)
+void AnimationSequenceViewerPanel::OnResize(HWND hWnd)
 {
     if (hWnd != Handle)
     {
@@ -133,7 +133,7 @@ void AnimationSequenceViewer::OnResize(HWND hWnd)
     Height = static_cast<FLOAT>(ClientRect.bottom - ClientRect.top);
 }
 
-void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHeight)
+void AnimationSequenceViewerPanel::RenderAnimationSequence(float InWidth, float InHeight)
 {
     if (SelectedAnimSequence == nullptr || SelectedAnimSequence->GetDataModel() == nullptr)
     {
@@ -319,7 +319,7 @@ void AnimationSequenceViewer::RenderAnimationSequence(float InWidth, float InHei
     }
 }
 
-void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight)
+void AnimationSequenceViewerPanel::RenderPlayController(float InWidth, float InHeight)
 {
     const ImGuiIO& IO = ImGui::GetIO();
     ImFont* IconFont = IO.Fonts->Fonts.size() == 1 ? IO.FontDefault : IO.Fonts->Fonts[FEATHER_FONT];
@@ -452,7 +452,7 @@ void AnimationSequenceViewer::RenderPlayController(float InWidth, float InHeight
     ImGui::EndChild();
 }
 
-void AnimationSequenceViewer::RenderAssetDetails()
+void AnimationSequenceViewerPanel::RenderAssetDetails()
 {
     if (SelectedAnimSequence)
     {
@@ -507,7 +507,7 @@ void AnimationSequenceViewer::RenderAssetDetails()
     }
 }
 
-void AnimationSequenceViewer::RenderAssetBrowser() 
+void AnimationSequenceViewerPanel::RenderAssetBrowser() 
 {
     TArray<FString> animNames;
     {
@@ -570,12 +570,12 @@ void AnimationSequenceViewer::RenderAssetBrowser()
 
 }
 
-void AnimationSequenceViewer::PlayButton(bool* v) const
+void AnimationSequenceViewerPanel::PlayButton(bool* v) const
 {
     // Not implement
 }
 
-void AnimationSequenceViewer::RepeatButton(bool* v) const
+void AnimationSequenceViewerPanel::RepeatButton(bool* v) const
 {
     ImVec4 ColorBg = *v ? ImVec4(0.0f, 0.3f, 0.0f, 1.0f) : ImVec4(0, 0, 0, 1.0f);
     
@@ -587,7 +587,7 @@ void AnimationSequenceViewer::RepeatButton(bool* v) const
     ImGui::PopStyleColor();
 }
 
-int AnimationSequenceViewer::FindAvailableTrackIndex(const TArray<FAnimNotifyEvent>& Notifies)
+int AnimationSequenceViewerPanel::FindAvailableTrackIndex(const TArray<FAnimNotifyEvent>& Notifies)
 {
     TSet<int32> UsedIndices;
     for (const FAnimNotifyEvent& Notify : Notifies)

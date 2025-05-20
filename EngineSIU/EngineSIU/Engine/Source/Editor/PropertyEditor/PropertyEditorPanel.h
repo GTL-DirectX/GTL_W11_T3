@@ -13,6 +13,13 @@
 
 #include "ImGuiInspector.h"
 
+#include "Engine/AssetManager.h"
+#include "Misc/Char.h"
+#include "Container/Array.h"
+#include "Container/Map.h"
+#include "Container/String.h"
+
+
 class USpringArmComponent;
 class UShapeComponent;
 class UAmbientLightComponent;
@@ -25,6 +32,7 @@ class UTextComponent;
 class UHeightFogComponent;
 class AEditorPlayer;
 class UStaticMeshComponent;
+class UParticleSystemComponent;
 
 // 헬퍼 함수 예시
 template<typename Getter, typename Setter>
@@ -89,6 +97,8 @@ private:
 
     void RenderForShapeComponent(UShapeComponent* ShapeComponent);
     void RenderForSpringArmComponent(USpringArmComponent* SpringArmComponent);
+
+    void RenderForParticleComponent(UParticleSystemComponent* ParticleComponent);
     
     template<typename T>
         requires std::derived_from<T, UActorComponent>
@@ -123,6 +133,12 @@ private:
     int SelectedAnimIndexB = -1;
     FString SelectedAnimNameB;
 
+    // ImGui 콤보박스용 문자열 보관
+    TArray<FString> SavedParticleSystemNames;
+    TArray<const char*> SavedParticleSystemNamesPtrs;
+
+    // 콤보박스 선택 인덱스
+    int SelectedPSIndex = 0;
 };
 
 template <typename T> requires std::derived_from<T, UActorComponent>
