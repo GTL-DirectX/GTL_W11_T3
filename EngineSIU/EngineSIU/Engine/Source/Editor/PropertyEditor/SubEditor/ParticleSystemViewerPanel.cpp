@@ -237,7 +237,56 @@ void ParticleSystemViewerPanel::RenderEmitters()
         {
             RenderModuleItem(Emitter, Modules[m]);
         }
-        ImGui::EndChild();
+
+        // ← 여기서 바로 “Add Module” 버튼을 추가
+        if (ImGui::Button("Add Module"))
+        {
+            PendingModuleIndex = 0;                // 리셋
+            bOpenAddModulePopup = true;
+            ImGui::OpenPopup("Add Module");
+        }
+        // 팝업 처리도 이 밑에 이어서…
+        // 2) 팝업 모달 (매 프레임 호출)
+        if (ImGui::BeginPopupModal("Add Module", &bOpenAddModulePopup, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Select Module Type:");
+
+            // 3) 콤보박스로 리스트 보여주기
+            ImGui::Combo("##ModuleType",
+                &PendingModuleIndex,
+                "Required\0"
+                "Spawn\0"
+                "Lifetime\0"
+                "Size\0"
+                "Velocity\0"
+                "Color\0"
+                "Rotation\0"
+                "Acceleration\0"
+                "Scale\0"
+                "Collision\0"
+            );
+
+            ImGui::Separator();
+
+            // 4) 확인/취소 버튼
+            if (ImGui::Button("OK", ImVec2(100, 0)))
+            {
+                // PendingModuleIndex 에 따라 실제 모듈 생성
+
+
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(100, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+                bOpenAddModulePopup = false;
+            }
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::EndChild();    // ← EndChild 직전!
 
         if (isEmitterSelected)
             ImGui::PopStyleColor();
