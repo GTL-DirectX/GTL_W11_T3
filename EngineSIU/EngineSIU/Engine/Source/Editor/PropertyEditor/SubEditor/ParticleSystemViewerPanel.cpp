@@ -82,19 +82,10 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGuiWindowFlags_NoCollapse
     );
     ImGui::SameLine();
-    if (ImGui::Button("Add Default Emitter"))
+    
+    if (ImGui::Button("Simulate"))
     {
-        DefaultEmitterIndex++;
-        UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
-        if (NewEmitter)
-        {
-            if (!CurrentParticleSystem)
-            {
-                CurrentParticleSystem = new UParticleSystem();
-                CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
-            }
-            CurrentParticleSystem->Emitters.Add(NewEmitter);
-        }
+        // simulation logic
     }
 
     ////가로로 나열된 형태의 UI, Popup 형태 시도
@@ -105,23 +96,14 @@ void ParticleSystemViewerPanel::RenderEmitters()
     //ImGui::InputText("##SaveSysName", SaveSystemName, IM_ARRAYSIZE(SaveSystemName));
     //ImGui::PopItemWidth();
 
-
-
     ImGui::SameLine();
 
     if (ImGui::Button("Save System"))
     {
         ImGui::OpenPopup("Save System");
     }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Rename Emmiter"))
-    {
-    }
-
     // ─── 모달 팝업 처리 ───
-        // BeginPopupModal은 매 프레임 호출
+    // BeginPopupModal은 매 프레임 호출
     if (ImGui::BeginPopupModal(
         "Save System",   // ← OpenPopup의 ID와 정확히 일치해야 함
         nullptr,         // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
@@ -150,7 +132,43 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGui::EndPopup();
     }
 
+    //ImGui::SameLine(); 한 줄 아래에 Add, Rename, Delete 버튼 배치
+    ImGui::Text("Emitter");
+    ImGui::SameLine();
+    if (ImGui::Button("Add"))
+    {
+        DefaultEmitterIndex++;
+        UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
+        if (NewEmitter)
+        {
+            if (!CurrentParticleSystem)
+            {
+                CurrentParticleSystem = new UParticleSystem();
+                CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
+            }
+            CurrentParticleSystem->Emitters.Add(NewEmitter);
+        }
+    }
 
+    // 선택된 emitter 이름변경하기 제거하기
+    if (SelectedEmitter)
+    {
+        ImGui::SameLine();
+        if (ImGui::Button("Rename"))
+        {
+            // Rename logic
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Delete"))
+        {
+            // 배열에서 제거
+            auto& Emitters = CurrentParticleSystem->Emitters;
+            Emitters.RemoveSingle(SelectedEmitter);
+            // 선택 해제
+            SelectedEmitter = nullptr;
+        }
+    }
 
     if (!CurrentParticleSystemComponent || !CurrentParticleSystem)
     {
