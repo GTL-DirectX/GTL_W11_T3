@@ -641,13 +641,13 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
         Particle.Location += Particle.Velocity * DeltaTime;
         Particle.RelativeTime += DeltaTime * Particle.OneOverMaxLifetime;
 
-        UE_LOG(ELogLevel::Error,
+        /*UE_LOG(ELogLevel::Error,
             TEXT("UpdateBoundingBox(): Index=%d, OldLoc=(%.2f, %.2f, %.2f), Vel=(%.2f, %.2f, %.2f), NewLoc=(%.2f, %.2f, %.2f), Life : (%.2f)"),
             i,
             Old.X, Old.Y, Old.Z,
             Particle.Velocity.X, Particle.Velocity.Y, Particle.Velocity.Z,
             Particle.Location.X, Particle.Location.Y, Particle.Location.Z, Particle.RelativeTime
-        );
+        );*/
     }
     END_MY_UPDATE_LOOP;
 }
