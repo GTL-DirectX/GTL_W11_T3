@@ -104,7 +104,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , ParticleStride(0)
     , ActiveParticles(0)
     , ParticleCounter(0)
-    , MaxActiveParticles(10)
+    , MaxActiveParticles(20)
     , SpawnFraction(0.0f)
     , EmitterTime(0.0f)
 {
@@ -344,7 +344,7 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     Particle->RelativeTime = 0.0f;
     float& Lifetime = CurrentLODLevel->RequiredModule->EmitterDuration;
     Particle->OneOverMaxLifetime = Lifetime > 0.f
-        ? 1.f / (Lifetime * 6)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
+        ? 1.f / (Lifetime * 2)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
         : 1.f;
     // 생명 6배, 6개 동시존재가능
 }

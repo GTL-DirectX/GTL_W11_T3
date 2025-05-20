@@ -24,7 +24,7 @@ void AParticleActor::PostSpawnInitialize()
     UParticleModuleRequired* ReqMod = FObjectFactory::ConstructObject<UParticleModuleRequired>(nullptr);
     ReqMod->bEnabled = true;
     ReqMod->EmitterDuration = 3.0f;
-    ReqMod->SpawnRate = 1.0f / ReqMod->EmitterDuration;  // 3초의 Emitter Cycle동안 1개의 파티클 생성
+    ReqMod->SpawnRate = 10.0f / ReqMod->EmitterDuration;  // 3초의 Emitter Cycle동안 1개의 파티클 생성
 
     // TypeDataModule 생성 및 세팅
     UParticleModuleTypeDataBase* TypeData = FObjectFactory::ConstructObject<UParticleModuleTypeDataBase>(nullptr);
@@ -38,7 +38,7 @@ void AParticleActor::PostSpawnInitialize()
     // Velocity 모듈 생성
     UParticleModuleVelocity* VelMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(nullptr);
     VelMod->bEnabled = true;
-    VelMod->StartVelocity = FVector(0.f, 0.f, 1.f);  // 하드코딩
+    //VelMod->StartVelocity = FVector(0.f, 0.f, 1.f);  // 하드코딩
     
 
     // TODO : (원한다면 파생 클래스로 교체: UParticleModuleTypeDataSprite 등)

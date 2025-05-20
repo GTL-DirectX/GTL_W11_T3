@@ -2,30 +2,57 @@
 
 #include "ParticleEmitterInstances.h"
 #include "ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatUniform.h"
+#include "Distributions/DistributionVectorUniform.h"
+#include "UObject/Casts.h"
+#include "UObject/ObjectFactory.h"
+
+
+void UParticleModuleVelocity::PostInitProperties()
+{
+    StartVelocity.Distribution = FObjectFactory::ConstructObject<UDistributionVectorUniform>(this);
+    if (auto* Dist = Cast<UDistributionVectorUniform>(StartVelocity.Distribution))
+    {
+        Dist->Min = FVector(-1.f, -1.f, -1.f);
+        Dist->Max = FVector( 1.f,  1.f, 1.f);
+    }
+
+    StartVelocityRadial.Distribution = FObjectFactory::ConstructObject<UDistributionFloatUniform>(this);
+    if (auto* Radial = Cast<UDistributionFloatUniform>(StartVelocityRadial.Distribution))
+    {
+        Radial->Min = 0.f;
+        Radial->Max = 5.f;
+    }
+}
 
 void UParticleModuleVelocity::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
-    //Super::Spawn(Owner, Offset, SpawnTime, ParticleBase);
-
     FBaseParticle& Particle = *ParticleBase;
+    const float Time = Owner->EmitterTime;
+    
+    // 1. 기본 속도 분포 평가
+    FVector LinearVelocity = StartVelocity.GetValue(Time, Owner->Component, 0);  // Offset은 보통 페이로드 offset, 여기선 0
 
-    // TODO : StartVelocity 분포에서 속도값 평가 로직 GetValue 추가하기
-    FVector Vel = StartVelocity;
+    // 2. 공간 변환: Local → Simulation
+    LinearVelocity = Owner->EmitterToSimulation.TransformVector(LinearVelocity);
 
-    // 공간 변환 (Local → Simulation)
-    Vel = Owner->EmitterToSimulation.TransformVector(Vel);
-    //FVector Radial = FromOrigin * StartVelocityRadial.GetValue(...);
+    // 3. 방사형 속도 값 평가
+    float RadialSpeed = StartVelocityRadial.GetValue(Time);
 
-    // TODO : Radial 방향 속도 추가 (Distribution 반영)
+    // 4. Emitter 중심 방향 단위 벡터
+    FVector FromOrigin = (Particle.Location - Owner->EmitterToSimulation.GetOrigin()).GetSafeNormal();
+    FVector RadialVelocity = FromOrigin * RadialSpeed;
 
 
+    // 5. 최종 속도 = 기본 + 방사형
+    FVector FinalVelocity = LinearVelocity + RadialVelocity;
 
-    Particle.Velocity += Vel;
-    Particle.BaseVelocity += Vel;
+    // 6. 파티클에 누적
+    Particle.Velocity += (FVector)FinalVelocity;
+    Particle.BaseVelocity += (FVector)FinalVelocity;
 
     UE_LOG(ELogLevel::Error,
-        TEXT("[Velocity] OffsetIdx=%d SpawnTime=%.3f AddVel=(%.1f,%.1f,%.1f) CurrVel=(%.1f,%.1f,%.1f)"),
+        TEXT("[Velocity] OffsetIdx=%d SpawnTime=%.3f FinalVel=(%.1f, %.1f, %.1f)"),
         Offset, SpawnTime,
-        Vel.X, Vel.Y, Vel.Z,
-        Particle.Velocity.X, Particle.Velocity.Y, Particle.Velocity.Z);
+        FinalVelocity.X, FinalVelocity.Y, FinalVelocity.Z);
 }

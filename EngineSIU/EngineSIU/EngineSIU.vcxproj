@@ -219,6 +219,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTransitionInstance.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTwoNodeBlendInstance.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimTypes.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Distributions\Distributions.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Character.cpp" />
     <ClCompile Include="Engine\Source\Contents\Actors\Fish.cpp" />
     <ClCompile Include="Engine\Source\Contents\Actors\GoalPlatformActor.cpp" />
@@ -522,6 +523,14 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimationRuntime.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimTransitionInstance.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimTwoNodeBlendInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloat.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatConstant.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatUniform.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatUniformCurve.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVector.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorConstant.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorUniform.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorUniformCurve.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\Asset\AnimationAsset.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifyQueue.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\GameFramework\Character.h" />

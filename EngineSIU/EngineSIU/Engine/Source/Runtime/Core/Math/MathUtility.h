@@ -54,6 +54,23 @@ struct FMath
     static FORCEINLINE bool IsFinite(float A) { return _finite(A) != 0; }
     static FORCEINLINE bool IsFinite(double A) { return _finite(A) != 0; }
 
+    /** Returns a random integer between 0 and RAND_MAX, inclusive */
+    static FORCEINLINE int32 Rand() { return rand(); }
+
+    /** Returns a random float between 0 and 1, inclusive. */
+    static FORCEINLINE float FRand()
+    {
+        // FP32 mantissa can only represent 24 bits before losing precision
+        constexpr int32 RandMax = 0x00ffffff < RAND_MAX ? 0x00ffffff : RAND_MAX;
+        return (Rand() & RandMax) / (float)RandMax;
+    }
+
+    /** Util to generate a random number in a range. */
+    [[nodiscard]] static FORCEINLINE float FRandRange(float InMin, float InMax)
+    {
+        return InMin + (InMax - InMin) * FRand();
+    }
+
     /** A와 B중에 더 작은 값을 반환합니다. */
     template <typename T>
     [[nodiscard]] static FORCEINLINE constexpr T Min(const T A, const T B)
