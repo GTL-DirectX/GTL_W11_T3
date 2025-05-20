@@ -1681,7 +1681,6 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNode_State.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState_SlowMotion.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState.cpp" />
-    <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\AnimationSequenceViewer.cpp" />
     <ClCompile Include="Engine\Source\Editor\Viewer\SlateViewer.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Engine\FbxManager.cpp" />
     <ClCompile Include="Engine\Source\ThirdParty\ImGui\include\ImGui\imgui_neo_internal.cpp" />
@@ -1689,7 +1688,6 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystemComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitterInstances.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModule.cpp" />
-    <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\ParticleSystemEditorPanel.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitter.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\ParticleRenderPass.cpp" />
@@ -1697,6 +1695,9 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleLODLevel.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Velocity.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Location.cpp" />
+    <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\AnimationSequenceViewerPanel.cpp" />
+    <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\ParticleSystemViewerPanel.cpp" />
+    <ClCompile Include="Shaders\ParticleSpritePixelShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1767,7 +1768,6 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNode_State.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState_SlowMotion.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Animation\AnimNotifies\AnimNotifyState.h" />
-    <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\AnimationSequenceViewer.h" />
     <ClInclude Include="Engine\Source\Editor\Viewer\SlateViewer.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Misc\Spinlock.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Engine\FbxManager.h" />
@@ -1779,7 +1779,6 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitter.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModule.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleRequired.h" />
-    <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\ParticleSystemEditorPanel.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleActor.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleLODLevel.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleColor.h" />
@@ -1798,6 +1797,8 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystem.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\ParticleRenderPass.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Templates\AlignmentTemplates.h" />
+    <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\AnimationSequenceViewerPanel.h" />
+    <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\ParticleSystemViewerPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

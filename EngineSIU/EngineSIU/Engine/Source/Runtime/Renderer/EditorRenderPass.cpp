@@ -459,7 +459,7 @@ void FEditorRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Vie
 
     PrepareRendertarget(Viewport);
 
-    ID3D11DepthStencilState* DepthStateEnable = Graphics->DepthStencilStateTestLess;
+    ID3D11DepthStencilState* DepthStateEnable = Graphics->DepthStencilState_Default;
     Graphics->DeviceContext->OMSetDepthStencilState(DepthStateEnable, 0);
 
     RenderGrid(Viewport);
@@ -493,7 +493,7 @@ void FEditorRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Vie
     {
         RenderShapes();
     }
-    //ID3D11DepthStencilState* DepthStateDisable = Graphics->DepthStencilStateTestAlways;
+    //ID3D11DepthStencilState* DepthStateDisable = Graphics->DepthStencilState_DepthWriteDisabled;
     //Graphics->DeviceContext->OMSetDepthStencilState(DepthStateDisable, 0);
 }
 
