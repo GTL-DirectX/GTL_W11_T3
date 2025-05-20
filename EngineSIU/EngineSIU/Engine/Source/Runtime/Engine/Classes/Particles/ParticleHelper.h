@@ -5,6 +5,7 @@
 #include "Math/Matrix.h"
 #include "Math/Color.h"
 #include "Container/Array.h"
+#include "Components/Material/Material.h"
 
 /*-----------------------------------------------------------------------------
     Forward declarations
@@ -673,7 +674,7 @@ struct FDynamicEmitterReplayDataBase
 struct FDynamicSpriteEmitterReplayDataBase
     : public FDynamicEmitterReplayDataBase
 {
-    //UMaterialInterface* MaterialInterface; // TODO: 머티리얼 관련 부분 Interface 사용하도록 바꿔줘야 할 듯. 아니면 Material 객체로 대체.
+    UMaterial* MaterialInterface;
     struct FParticleRequiredModule* RequiredModule;
     FVector							NormalsSphereCenter;
     FVector							NormalsCylinderDirection;
