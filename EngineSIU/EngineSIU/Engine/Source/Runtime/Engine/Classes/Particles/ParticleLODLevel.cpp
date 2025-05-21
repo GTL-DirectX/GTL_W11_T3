@@ -43,8 +43,6 @@ void UParticleLODLevel::PostInitProperties()
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleLifeTime>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleSize>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleColor>(this));
-
-    UpdateModuleLists();
 }
 
 UObject* UParticleLODLevel::Duplicate(UObject* InOuter)
@@ -56,16 +54,12 @@ UObject* UParticleLODLevel::Duplicate(UObject* InOuter)
         NewLODLevel->bEnabled = bEnabled;
         NewLODLevel->PeakActiveParticles = PeakActiveParticles;
         // LODLevel의 모듈 복사
+        NewLODLevel->Modules.SetNum(Modules.Num());
         for (int32 i = 0; i < Modules.Num(); ++i)
         {
-            UParticleModule* Module = Modules[i];
-            if (Module)
+            if (Modules[i])
             {
-                UParticleModule* NewModule = Cast<UParticleModule>(Module->Duplicate(NewLODLevel));
-                if (NewModule)
-                {
-                    NewLODLevel->Modules.Add(NewModule);
-                }
+                NewLODLevel->Modules[i] = Cast<UParticleModule>(Modules[i]->Duplicate(NewLODLevel));
             }
         }
     }
@@ -79,6 +73,9 @@ void UParticleLODLevel::UpdateModuleLists()
 {
     UParticleModule* Module;
     int32 TypeDataModuleIndex = -1;
+
+    SpawnModules.Empty();
+    UpdateModules.Empty();
 
     for (int32 i = 0; i < Modules.Num(); i++)
     {

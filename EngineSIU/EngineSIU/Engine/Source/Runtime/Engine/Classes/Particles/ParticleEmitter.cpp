@@ -46,17 +46,10 @@ UObject* UParticleEmitter::Duplicate(UObject* InOuter)
         NewEmitter->InitialAllocationCount = InitialAllocationCount;
         NewEmitter->ReqInstanceBytes = ReqInstanceBytes;
         // LODLevel 복사
+        NewEmitter->LODLevels.SetNum(LODLevels.Num());
         for (int32 i = 0; i < LODLevels.Num(); ++i)
         {
-            UParticleLODLevel* LODLevel = LODLevels[i];
-            if (LODLevel)
-            {
-                UParticleLODLevel* NewLODLevel = Cast<UParticleLODLevel>(LODLevel->Duplicate(NewEmitter));
-                if (NewLODLevel)
-                {
-                    NewEmitter->LODLevels.Add(NewLODLevel);
-                }
-            }
+            NewEmitter->LODLevels[i] = Cast<UParticleLODLevel>(LODLevels[i]->Duplicate(NewEmitter));
         }
     }
     return NewEmitter;
@@ -71,7 +64,14 @@ void UParticleEmitter::Build()
     {
         /* Cache particle size/offset data for all LOD Levels */
         CacheEmitterModuleInfo();
-
+        for (UParticleLODLevel* LodLevel : LODLevels)
+        {
+            if (LodLevel)
+            {
+                LodLevel->UpdateModuleLists();
+            }
+        }
+        
         UE_LOG(ELogLevel::Error, TEXT("ParticleSize=%d  ReqInstanceBytes=%d Modules=%d"),
             ParticleSize, ReqInstanceBytes, ModulesNeedingInstanceData.Num());
     }

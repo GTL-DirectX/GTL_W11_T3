@@ -23,17 +23,14 @@ UObject* UParticleSystem::Duplicate(UObject* InOuter)
     UParticleSystem* NewParticleSystem = Cast<UParticleSystem>(Super::Duplicate(InOuter));
     if (NewParticleSystem)
     {
+        NewParticleSystem->Emitters.SetNum(Emitters.Num());
+        
         // Emitters 복사
         for (int32 i = 0; i < Emitters.Num(); ++i)
         {
-            UParticleEmitter* Emitter = Emitters[i];
-            if (Emitter)
+            if (Emitters[i])
             {
-                UParticleEmitter* NewEmitter = Cast<UParticleEmitter>(Emitter->Duplicate(NewParticleSystem));
-                if (NewEmitter)
-                {
-                    NewParticleSystem->Emitters.Add(NewEmitter);
-                }
+                NewParticleSystem->Emitters[i] = Cast<UParticleEmitter>(Emitters[i]->Duplicate(NewParticleSystem));
             }
         }
     }

@@ -47,6 +47,7 @@
 #include "Animation/AnimationStateMachine.h"
 #include <Contents/PreviewAnimInstance.h>
 #include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleSystem.h"
 
 #include "GameFramework/Actor.h"
 
@@ -1645,6 +1646,7 @@ void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* P
 
         // 1. 현재 ParticleSystemComponent의 Template 이름 기준으로 초기 선택 인덱스 계산
         FString CurrentSystemName;
+        
         if (ParticleComponent->Template)
         {
             for (const auto& Pair : ParticleMap)
@@ -1701,6 +1703,7 @@ void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* P
         ImGui::TreePop();
     }
 }
+
 void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp)
 {
     if (StaticMeshComp->GetStaticMesh() == nullptr)
