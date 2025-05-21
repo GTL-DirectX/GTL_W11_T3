@@ -14,6 +14,17 @@ UParticleModuleVelocity::UParticleModuleVelocity()
     bUpdateModule = false;
 }
 
+UObject* UParticleModuleVelocity::Duplicate(UObject* InOuter)
+{
+    UParticleModuleVelocity* NewModule = Cast<UParticleModuleVelocity>(Super::Duplicate(InOuter));
+    if (NewModule)
+    {
+        NewModule->StartVelocity = StartVelocity;
+        NewModule->StartVelocityRadial = StartVelocityRadial;
+    }
+    return NewModule;
+}
+
 void UParticleModuleVelocity::PostInitProperties()
 {
     StartVelocity.Distribution = FObjectFactory::ConstructObject<UDistributionVectorUniform>(this);

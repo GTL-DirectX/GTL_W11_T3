@@ -18,63 +18,11 @@ void AParticleActor::PostSpawnInitialize()
     ParticleSystemComponent = AddComponent<UParticleSystemComponent>(FName("ParticleSystemComponent_0"));
     RootComponent = ParticleSystemComponent;
 
-    // -- 1) PS / Emitter / LOD 생성
-    UParticleSystem* PS = FObjectFactory::ConstructObject<UParticleSystem>(this);
-    UParticleEmitter* Emitter = FObjectFactory::ConstructObject<UParticleEmitter>(nullptr);
-    UParticleLODLevel* LOD = FObjectFactory::ConstructObject<UParticleLODLevel>(nullptr);
-
-    // -- 2) Required module
-    UParticleModuleRequired* ReqMod = FObjectFactory::ConstructObject<UParticleModuleRequired>(nullptr);
-    ReqMod->bEnabled = true;
-    ReqMod->EmitterDuration = 3.0f;
-    ReqMod->SpawnRate = 10.0f / ReqMod->EmitterDuration;  // 3초의 Emitter Cycle동안 1개의 파티클 생성
-
-    // TypeDataModule 생성 및 세팅 (현재는 Sprite Type이라고 가정하고 일단 아래처럼 구현)
-    UParticleModuleTypeDataSprite* SpriteTypeData = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(nullptr);
-
-    /* [NOTE!!!] 모든 Module은 생성자에서 bEnabled = true */
-    // Location 모듈 생성
-    UParticleModuleLocation* LocMod = FObjectFactory::ConstructObject<UParticleModuleLocation>(nullptr);
-    //LocMod->StartLocation = FVector::ZeroVector;  // 하드코딩
-
-    // Velocity 모듈 생성
-    UParticleModuleVelocity* VelMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(nullptr);
-    //VelMod->StartVelocity = FVector(0.f, 0.f, 1.f);  // 하드코딩
-
-    // Lifetime 모듈 생성
-    UParticleModuleLifeTime* LifeMod = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(nullptr);
-
-
-    // TODO : (원한다면 파생 클래스로 교체: UParticleModuleTypeDataSprite 등)
-
-    // 생성한 객체들 서로 연결
-    PS->Emitters.Add(Emitter);
-    Emitter->LODLevels.Add(LOD);
-
-    LOD->RequiredModule = ReqMod;
-    LOD->TypeDataModule = SpriteTypeData;
-
-    LOD->Modules = { ReqMod, SpriteTypeData, LocMod, VelMod, LifeMod };
-    LOD->SpawnModules = { ReqMod, SpriteTypeData, LocMod, VelMod, LifeMod };  // Spawn 시에만 위치+속도 세팅
-    LOD->UpdateModules = { SpriteTypeData };
-
-    // Offset/Size 계산
-    PS->BuildEmitters();
-
-    // 컴포넌트에 템플릿 연결 + 초기화
-    ParticleSystemComponent->Template = PS;
     ParticleSystemComponent->InitializeSystem();
 
     // 하드코딩된 초기 위치/속도 세팅
     ParticleSystemComponent->InitialLocationHardcoded = FVector::ZeroVector;
     ParticleSystemComponent->InitialVelocityHardcoded = FVector(0.f, 0.f, 1.f);
-
-    UE_LOG(ELogLevel::Error,
-        TEXT("Initialized: Duration=%.1f, Rate=%.1f, Mods=%d"),
-        ReqMod->EmitterDuration,
-        ReqMod->SpawnRate,
-        LOD->Modules.Num()
-    );
 }
 
 UObject* AParticleActor::Duplicate(UObject* InOuter)

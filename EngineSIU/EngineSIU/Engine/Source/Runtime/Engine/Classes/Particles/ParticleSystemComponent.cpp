@@ -8,6 +8,12 @@
 #include "sol/sol.hpp"
 #include "World/World.h"
 
+void UParticleSystemComponent::PostInitProperties()
+{
+    Super::PostInitProperties();
+    Template = FObjectFactory::ConstructObject<UParticleSystem>(this);
+}
+
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
@@ -77,7 +83,7 @@ void UParticleSystemComponent::ResetParticles()
 void UParticleSystemComponent::InitParticles()
 {
     /* 반드시 호출해야 Inst->Init에서 올바른 값을 참조 (SpriteTemplate의 모든 변수) */
-    Template->BuildEmitters();
+    //Template->BuildEmitters();
 
     ResetParticles();
 
@@ -222,6 +228,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
     if (Template != NewTemplate)
     {
         Template = NewTemplate;
+        Template->BuildEmitters();
         InitializeSystem();         // 내부에서 InitParticles() 호출
     }
 }

@@ -38,6 +38,8 @@ class UParticleModule : public UObject
 
 public:
     UParticleModule() = default;
+    virtual void PostInitProperties() override;
+    virtual UObject* Duplicate(UObject* InOuter) override;
 
 public:
 

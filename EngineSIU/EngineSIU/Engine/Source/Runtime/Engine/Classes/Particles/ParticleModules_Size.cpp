@@ -11,6 +11,16 @@ UParticleModuleSize::UParticleModuleSize()
     bUpdateModule = false;
 }
 
+UObject* UParticleModuleSize::Duplicate(UObject* InOuter)
+{
+    UParticleModuleSize* NewModule = Cast<UParticleModuleSize>(Super::Duplicate(InOuter));
+    if (NewModule)
+    {
+        NewModule->StartSize = StartSize;
+    }
+    return NewModule;
+}
+
 
 void UParticleModuleSize::PostInitProperties()
 {
