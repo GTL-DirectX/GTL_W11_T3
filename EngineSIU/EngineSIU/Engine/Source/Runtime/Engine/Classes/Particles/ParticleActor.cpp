@@ -16,6 +16,7 @@ void AParticleActor::PostSpawnInitialize()
     Super::PostSpawnInitialize();
 
     ParticleSystemComponent = AddComponent<UParticleSystemComponent>(FName("ParticleSystemComponent_0"));
+    RootComponent = ParticleSystemComponent;
 
     // -- 1) PS / Emitter / LOD 생성
     UParticleSystem* PS = FObjectFactory::ConstructObject<UParticleSystem>(this);
