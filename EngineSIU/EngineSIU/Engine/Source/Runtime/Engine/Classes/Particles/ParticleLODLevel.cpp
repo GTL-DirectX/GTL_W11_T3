@@ -46,6 +46,12 @@ void UParticleLODLevel::PostInitProperties()
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleColor>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleAcceleration>(this));
 
+    RequiredModule->BurstList.Add(FParticleBurst{ 5, -1, 0.5f });   // CountLow<0 이면 고정 Count
+    FParticleBurst B;
+    B.Count = 6;
+    B.CountLow = 3;
+    B.Time = 0.8f;
+    RequiredModule->BurstList.Add(B);
 }
 
 UObject* UParticleLODLevel::Duplicate(UObject* InOuter)

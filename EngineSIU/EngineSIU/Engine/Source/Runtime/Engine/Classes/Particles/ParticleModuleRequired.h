@@ -44,6 +44,12 @@ struct FParticleBurst
     {
     }
 
+    FParticleBurst(int32 InCount, int32 InCountLow, float InTime)
+        : Count(InCount)
+        , CountLow(InCountLow)
+        , Time(InTime)
+    {
+    }
 };
 
 /* 렌더링에 필요한 공통 파라미터(머티리얼, 색상, 정렬, Facing 등)을 정의
