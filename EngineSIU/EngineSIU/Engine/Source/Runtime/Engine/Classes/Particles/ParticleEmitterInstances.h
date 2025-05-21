@@ -43,7 +43,8 @@ struct FParticleEmitterInstance
     /** 파티클 배열 내 최대 활성화 개수 **/
     int32 MaxActiveParticles;
 
-    float SpawnFraction;
+    /* ex) 지난 프레임에서 생성해야 했던 파티클의 소수점 개수*/
+    float SpawnFraction; 
     float EmitterTime;
     float LastDeltaTime;
 

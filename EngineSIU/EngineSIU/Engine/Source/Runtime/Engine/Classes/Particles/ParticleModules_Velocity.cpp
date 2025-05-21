@@ -7,6 +7,12 @@
 #include "UObject/Casts.h"
 #include "UObject/ObjectFactory.h"
 
+UParticleModuleVelocity::UParticleModuleVelocity()
+{
+    bEnabled = true;
+    bSpawnModule = true;
+    bUpdateModule = false;
+}
 
 void UParticleModuleVelocity::PostInitProperties()
 {

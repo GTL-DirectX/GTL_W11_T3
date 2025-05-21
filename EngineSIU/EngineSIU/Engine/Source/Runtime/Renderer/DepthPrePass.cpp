@@ -33,7 +33,10 @@ void FDepthPrePass::PrepareRenderArr()
 void FDepthPrePass::Render(const std::shared_ptr<FEditorViewportClient>& Viewport)
 {
     PrepareRenderState(Viewport);
+    FStaticMeshRenderPass::PrepareRenderArr();
     FStaticMeshRenderPass::RenderAllStaticMeshes(Viewport);
+    FStaticMeshRenderPass::ClearRenderArr();
+
     FSkeletalMeshRenderPass::Render(Viewport);
     // 렌더 타겟 해제
     FStaticMeshRenderPass::Graphics->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);

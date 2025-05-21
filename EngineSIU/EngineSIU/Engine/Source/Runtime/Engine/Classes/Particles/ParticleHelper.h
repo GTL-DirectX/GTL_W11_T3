@@ -137,7 +137,7 @@ struct FBaseParticle
 
     // 16 bytes
     float			RelativeTime;			// Relative time, range is 0 (==spawn) to 1 (==death). RelativeTime >= 1.0f 이면 Kill. RelativeTime += DeltaTime / LifeTime.
-    float			OneOverMaxLifetime;		// Reciprocal of lifetime. 1 / Lifetime 계산을 매번 하지 않기 위한 캐시 값.
+    float			OneOverMaxLifetime;		// 1초당 늘어날 수명 = 1/MaxLifeTime [0, 1]
     float			Placeholder0;
     float			Placeholder1;
 };
