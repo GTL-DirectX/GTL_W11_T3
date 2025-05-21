@@ -35,7 +35,6 @@ enum class EPropertyType : uint8
     Rotator,
     Vector,
     Color,                         // 색상 타입 (FColor)
-    MaterialInfo,
 };
 
 template <typename T>
@@ -136,10 +135,3 @@ consteval EPropertyType GetPropertyType<FColor>()
 {
     return EPropertyType::Color;
 }
-
-template<>
-consteval EPropertyType GetPropertyType<FMaterialInfo>()
-{
-    return EPropertyType::MaterialInfo;
-}
-

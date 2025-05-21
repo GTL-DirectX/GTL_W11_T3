@@ -28,10 +28,10 @@ void ParticleSystemViewerPanel::Render()
         CurrentParticleSystemComponent = Engine->GetSelectedActor()->GetComponentByClass<UParticleSystemComponent>();
         CurrentParticleSystem = CurrentParticleSystemComponent->GetParticleSystem();
     }
-    
+
     // Viewport
     RenderMainViewport();
-    
+
     // Emitters
     RenderEmitters();
 
@@ -77,12 +77,12 @@ void ParticleSystemViewerPanel::RenderEmitters()
         "Emitters",
         nullptr,
         ImGuiWindowFlags_HorizontalScrollbar |
-        ImGuiWindowFlags_NoMove        |
-        ImGuiWindowFlags_NoResize      |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoCollapse
     );
     ImGui::SameLine();
-    
+
     if (ImGui::Button("Simulate"))
     {
         // simulation logic
@@ -105,9 +105,10 @@ void ParticleSystemViewerPanel::RenderEmitters()
     // ─── 모달 팝업 처리 ───
     // BeginPopupModal은 매 프레임 호출
     if (ImGui::BeginPopupModal(
-        "Save System",   // ← OpenPopup의 ID와 정확히 일치해야 함
-        nullptr,         // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
-        ImGuiWindowFlags_AlwaysAutoResize))
+        "Save System", // ← OpenPopup의 ID와 정확히 일치해야 함
+        nullptr,       // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
+        ImGuiWindowFlags_AlwaysAutoResize
+    ))
     {
         static char SaveSystemName[128] = "";
 
@@ -120,10 +121,13 @@ void ParticleSystemViewerPanel::RenderEmitters()
 
         if (ImGui::Button("OK", ImVec2(100, 0)))
         {
-            UE_LOG(ELogLevel::Warning, TEXT("CurrentParticleSystem is %s and name is %s"), CurrentParticleSystem != nullptr ? TEXT("Valid") : TEXT("Null"), SaveSystemName);
+            UE_LOG(
+                ELogLevel::Warning, TEXT("CurrentParticleSystem is %s and name is %s"),
+                CurrentParticleSystem != nullptr ? TEXT("Valid") : TEXT("Null"), SaveSystemName
+            );
 
             // SaveSystemName 을 이용해 실제 저장 처리
-            FString Key(SaveSystemName); 
+            FString Key(SaveSystemName);
 
             //// 1) Get() 으로 매니저 참조 가져오기
             //UAssetManager& AssetMgr = UAssetManager::Get();
@@ -138,7 +142,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
 
             // Get() 이 반환하는 UAssetMaanger& 에 바로 호출
             UAssetManager::Get().AddSavedParticleSystem(Key, SystemPtr);
-   
+
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
@@ -176,7 +180,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
         {
             ImGui::OpenPopup("Rename");
         }
-        
+
         ImGui::SameLine();
         if (ImGui::Button("Delete"))
         {
@@ -193,12 +197,12 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGui::End();
         return;
     }
-    
+
     auto& Emitters = CurrentParticleSystem->Emitters;
-    float EmitterWidth       = 220.0f;
-    float totalContentWidth  = EmitterWidth * float(Emitters.Num());
+    float EmitterWidth = 220.0f;
+    float totalContentWidth = EmitterWidth * float(Emitters.Num());
     ImGui::SetNextWindowContentSize(ImVec2(totalContentWidth, 0));
-    
+
     for (int i = 0; i < Emitters.Num(); ++i)
     {
         UParticleEmitter* Emitter = Emitters[i];
@@ -210,10 +214,10 @@ void ParticleSystemViewerPanel::RenderEmitters()
 
         ImGui::BeginChild(
             ("Emitter" + std::to_string(i)).c_str(),
-            ImVec2(EmitterWidth, 0), 
+            ImVec2(EmitterWidth, 0),
             isEmitterSelected // 여기에 true 이면 테두리가 그려짐. 
         );
-        
+
         //── 1. Emitter Base Info 선택 영역 ───────────────────────────────
         float regionWidth = ImGui::GetContentRegionAvail().x;
         ImVec2 regionSize = ImVec2(regionWidth, 100);
@@ -225,14 +229,14 @@ void ParticleSystemViewerPanel::RenderEmitters()
             SelectedEmitter = Emitter;
             SelectedModule = nullptr;
         }
-            
+
         //── 2. Required 모듈 ─────────────────────────────────────────────
         // UParticleModuleRequired* RequiredModule = Emitter->LODLevels[0]->RequiredModule;
         // RenderModuleItem(Emitter, RequiredModule);
 
         //── 3. 나머지 모듈들 ──────────────────────────────────────────────
         auto& Modules = Emitter->LODLevels[0]->Modules;
-        for (int m=0; m < Modules.Num(); ++m)
+        for (int m = 0; m < Modules.Num(); ++m)
         {
             RenderModuleItem(Emitter, Modules[m]);
         }
@@ -252,7 +256,8 @@ void ParticleSystemViewerPanel::RenderEmitters()
             ImGui::Text("Select Module Type:");
 
             // 3) 콤보박스로 리스트 보여주기
-            ImGui::Combo("##ModuleType",
+            ImGui::Combo(
+                "##ModuleType",
                 &PendingModuleIndex,
                 // "Required\0" 는 필수 모듈이므로,
                 "Spawn\0"
@@ -301,7 +306,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
                     case 5: // "Color"
                         NewMod = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
                         break;
-                        // ... 나머지 모듈도 같은 패턴으로 추가 ...
+                    // ... 나머지 모듈도 같은 패턴으로 추가 ...
                     default:
                         break;
                     }
@@ -329,7 +334,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
             ImGui::EndPopup();
         }
 
-        ImGui::EndChild();    // ← EndChild 직전!
+        ImGui::EndChild(); // ← EndChild 직전!
 
         if (isEmitterSelected)
             ImGui::PopStyleColor();
@@ -352,6 +357,110 @@ void ParticleSystemViewerPanel::RenderDetails()
     if (SelectedModule)
     {
         ImGui::Text("Module  : %s", *SelectedModule->GetName());
+
+        // Material만 하드코딩으로 적용
+        if (auto* RequiredModule = Cast<UParticleModuleRequired>(SelectedModule))
+        {
+            if (UMaterial* Mat = RequiredModule->Material)
+            {
+                FMaterialInfo& Info = Mat->GetMaterialInfo();
+                ImGui::Separator();
+                ImGui::Text("Material Properties");
+                
+                // --- Material Name ---
+                {
+                    std::string Name = GetData(*Info.MaterialName);
+                    ImGui::Text("Name: %s", Name.c_str());
+                }
+
+                // --- Diffuse Texture ---
+                {
+                    const uint16 DiffuseFlag = static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
+                    if ((Info.TextureFlag & DiffuseFlag) != 0)
+                    {
+                        const int DiffuseSlot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
+                        if (Info.TextureInfos.IsValidIndex(DiffuseSlot))
+                        {
+                            const FTextureInfo& TextureInfo = Info.TextureInfos[DiffuseSlot];
+                        
+                            auto TexPtr = FEngineLoop::ResourceManager.GetTexture(TextureInfo.TexturePath);
+                            if (TexPtr && TexPtr->TextureSRV)
+                            {
+                                ImGui::Image((ImTextureID)TexPtr->TextureSRV, ImVec2(64, 64));
+                                ImGui::Text("Diffuse Texture : ");
+                                ImGui::SameLine();
+                                std::string NameUtf8 = GetData(*TextureInfo.TextureName);
+                                ImGui::SameLine();
+                                ImGui::Text("%s", NameUtf8.c_str());
+                            }
+                            else
+                            {
+                                ImGui::Text("Diffuse texture not found or not loaded.");
+                            }
+                        }
+                    }
+                }
+                
+                // --- Diffuse Color ---
+                {
+                    float diff[3] = {Info.DiffuseColor.X, Info.DiffuseColor.Y, Info.DiffuseColor.Z};
+                    if (ImGui::ColorEdit3("Diffuse", diff))
+                    {
+                        Info.DiffuseColor = FVector(diff[0], diff[1], diff[2]);
+                    }
+                }
+
+                // --- Specular Color & Power ---
+                {
+                    float specCol[3] = {Info.SpecularColor.X, Info.SpecularColor.Y, Info.SpecularColor.Z};
+                    if (ImGui::ColorEdit3("Specular", specCol))
+                    {
+                        Info.SpecularColor = FVector(specCol[0], specCol[1], specCol[2]);
+                    }
+                    float power = Info.SpecularExponent;
+                    if (ImGui::DragFloat("Specular Power", &power, 1.0f, 0.0f, 1000.0f))
+                    {
+                        Info.SpecularExponent = power;
+                    }
+                }
+
+                // --- Ambient Color ---
+                {
+                    float diff[3] = {Info.AmbientColor.X, Info.AmbientColor.Y, Info.AmbientColor.Z};
+                    if (ImGui::ColorEdit3("Ambient", diff))
+                    {
+                        Info.AmbientColor = FVector(diff[0], diff[1], diff[2]);
+                    }
+                }
+
+                // --- Emissive Color & Intensity ---
+                {
+                    float emiCol[3] = {Info.EmissiveColor.X, Info.EmissiveColor.Y, Info.EmissiveColor.Z};
+                    if (ImGui::ColorEdit3("Emissive", emiCol))
+                    {
+                        Info.EmissiveColor = FVector(emiCol[0], emiCol[1], emiCol[2]);
+                    }
+                    float intensity = Info.EmissiveIntensity;
+                    if (ImGui::DragFloat("Emissive Intensity", &intensity, 0.1f, 0.0f, 10.0f))
+                    {
+                        Info.EmissiveIntensity = intensity;
+                    }
+                }
+
+                // --- Transparency ---
+                {
+                    float trans = Info.Transparency;
+                    if (ImGui::DragFloat("Transparency", &trans, 0.01f, 0.0f, 1.0f))
+                    {
+                        Info.Transparency = trans;
+                        Info.bTransparent = (trans < 1.0f);
+                    }
+                }
+                ImGui::Separator();
+            }
+        }
+
+        // 나머지 UField 기반 프로퍼티
         RenderProperties(SelectedModule);
     }
     ImGui::End();
@@ -362,7 +471,7 @@ void ParticleSystemViewerPanel::RenderCurveEditor()
     ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, Height * 0.55f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.7f, Height * 0.45f));
     ImGui::Begin("Curve Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-    
+
     ImGui::End();
 }
 
@@ -382,7 +491,7 @@ UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultEmitter(int32 Index)
     // --- 3) Required 모듈 (필수) ---
     {
         UParticleModuleRequired* Required = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
-        Required->EmitterOrigin   = FVector::ZeroVector;
+        Required->EmitterOrigin = FVector::ZeroVector;
         Required->EmitterRotation = FRotator::ZeroRotator;
         LOD0->RequiredModule = Required;
     }
@@ -433,11 +542,11 @@ void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UPar
     auto pos = RawName.find('_');
     if (pos != std::string::npos)
         RawName = RawName.substr(0, pos);
-    
+
     if (ImGui::Selectable(RawName.c_str(), isSelected))
     {
-        SelectedEmitter    = Emitter;
+        SelectedEmitter = Emitter;
         SelectedModuleName = RawName;
-        SelectedModule     = Module;
+        SelectedModule = Module;
     }
 }
