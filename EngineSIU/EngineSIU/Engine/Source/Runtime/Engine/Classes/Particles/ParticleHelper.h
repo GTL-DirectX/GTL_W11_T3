@@ -691,7 +691,7 @@ struct FDynamicEmitterReplayDataBase
 struct FDynamicSpriteEmitterReplayDataBase
     : public FDynamicEmitterReplayDataBase
 {
-    UMaterial* MaterialInterface;
+    UMaterial* Material;
     struct FParticleRequiredModule* RequiredModule;
     FVector							NormalsSphereCenter;
     FVector							NormalsCylinderDirection;
@@ -800,7 +800,6 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
         FDynamicEmitterDataBase(RequiredModule),
         bUsesDynamicParameter(false)
     {
-        //MaterialResource = nullptr;
     }
 
     virtual ~FDynamicSpriteEmitterDataBase()

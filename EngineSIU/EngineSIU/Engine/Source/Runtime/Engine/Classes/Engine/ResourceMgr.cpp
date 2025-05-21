@@ -79,11 +79,6 @@ std::shared_ptr<FTexture> FResourceMgr::GetTexture(const FWString& name) const
     return TempValue ? *TempValue : nullptr;
 }
 
-TMap<FWString, std::shared_ptr<FTexture>> FResourceMgr::GetAllTexture() const
-{
-    return textureMap;
-}
-
 HRESULT FResourceMgr::LoadTextureFromFile(ID3D11Device* device, const wchar_t* filename, bool bIsSRGB)
 {
     IWICImagingFactory* wicFactory = nullptr;
@@ -234,3 +229,5 @@ HRESULT FResourceMgr::LoadTextureFromDDS(ID3D11Device* device, ID3D11DeviceConte
 
     return hr;
 }
+
+

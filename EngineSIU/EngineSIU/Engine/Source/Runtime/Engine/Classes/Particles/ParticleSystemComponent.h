@@ -27,7 +27,7 @@ public:
 
     void SetTemplate(class UParticleSystem* NewTemplate);
     TArray<struct FDynamicEmitterDataBase*> GetRenderData() { return EmitterRenderData; }
-    UParticleSystem* GetParticleSystem() { return Template; }
+    UParticleSystem* GetParticleSystem() const { return Template; }
     void SetParticleSystem(UParticleSystem* system) { Template = system; }
 
 public:
