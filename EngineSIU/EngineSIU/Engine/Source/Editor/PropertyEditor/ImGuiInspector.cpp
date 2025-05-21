@@ -7,6 +7,8 @@
 #include "UnrealEd/ImGuiWidget.h"
 #include "UObject/Casts.h"
 #include "PropertyEditorPanel.h"
+#include "Distributions/DistributionFloatUniform.h"
+#include "Distributions/DistributionVectorUniform.h"
 
 namespace ImGuiInspector
 {
