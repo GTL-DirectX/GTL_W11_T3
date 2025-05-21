@@ -7,12 +7,16 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModuleLifeTime.h"
 #include "ParticleModuleLocation.h"
-#include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleVelocity.h"
 #include "TypeData/ParticleModuleTypeDataSprite.h"
+#include "TypeData/ParticleModuleTypeDataMesh.h"
+#include "Components/Mesh/StaticMeshRenderData.h"
+#include "Engine/AssetManager.h"
+#include "Engine/FObjLoader.h"
 
 void AParticleActor::PostSpawnInitialize()
 {
+    const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
     Super::PostSpawnInitialize();
 
     ParticleSystemComponent = AddComponent<UParticleSystemComponent>(FName("ParticleSystemComponent_0"));
