@@ -39,6 +39,7 @@ private:
     
     // Test
     UParticleEmitter* CreateDefaultEmitter(int32 Index);
+    UParticleEmitter* CreateDefaultEmitter(int32 Index, bool bIsSpriteEmitter);
     UParticleEmitter* CreateDefaultSpriteEmitter(int32 Index);
     UParticleEmitter* CreateDefaultMeshEmitter(int32 Index);
     
