@@ -1630,73 +1630,77 @@ void PropertyEditorPanel::RenderForSpringArmComponent(USpringArmComponent* Sprin
 void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* ParticleComponent)
 {
     ImGui::Separator();
-    ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 
-    if (ImGui::TreeNodeEx("Particle Component", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+    if (ImGui::TreeNodeEx("Particle Component", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
     {
-        // 1) Get() 으로 매니저 참조 가져오기
         UAssetManager& AssetMgr = UAssetManager::Get();
+        const auto& ParticleMap = AssetMgr.GetSavedParticleSystemMap();
 
-        // 2) 바로 ParticleMap 참조 선언과 초기화
-        auto& ParticleMap = AssetMgr.GetSavedParticleSystemMap();
-
-        // 키 FString 목록 -> TArrtay<FString> 에 담기
-        TArray<FString> ParticleSystemNames;
-        for (auto& Pair : ParticleMap)
+        if (ParticleMap.IsEmpty())
         {
-            ParticleSystemNames.Add(Pair.Key);
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "No saved particle system.");
+            ImGui::TreePop();
+            return;
         }
 
-        // FString -> UTF8 std::string 변환, 그리고 const char* ptr 배열 구성
-        SavedParticleSystemNames.Empty();
-        SavedParticleSystemNamesPtrs.Empty();
-        for (auto& Name : ParticleSystemNames)
+        // 1. 현재 ParticleSystemComponent의 Template 이름 기준으로 초기 선택 인덱스 계산
+        FString CurrentSystemName;
+        if (ParticleComponent->Template)
         {
-            // TCHAR_TO_UTF8 매크로 임시 char* -> std::string 로 복사
-            FString utf8 = Name.ToAnsiString();
-            /*SavedPSNamesUtf8.emplace_back(std::move(utf8));
-            SavedPSNamesPtr.push_back(SavedPSNamesUtf8.back().c_str());*/
-
-            SavedParticleSystemNamesPtrs.Add(*Name);
-
-        }
-
-        // --- 4) ImGui 콤보박스 표시 ---
-        if (!SavedParticleSystemNamesPtrs.IsEmpty())
-        {
-            ImGui::Text("Saved Systems:");
-            ImGui::SameLine();
-            ImGui::Combo(
-                "##ParticleSysCombo",
-                &SelectedPSIndex,
-                SavedParticleSystemNamesPtrs.GetData(),
-                static_cast<int>(SavedParticleSystemNamesPtrs.Num())
-            );
-
-            // --- 5) 선택된 시스템을 컴포넌트에 적용 ---
-            if (SelectedPSIndex >= 0 && SelectedPSIndex < ParticleSystemNames.Num())
+            for (const auto& Pair : ParticleMap)
             {
-                UParticleSystem* ChosenPS = ParticleMap[ParticleSystemNames[SelectedPSIndex]];
-                ParticleComponent->Template = ChosenPS;
+                if (Pair.Value == ParticleComponent->Template)
+                {
+                    CurrentSystemName = Pair.Key;
+                    break;
+                }
             }
         }
-        else
-        {
-            ImGui::TextColored({ 1, 0.5f, 0.5f, 1 }, "No saved particle system.");
-        }
-        //UParticleSystem* Template = ParticleComponent->Template;
 
-        //// ——— 하드코딩된 콤보박스 UI 테스트 ———
-        //ImGui::Text("Add");
-        //ImGui::SameLine();
-        //static const char* items[] = { "Option A", "Option B", "Option C" };
-        //static int current = 0;
-        //ImGui::Combo("Combo Test", &current, items, IM_ARRAYSIZE(items));
-        //// ————————————————————————————
+        // 2. Combo에 사용할 이름 리스트 준비
+        static TArray<const char*> ParticleNamesAnsi;
+        ParticleNamesAnsi.Empty();
+
+        int Index = 0;
+        int SelectedIndex = -1;
+
+        for (const auto& Pair : ParticleMap)
+        {
+            const FString& Name = Pair.Key;
+            ParticleNamesAnsi.Add(*Name);
+
+            if (Name == CurrentSystemName)
+            {
+                SelectedIndex = Index;
+            }
+
+            ++Index;
+        }
+
+        // 3. Combo 표시 및 시스템 적용
+        ImGui::Text("Saved Systems:");
+        ImGui::SameLine();
+
+        static int ComboIndex = SelectedIndex >= 0 ? SelectedIndex : 0;
+
+        if (ImGui::Combo("##ParticleSysCombo", &ComboIndex, ParticleNamesAnsi.GetData(), ParticleNamesAnsi.Num()))
+        {
+            int i = 0;
+            for (const auto& Pair : ParticleMap)
+            {
+                if (i == ComboIndex)
+                {
+                    // 선택된 시스템을 해당 PSC에 적용
+                    ParticleComponent->SetTemplate(Pair.Value);
+                    break;
+                }
+                ++i;
+            }
+        }
+
         ImGui::TreePop();
     }
 }
-
 void PropertyEditorPanel::RenderForMaterial(UStaticMeshComponent* StaticMeshComp)
 {
     if (StaticMeshComp->GetStaticMesh() == nullptr)
