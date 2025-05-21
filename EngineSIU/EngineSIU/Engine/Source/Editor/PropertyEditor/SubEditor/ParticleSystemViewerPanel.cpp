@@ -71,6 +71,7 @@ void ParticleSystemViewerPanel::RenderMainViewport()
 
 void ParticleSystemViewerPanel::RenderEmitters()
 {
+
     ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, 0.f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.7f, Height * 0.55f));
     ImGui::Begin(
@@ -82,6 +83,14 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGuiWindowFlags_NoCollapse
     );
     ImGui::SameLine();
+
+    const ImVec4 SelectedColor = ImVec4(0.2f, 0.4f, 0.8f, 0.4f); // 선택됨
+    const ImVec4 HoveredColor = ImVec4(0.2f, 0.4f, 0.8f, 0.6f); // 마우스 올렸을 때
+    const ImVec4 InactiveColor = ImVec4(0.2f, 0.4f, 0.8f, 0.2f); // 기본
+
+    ImGui::PushStyleColor(ImGuiCol_Header, InactiveColor);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, HoveredColor);
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, SelectedColor);
     
     if (ImGui::Button("Simulate"))
     {
@@ -203,51 +212,56 @@ void ParticleSystemViewerPanel::RenderEmitters()
     {
         UParticleEmitter* Emitter = Emitters[i];
         bool isEmitterSelected = (Emitter == SelectedEmitter);
+        std::string EmitterName = *Emitter->EmitterName.ToString();
+        std::string UniqueChildID = "EmitterCard##" + std::to_string(i);
 
-        // 하이라이트 처리 : BeginChild 의 border 인자로 isSelected 전달
         if (isEmitterSelected)
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2f, 0.4, 0.8, 0.25f));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2f, 0.4, 0.8, 0.1f));
 
-        ImGui::BeginChild(
-            ("Emitter" + std::to_string(i)).c_str(),
-            ImVec2(EmitterWidth, 0), 
-            isEmitterSelected // 여기에 true 이면 테두리가 그려짐. 
-        );
-        
-        //── 1. Emitter Base Info 선택 영역 ───────────────────────────────
-        float regionWidth = ImGui::GetContentRegionAvail().x;
-        ImVec2 regionSize = ImVec2(regionWidth, 100);
-        //bool isEmitterSelected = (Emitter == SelectedEmitter);
-        std::string EmitterName = GetData(*Emitter->EmitterName.ToString());
+        // Emitter 전체 박스
+        ImGui::BeginChild(UniqueChildID.c_str(), ImVec2(EmitterWidth, 0), true);
 
-        if (ImGui::Selectable(EmitterName.c_str(), isEmitterSelected, ImGuiSelectableFlags_None, regionSize))
+        // 🟡 전체 박스 클릭 감지 추가
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         {
             SelectedEmitter = Emitter;
             SelectedModule = nullptr;
         }
-            
-        //── 2. Required 모듈 ─────────────────────────────────────────────
-        // UParticleModuleRequired* RequiredModule = Emitter->LODLevels[0]->RequiredModule;
-        // RenderModuleItem(Emitter, RequiredModule);
 
-        //── 3. 나머지 모듈들 ──────────────────────────────────────────────
-        auto& Modules = Emitter->LODLevels[0]->Modules;
-        for (int m=0; m < Modules.Num(); ++m)
+      
+
+
+        // 🔹 Emitter 이름 라벨 (시각용)
+        ImVec2 regionSize = ImVec2(ImGui::GetContentRegionAvail().x, 30.0f);
+        ImGui::Selectable(EmitterName.c_str(), isEmitterSelected, ImGuiSelectableFlags_Disabled, regionSize);
+
+
+        ImGui::Separator();
+
+        // 2. 모듈 리스트 영역
         {
-            RenderModuleItem(Emitter, Modules[m]);
+            ImGui::BeginChild(("Modules##" + std::to_string(i)).c_str(), ImVec2(0, 300), false);
+
+            auto& Modules = Emitter->LODLevels[0]->Modules;
+            for (int m = 0; m < Modules.Num(); ++m)
+            {
+                RenderModuleItem(Emitter, Modules[m]);
+            }
+
+            ImGui::EndChild();
         }
 
-        // ← 여기서 바로 “Add Module” 버튼을 추가
-        if (ImGui::Button("Add Module"))
+        // 3. Add Module 버튼
+        if (ImGui::Button(("Add Module##" + std::to_string(i)).c_str()))
         {
-            // 이 블록의 Emitter 를 PendingEmitter 로 보관
             PendingModuleIndex = 0;
+            SelectedEmitter = Emitter; // 중요: 팝업에 넘길 Emitter 설정
             bOpenAddModulePopup = true;
-            ImGui::OpenPopup("Add Module");
+            ImGui::OpenPopup(("Add Module##Popup" + std::to_string(i)).c_str());
         }
-        // 팝업 처리도 이 밑에 이어서…
-        // 2) 팝업 모달 (매 프레임 호출)
-        if (ImGui::BeginPopupModal("Add Module", &bOpenAddModulePopup, ImGuiWindowFlags_AlwaysAutoResize))
+
+        // 팝업은 같은 프레임에 BeginPopupModal() 호출돼야 동작함
+        if (ImGui::BeginPopupModal(("Add Module##Popup" + std::to_string(i)).c_str(), &bOpenAddModulePopup, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::Text("Select Module Type:");
 
@@ -257,14 +271,12 @@ void ParticleSystemViewerPanel::RenderEmitters()
             std::string ModuleName = GetData(*ModuleClasses[PendingModuleIndex]->GetName());
             if (ImGui::BeginCombo("##ModuleType", ModuleName.c_str()))
             {
-                for (int i = 0; i < ModuleClasses.Num(); ++i)
+                for (int j = 0; j < ModuleClasses.Num(); ++j)
                 {
-                    UClass* Class = ModuleClasses[i];
-                    if (ImGui::Selectable(GetData(Class->GetName()), false))
+                    UClass* Class = ModuleClasses[j];
+                    if (ImGui::Selectable(GetData(Class->GetName()), PendingModuleIndex == j))
                     {
-                        // Select Index 지정
-                        PendingModuleIndex = i;
-                        std::string SelectedModuleName = GetData(*Class->GetName());
+                        PendingModuleIndex = j;
                         ImGui::SetItemDefaultFocus();
                     }
                 }
@@ -273,39 +285,36 @@ void ParticleSystemViewerPanel::RenderEmitters()
 
             ImGui::Separator();
 
-            // 4) 확인/취소 버튼
             if (ImGui::Button("OK", ImVec2(100, 0)))
             {
-                // 1) 선택된 Emitter 가져오기
-                //    (루프 안에서 i를 저장해 두셨다면 Emitters[i] 로 꺼내고,
-                //     아니면 SelectedEmitter 를 사용해도 됩니다.)
-
                 if (SelectedEmitter)
                 {
                     SelectedEmitter->LODLevels[0]->AddModule(ModuleClasses[PendingModuleIndex]);
                 }
-
-                // 4) 팝업 닫기
                 bOpenAddModulePopup = false;
                 ImGui::CloseCurrentPopup();
             }
+
             ImGui::SameLine();
             if (ImGui::Button("Cancel", ImVec2(100, 0)))
             {
-                ImGui::CloseCurrentPopup();
                 bOpenAddModulePopup = false;
+                ImGui::CloseCurrentPopup();
             }
 
             ImGui::EndPopup();
         }
 
-        ImGui::EndChild();    // ← EndChild 직전!
+        ImGui::EndChild();
 
         if (isEmitterSelected)
             ImGui::PopStyleColor();
 
         ImGui::SameLine();
     }
+
+    ImGui::PopStyleColor(3);
+
     ImGui::End();
 }
 
@@ -397,6 +406,8 @@ void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UPar
 {
     bool isSelected = (Module == SelectedModule);
     std::string RawName = *Module->GetName().ToString();
+    std::string DisplayName = "##" + std::to_string(reinterpret_cast<uintptr_t>(Module));
+
     const std::string Prefix = "UParticleModule";
     if (RawName.rfind(Prefix, 0) == 0)
         RawName = RawName.substr(Prefix.size());
@@ -404,13 +415,12 @@ void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UPar
     if (pos != std::string::npos)
         RawName = RawName.substr(0, pos);
 
-    if (RawName == "")
-        return;
-    
-    if (ImGui::Selectable(RawName.c_str(), isSelected))
+    std::string Label = RawName + DisplayName;
+
+    if (ImGui::Selectable(Label.c_str(), isSelected))
     {
-        SelectedEmitter    = Emitter;
-        SelectedModuleName = RawName;
-        SelectedModule     = Module;
+        SelectedEmitter = Emitter;
+        SelectedModule = Module;
     }
+
 }
