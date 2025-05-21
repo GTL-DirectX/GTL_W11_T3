@@ -7,12 +7,16 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModuleLifeTime.h"
 #include "ParticleModuleLocation.h"
-#include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleVelocity.h"
 #include "TypeData/ParticleModuleTypeDataSprite.h"
+#include "TypeData/ParticleModuleTypeDataMesh.h"
+#include "Components/Mesh/StaticMeshRenderData.h"
+#include "Engine/AssetManager.h"
+#include "Engine/FObjLoader.h"
 
 void AParticleActor::PostSpawnInitialize()
 {
+    const TMap<FName, FAssetInfo> Assets = UAssetManager::Get().GetAssetRegistry();
     Super::PostSpawnInitialize();
 
     ParticleSystemComponent = AddComponent<UParticleSystemComponent>(FName("ParticleSystemComponent_0"));
@@ -22,6 +26,7 @@ void AParticleActor::PostSpawnInitialize()
     UParticleSystem* PS = FObjectFactory::ConstructObject<UParticleSystem>(this);
     UParticleEmitter* Emitter = FObjectFactory::ConstructObject<UParticleEmitter>(nullptr);
     UParticleLODLevel* LOD = FObjectFactory::ConstructObject<UParticleLODLevel>(nullptr);
+   
 
     // -- 2) Required module
     UParticleModuleRequired* ReqMod = FObjectFactory::ConstructObject<UParticleModuleRequired>(nullptr);
@@ -52,10 +57,17 @@ void AParticleActor::PostSpawnInitialize()
     Emitter->LODLevels.Add(LOD);
 
     LOD->RequiredModule = ReqMod;
-    LOD->TypeDataModule = SpriteTypeData;
+    //LOD->TypeDataModule = SpriteTypeData;
 
-    LOD->Modules = { ReqMod, SpriteTypeData, LocMod, VelMod, LifeMod };
-    LOD->SpawnModules = { ReqMod, SpriteTypeData, LocMod, VelMod, LifeMod };  // Spawn 시에만 위치+속도 세팅
+    UParticleModuleTypeDataMesh* MeshTypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataMesh>(LOD);
+    MeshTypeDataModule->Mesh = FObjectFactory::ConstructObject<UStaticMesh>(nullptr);
+    MeshTypeDataModule->Mesh = FObjManager::GetStaticMesh(L"Contents/Reference/Reference.obj");  // TODO : 하드코딩된 StaticMesh Asset을 가져오는 로직 필요
+
+    LOD->TypeDataModule = MeshTypeDataModule;
+
+
+    LOD->Modules = { ReqMod, MeshTypeDataModule, LocMod, VelMod, LifeMod };
+    LOD->SpawnModules = { ReqMod, MeshTypeDataModule, LocMod, VelMod, LifeMod };  // Spawn 시에만 위치+속도 세팅
     LOD->UpdateModules = { SpriteTypeData };
 
     // Offset/Size 계산

@@ -13,6 +13,7 @@
 #include "D3D11RHI/DXDShaderManager.h"
 
 #include "LevelEditor/SLevelEditor.h"
+#include "Math/JungleMath.h"
 #include "Particles/ParticleEmitterInstances.h"
 #include "UnrealEd/EditorViewportClient.h"
 
@@ -145,6 +146,31 @@ void FParticleRenderPass::CreateShader()
     {
         UE_LOG(ELogLevel::Error, TEXT("Failed to load ParticleSpritePixelShader"));
     }
+
+    // --- Mesh ---
+    hr = ShaderManager->AddVertexShaderAndInputLayout(
+        L"ParticleMeshVertexShader",
+        L"Shaders/ParticleMesh.hlsl",    // 메시 전용 파일
+        "mainVS_Mesh",
+        FMeshParticleInstanceVertex::LayoutDesc,
+        ARRAYSIZE(FMeshParticleInstanceVertex::LayoutDesc)
+    );
+    if (FAILED(hr))
+    {
+        UE_LOG(ELogLevel::Error, TEXT("Failed to load ParticleMesh VS"));
+    }
+
+    hr = ShaderManager->AddPixelShader(
+        L"ParticleMeshPixelShader",
+        L"Shaders/ParticleMesh.hlsl",
+        "mainPS_Mesh",
+        nullptr
+    );
+    if (FAILED(hr))
+    {
+        UE_LOG(ELogLevel::Error, TEXT("Failed to load ParticleMesh PS"));
+    }
+
 }
 
 void FParticleRenderPass::CreateBuffers()
@@ -156,6 +182,11 @@ void FParticleRenderPass::CreateBuffers()
     }
     BufferManager->CreateStructuredBufferGeneric<FBaseParticle>(
         "ParticleSpriteInstanceBuffer", nullptr, 1000, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE
+    );
+
+    BufferManager->CreateStructuredBufferGeneric<FMeshParticleInstanceVertex>(
+        "MeshParticleInstanceBuffer", nullptr, 10000,
+        D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE
     );
 }
 
@@ -245,10 +276,26 @@ void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& V
 
             if (FDynamicMeshEmitterData* MeshData = dynamic_cast<FDynamicMeshEmitterData*>(EmitterBase))
             {
+                VertexShader = ShaderManager->GetVertexShaderByKey(L"ParticleMeshVertexShader");
+                InputLayout = ShaderManager->GetInputLayoutByKey(L"ParticleMeshVertexShader");
+                PixelShader = ShaderManager->GetPixelShaderByKey(L"ParticleMeshPixelShader");
+
+                Graphics->DeviceContext->VSSetShader(VertexShader, nullptr, 0);
+                Graphics->DeviceContext->PSSetShader(PixelShader, nullptr, 0);
+                Graphics->DeviceContext->IASetInputLayout(InputLayout);
+
                 RenderMeshParticles(MeshData, ParticleSystemComp, Viewport);
             }
             else if (FDynamicSpriteEmitterData* SpriteData = dynamic_cast<FDynamicSpriteEmitterData*>(EmitterBase))
             {
+
+                VertexShader = ShaderManager->GetVertexShaderByKey(L"ParticleSpriteVertexShader");
+                InputLayout = ShaderManager->GetInputLayoutByKey(L"ParticleSpriteVertexShader");
+                PixelShader = ShaderManager->GetPixelShaderByKey(L"ParticleSpritePixelShader");
+
+                Graphics->DeviceContext->VSSetShader(VertexShader, nullptr, 0);
+                Graphics->DeviceContext->PSSetShader(PixelShader, nullptr, 0);
+                Graphics->DeviceContext->IASetInputLayout(InputLayout);
                 RenderSpriteParticles(SpriteData, ParticleSystemComp, Viewport);
             }
 
@@ -261,7 +308,67 @@ void FParticleRenderPass::RenderMeshParticles(
     UParticleSystemComponent* ParticleSystemComp,
     const std::shared_ptr<FEditorViewportClient>& Viewport)
 {
+    int32 NumInstances = MeshData->Source.ActiveParticleCount;
+    if (NumInstances == 0 || !MeshData->StaticMesh)
+        return;
 
+	Graphics->DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+    // 1) StaticMesh 원본 VB/IB 바인딩 (한 번만)
+    const auto& RD = MeshData->StaticMesh->GetRenderData();
+    {
+        UINT stride = sizeof(FStaticMeshVertex), offset = 0;
+        FVertexInfo  vb;  BufferManager->CreateVertexBuffer(RD.ObjectName, RD.Vertices, vb);
+        FIndexInfo   ib;  BufferManager->CreateIndexBuffer(RD.ObjectName, RD.Indices, ib);
+
+        Graphics->DeviceContext->IASetVertexBuffers(0, 1, &vb.VertexBuffer, &stride, &offset);
+        Graphics->DeviceContext->IASetIndexBuffer(ib.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    }
+
+    // 2) 인스턴스 버퍼 채우기
+    TArray<FMeshParticleInstanceVertex> Instances;
+    Instances.AddUninitialized(NumInstances);
+    MeshData->GetVertexAndIndexData(
+        Instances.GetData(), nullptr, nullptr, nullptr,
+        Viewport->GetCameraLocation(),
+        ParticleSystemComp->EmitterInstances[0]->SimulationToWorld,
+        1
+    );
+    BufferManager->UpdateStructuredBuffer("MeshParticleInstanceBuffer", Instances);
+    BufferManager->BindStructuredBufferSRV("MeshParticleInstanceBuffer", 60, EShaderStage::Vertex);
+
+    // 3) 서브메시별로 Instanced DrawIndexed 호출
+    const auto& Subsets = RD.MaterialSubsets;
+    const auto& Materials = MeshData->StaticMesh->GetMaterials();
+    for (int32 si = 0; si < Subsets.Num(); ++si)
+    {
+        const auto& S = Subsets[si];
+        const uint32 idxCount = S.IndexCount;
+        const uint32 idxStart = S.IndexStart;
+        const int    matIdx = S.MaterialIndex;
+
+        // 서브메시 상수버퍼 (예: 선택 강조) 업데이트
+        FSubMeshConstants sub;
+        BufferManager->UpdateConstantBuffer(TEXT("FSubMeshConstants"), sub);
+
+        // 머티리얼 바인딩
+        if (Materials.IsValidIndex(matIdx) && Materials[matIdx]->Material)
+        {
+            MaterialUtils::UpdateMaterial(
+                BufferManager, Graphics,
+                Materials[matIdx]->Material->GetMaterialInfo()
+            );
+        }
+
+        // Instanced Draw
+        Graphics->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        Graphics->DeviceContext->DrawIndexedInstanced(
+            /*IndexCountPerInstance=*/ idxCount,
+            /*InstanceCount=*/        NumInstances,
+            /*StartIndexLocation=*/   idxStart,
+            /*BaseVertexLocation=*/   0,
+            /*StartInstanceLocation=*/0
+        );
+    }
 }
 
 void FParticleRenderPass::RenderSpriteParticles(

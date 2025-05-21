@@ -8,6 +8,7 @@
 #include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleSystem.h"
 #include "ParticleSystemComponent.h"
+#include "Engine/Asset/StaticMeshAsset.h"
 #include "Templates/AlignmentTemplates.h"
 #include "UObject/ObjectFactory.h"
 #include "TypeData/ParticleModuleTypeDataMesh.h"
@@ -900,6 +901,45 @@ FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* 
 void FDynamicMeshEmitterData::Init(bool bInSelected)
 {
     FDynamicSpriteEmitterData::Init(bInSelected);
+}
+
+bool FDynamicMeshEmitterData::GetVertexAndIndexData(
+    void* VertexData,
+    void* /*DynamicParameterVertexData*/,
+    void* /*FillIndexData*/,
+    FParticleOrder* ParticleOrder,
+    const FVector& /*InCameraPosition*/,
+    const FMatrix& InLocalToWorld,
+    uint32 /*InstanceFactor*/
+) const
+{
+    // Per-instance로 보낼 데이터만 채워줍니다.
+    // VertexData는 FMeshParticleInstanceVertex 배열이어야 합니다.
+    auto* Out = static_cast<FMeshParticleInstanceVertex*>(VertexData);
+    const int32 Num = Source.ActiveParticleCount;
+    const auto& DC = Source.DataContainer;
+
+    for (int32 i = 0; i < Num; ++i)
+    {
+        int32 PartIdx = ParticleOrder ? ParticleOrder[i].ParticleIndex : i;
+        int32 DataIdx = DC.ParticleIndices[PartIdx];
+        auto* Base = reinterpret_cast<FBaseParticle*>(
+            DC.ParticleData + DataIdx * Source.ParticleStride);
+
+        // 월드 매트릭스: 시뮬레이션→월드와 파티클 위치
+        FMatrix M = FMatrix::CreateTranslationMatrix(Base->Location).GetMatrixWithoutScale() /** InLocalToWorld*/;
+
+        // 채우기
+        Out[i].Transform = M;                           // 4×4
+        Out[i].Color = Base->Color;                // 파티클 컬러
+        Out[i].Velocity = FVector4(Base->Velocity, 0); // 속도
+        //Out[i].SubUVParams[0] = 0; Out[i].SubUVParams[1] = 0;
+        //Out[i].SubUVParams[2] = 0; Out[i].SubUVParams[3] = 0;
+        //Out[i].SubUVLerp = 0.f;
+        //Out[i].RelativeTime = Base->RelativeTime;
+    }
+
+    return true;
 }
 
 FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()

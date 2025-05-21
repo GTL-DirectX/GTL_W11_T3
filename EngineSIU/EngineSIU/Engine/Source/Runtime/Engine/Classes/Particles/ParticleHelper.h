@@ -216,21 +216,22 @@ struct FParticleVertexDynamicParameter
     // 슬롯이 4개인 이유는 UE Material의 Dynamic Parameter가 최대 4개의 슬롯을 지원하기 때문.
     float			DynamicValue[4]; // x, y, z, w
 };
-
-// Per-particle data sent to the GPU.
+#include <cstddef> // offsetof
 struct FMeshParticleInstanceVertex
 {
-    FLinearColor Color;
-
-    FVector4 Transform[3];
-
-    FVector4 Velocity;
-
-    int16 SubUVParams[4];
-
-    float SubUVLerp;
-
-    float RelativeTime;
+    FLinearColor   Color;           // 16 bytes
+    FMatrix       Transform;     // 64 bytes (4×4 행렬)
+    FVector4       Velocity;        // 16 bytes
+    //int16_t        SubUVParams[4];  // 8 bytes
+    //float          SubUVLerp;       // 4 bytes
+    //float          RelativeTime;    // 4 bytes
+    // → 총합 112 bytes
+    inline const static D3D11_INPUT_ELEMENT_DESC LayoutDesc[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,   0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0,  24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
 };
 
 struct FMeshParticleInstanceVertexDynamicParameter
@@ -913,6 +914,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterData /* 야매 : FD
         const FVector& ViewDirection,
         FMatrix& OutTransformMat
     ) const;
+
+    virtual bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld, uint32 InstanceFactor) const;
 
     virtual int32 GetDynamicVertexStride(/*ERHIFeatureLevel::Type*/ /*InFeatureLevel*/) const override
     {
