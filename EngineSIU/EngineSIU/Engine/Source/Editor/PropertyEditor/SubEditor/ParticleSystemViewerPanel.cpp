@@ -16,6 +16,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "Engine/AssetManager.h"
+#include "Particles/TypeData/ParticleModuleTypeDataSprite.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 
 void ParticleSystemViewerPanel::Render()
 {
@@ -396,6 +398,8 @@ UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultSpriteEmitter(int32 In
 
     // LODLevel 0 생성 및 기본 설정
     UParticleLODLevel* LOD0 = CreateDefaultLODLevel(NewEmitter);
+
+    LOD0->TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(LOD0);
     // LODLevel을 Emitter에 추가
     NewEmitter->LODLevels.Add(LOD0);
 
@@ -411,6 +415,8 @@ UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultMeshEmitter(int32 Inde
     NewEmitter->ParticleSize = 20;
 
     UParticleLODLevel* LOD0 = CreateDefaultLODLevel(NewEmitter);
+    LOD0->TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataMesh>(LOD0);
+
     // 9) LODLevel을 Emitter에 추가
     NewEmitter->LODLevels.Add(LOD0);
 
