@@ -32,11 +32,17 @@ float4 mainPS(PS_Input input) : SV_TARGET
     // float4 FinalColor = DiffuseColor * input.Color;
     // float4 Color = Texture.Sample(Sampler, UV);
 
-    float4 tex = MaterialTextures[TEXTURE_SLOT_DIFFUSE]
-                 .Sample(MaterialSamplers[TEXTURE_SLOT_DIFFUSE], input.UV);
-    clip(tex.a - 0.1f);
-    float3 albedo = tex.rgb * Material.DiffuseColor * input.Color.rgb;
-    float  alpha  = tex.a   * Material.Opacity     * input.Color.a;
+    float3 albedo = Material.DiffuseColor * input.Color.rgb;
+    float  alpha  = Material.Opacity     * input.Color.a;
+
+    if ( (Material.TextureFlag & TEXTURE_FLAG_DIFFUSE) != 0 )
+    {
+        float4 tex = MaterialTextures[TEXTURE_SLOT_DIFFUSE]
+                     .Sample(MaterialSamplers[TEXTURE_SLOT_DIFFUSE], input.UV);
+        clip(tex.a - 0.1f);
+        albedo *= tex.rgb;
+        alpha  *= tex.a;
+    }
 
     return float4(albedo, 1.0f);
 }
