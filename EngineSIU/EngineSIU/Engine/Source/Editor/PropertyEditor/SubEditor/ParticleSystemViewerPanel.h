@@ -34,6 +34,8 @@ private:
     void RenderProperties(T* Obj);
 
     void RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module);
+
+    void RenderAddModulePopup(UParticleEmitter* module);
     
     // Test
     UParticleEmitter* CreateDefaultEmitter(int32 Index);

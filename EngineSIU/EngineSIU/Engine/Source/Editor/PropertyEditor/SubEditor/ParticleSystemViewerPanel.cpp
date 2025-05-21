@@ -167,37 +167,65 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGui::EndPopup();
     }
 
+    // 1) 팝업 위치를 기억할 static 변수
+    static ImVec2 s_AddPopupPos = ImVec2(0, 0);
     //ImGui::SameLine(); 한 줄 아래에 Add, Rename, Delete 버튼 배치
+
     ImGui::Text("Emitter");
     ImGui::SameLine();
     if (ImGui::Button("Add"))
     {
-        DefaultEmitterIndex++;
-        UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
-        if (NewEmitter)
-        {
-            CurrentParticleSystem->Emitters.Add(NewEmitter);
-        }
+        // 2-1) 버튼 우측 하단 좌표를 즉시 저장
+        s_AddPopupPos = ImGui::GetItemRectMax();    // ← Add 버튼 위치만 기억
+        // 2-2) 팝업 열기 요청
+        ImGui::OpenPopup("Add Emitter Popup");
     }
 
-    // 선택된 emitter 이름변경하기 제거하기
+    // 기존 Rename/Delete 버튼
     if (SelectedEmitter)
     {
         ImGui::SameLine();
         if (ImGui::Button("Rename"))
-        {
             ImGui::OpenPopup("Rename");
-        }
-        
+
         ImGui::SameLine();
         if (ImGui::Button("Delete"))
         {
-            // 배열에서 제거
             auto& Emitters = CurrentParticleSystem->Emitters;
             Emitters.RemoveSingle(SelectedEmitter);
-            // 선택 해제
             SelectedEmitter = nullptr;
         }
+    }
+
+    ImGui::SetNextWindowPos(s_AddPopupPos, ImGuiCond_Appearing);
+
+    // 4) 팝업 그리기
+    if (ImGui::BeginPopup("Add Emitter Popup", ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        if (ImGui::Selectable("New Particle Sprite Emitter"))
+        {
+            DefaultEmitterIndex++;
+            UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
+            if (NewEmitter)
+            {
+                if (!CurrentParticleSystem)
+                {
+                    CurrentParticleSystem = new UParticleSystem();
+                    CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
+                }
+                CurrentParticleSystem->Emitters.Add(NewEmitter);
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        if (ImGui::Selectable("New Particle Mesh Emitter"))
+        {
+            //DefaultEmitterIndex++;
+            //auto* Emitter = CreateMeshEmitter(DefaultEmitterIndex);
+            //if (Emitter)
+            //    CurrentParticleSystem->Emitters.Add(Emitter);
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 
     if (!CurrentParticleSystemComponent || !CurrentParticleSystem)
