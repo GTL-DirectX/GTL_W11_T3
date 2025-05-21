@@ -835,10 +835,10 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexData(
         VertPtr[i].RelativeTime  = RelTime;
         VertPtr[i].OldPosition   = InLocalToWorld.TransformPosition(Base->OldLocation);
         VertPtr[i].ParticleId    = (float)ParticleIdx;
-        VertPtr[i].Size          = /*Payload->Size*/ FVector2D(1,1);
+        VertPtr[i].Size          = /*Payload->Size*/ FVector2D(Base->Size.X, Base->Size.Y);
         VertPtr[i].Rotation      = /*Payload->Rotation*/ 0.0f;
         VertPtr[i].SubImageIndex = /*(float)Payload->SubImageIndex*/ 0.0f;
-        VertPtr[i].Color         = FLinearColor::White;
+        VertPtr[i].Color         = Base->Color;
 
         // 4) DynamicParameter 채우기 (필요 시)
         // if (DynamicParameterVertexData)
