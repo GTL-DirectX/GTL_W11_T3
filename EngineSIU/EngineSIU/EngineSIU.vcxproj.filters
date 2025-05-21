@@ -1687,7 +1687,6 @@
     <ClCompile Include="Engine\Source\ThirdParty\ImGui\include\ImGui\imgui_neo_sequencer.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystemComponent.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitterInstances.cpp" />
-    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModule.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleActor.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitter.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\ParticleRenderPass.cpp" />
@@ -1697,7 +1696,14 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Location.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\AnimationSequenceViewerPanel.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\ParticleSystemViewerPanel.cpp" />
-    <ClCompile Include="Shaders\ParticleSpritePixelShader.hlsl" />
+    <ClCompile Include="Engine\Source\Editor\UnrealEd\EditorPanel.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Distributions\Distributions.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_LifeTime.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Required.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Size.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataSprite.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleVelocityBase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1791,7 +1797,6 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleSizeBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleSpawn.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleSpawnBase.h" />
-    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleTypeDataBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleVelocity.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleVelocityBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystem.h" />
@@ -1799,6 +1804,18 @@
     <ClInclude Include="Engine\Source\Runtime\Core\Templates\AlignmentTemplates.h" />
     <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\AnimationSequenceViewerPanel.h" />
     <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\ParticleSystemViewerPanel.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloat.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatConstant.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatUniform.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatUniformCurve.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVector.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorConstant.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorUniform.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorUniformCurve.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataBase.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataSprite.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataMesh.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
@@ -1877,5 +1894,7 @@
     <None Include="Shaders\VertexBillBoardShader.hlsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\ParticleSpritePixelShader.hlsl" />
+    <None Include="Shaders\ParticleSpriteVertexShader.hlsl" />
   </ItemGroup>
 </Project>

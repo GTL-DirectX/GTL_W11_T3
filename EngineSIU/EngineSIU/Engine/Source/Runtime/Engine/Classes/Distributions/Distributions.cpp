@@ -1,3 +1,4 @@
+#include "DistributionTypes.h"
 #include "DistributionFloat.h"
 #include "DistributionFloatUniform.h"
 #include "DistributionFloatConstant.h"
@@ -13,6 +14,17 @@
 float FRawDistributionFloat::GetValue(float Time, UObject* Data, int32 Extreme) const
 {
     return Distribution ? Distribution->GetValue(Time) : 0.0f;
+}
+
+UObject* UDistributionFloatUniform::Duplicate(UObject* InOuter)
+{
+    UDistributionFloatUniform* NewObj = Cast<UDistributionFloatUniform>(Super::Duplicate(InOuter));
+    if (NewObj)
+    {
+        NewObj->Min = Min;
+        NewObj->Max = Max;
+    }
+    return NewObj;
 }
 
 float UDistributionFloatUniform::GetValue(float /*Time*/) const
@@ -73,6 +85,17 @@ FVector FRawDistributionVector::GetValue(float Time, UObject* Data, int32 Extrem
 FVector UDistributionVectorConstant::GetValue(float Time, UObject* Data, int32 Extreme) const
 {
     return Constant;
+}
+
+UObject* UDistributionVectorUniform::Duplicate(UObject* InOuter)
+{
+    UDistributionVectorUniform* NewObj = Cast<UDistributionVectorUniform>(Super::Duplicate(InOuter));
+    if (NewObj)
+    {
+        NewObj->Min = Min;
+        NewObj->Max = Max;
+    }
+    return NewObj;
 }
 
 FVector UDistributionVectorUniform::GetValue(float Time, UObject* Data, int32 Extreme) const
