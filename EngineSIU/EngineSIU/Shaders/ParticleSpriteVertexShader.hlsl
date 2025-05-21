@@ -15,6 +15,7 @@ struct FParticleSpriteVertex
 
 StructuredBuffer<FParticleSpriteVertex> InstanceBuffer : register(t0);
 
+
 struct VS_Input 
 {
     uint VertexID : SV_VertexID;

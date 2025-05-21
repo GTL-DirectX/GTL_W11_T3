@@ -9,6 +9,7 @@
 #include "ParticleSystem.h"
 #include "ParticleSystemComponent.h"
 #include "Templates/AlignmentTemplates.h"
+#include "UObject/ObjectFactory.h"
 
 void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)
 {
@@ -89,7 +90,6 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
     
 }
 
-
 FParticleEmitterInstance::FParticleEmitterInstance() :
     SpriteTemplate(NULL)
     , Component(NULL)
@@ -130,7 +130,6 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
 
     NewEmitterData->bValid = true;
     NewEmitterData->bSelected = bSelected;
-    // NewEmitterData->Init(bSelected);
 
     // 3) DataContainer 내부 순회하며 파티클 위치/속도 로그 출력
     {
@@ -148,8 +147,6 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
                    P->Velocity.X, P->Velocity.Y, P->Velocity.Z);
         }
     }
-
-
     return NewEmitterData;
 }
 
@@ -199,6 +196,12 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
         OutData.DataContainer.ParticleIndices[i] = i;
     }
 
+    // Material
+    if (OutData.eEmitterType == DET_Sprite)
+    {
+        auto* SpriteData = dynamic_cast<FDynamicSpriteEmitterReplayDataBase*>(&OutData);
+        SpriteData->Material = Material;
+    }
     return true;
 }
 
@@ -369,7 +372,6 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 /* 파티클 버퍼를 초기화하고 기본 위치, 속도를 세팅하는 함수  */
 void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity)
 {
-
     FPlatformMemory::MemZero(Particle, ParticleSize);
     Particle->Location = InitialLocation;
     Particle->OldLocation = InitialLocation;

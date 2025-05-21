@@ -1,8 +1,10 @@
 #pragma once
 #include <memory>
+
 #include "Texture.h"
 #include "Container/Map.h"
 
+class UMaterial;
 class FRenderer;
 class FGraphicsDevice;
 class FResourceMgr
@@ -15,6 +17,11 @@ public:
     HRESULT LoadTextureFromDDS(ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* filename);
 
     std::shared_ptr<FTexture> GetTexture(const FWString& name) const;
+    bool HasMaterial(const FString& Name) const { return materialMap.Contains(Name); }
+    UMaterial* GetMaterial(const FString& Name) const { return materialMap[Name]; }
+    TMap<FString, UMaterial*>& GetMaterialMap() { return materialMap; }
+    void AddMaterial(const FString& Name, UMaterial* Material) { materialMap[Name] = Material; }
 private:
     TMap<FWString, std::shared_ptr<FTexture>> textureMap;
+    TMap<FString, UMaterial*> materialMap;
 };

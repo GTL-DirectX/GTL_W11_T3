@@ -138,6 +138,9 @@ namespace ImGuiInspector
             FMaterialInfo MaterialInfo = MI->GetValue(ObjPtr);
             std::string MatName = *MaterialInfo.MaterialName.ToString();
             ImGui::Text("Material Name : %s", MatName.c_str());
+
+            // Todo : 프로젝트 내 Material List 보여주기
+            //auto materialMap = FEngineLoop::ResourceManager.GetMaterialMap();
             break;
         }
             

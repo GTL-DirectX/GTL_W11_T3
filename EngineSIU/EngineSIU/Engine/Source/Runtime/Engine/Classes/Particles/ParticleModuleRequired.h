@@ -31,10 +31,10 @@ class UParticleModuleRequired : public UParticleModule
     DECLARE_CLASS(UParticleModuleRequired, UParticleModule)
 
 public:
-    UParticleModuleRequired() = default;
+    UParticleModuleRequired();
 
 public:
-    UPROPERTY(EditAnywhere, UMaterial*, Material);
+    UPROPERTY(EditAnywhere, UMaterial*, Material)
     UPROPERTY(EditAnywhere, FVector, EmitterOrigin)
     UPROPERTY(EditAnywhere, FRotator, EmitterRotation)
     UPROPERTY(None, EParticleSortMode, SortMode)
@@ -53,4 +53,10 @@ public:
     float SpawnRate;
 
     float EmitterDuration;
+
+    virtual void PostInitProperties() override;
+    virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+
+    
+    UMaterial* CreateDefaultMaterial();
 };
