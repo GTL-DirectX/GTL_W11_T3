@@ -9,6 +9,8 @@
 #include "ParticleSystem.h"
 #include "ParticleSystemComponent.h"
 #include "Templates/AlignmentTemplates.h"
+#include "TypeData/ParticleModuleTypeDataMesh.h"
+#include "UObject/Casts.h"
 
 void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)
 {
@@ -132,7 +134,7 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
     NewEmitterData->bSelected = bSelected;
     // NewEmitterData->Init(bSelected);
 
-    // 3) DataContainer 내부 순회하며 파티클 위치/속도 로그 출력
+    // [로그 출력] : DataContainer 내부 순회하며 파티클 위치/속도 
     {
         uint8*       RawBuffer = NewEmitterData->Source.DataContainer.ParticleData;
         int32        Stride    = NewEmitterData->Source.ParticleStride;
@@ -162,7 +164,6 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
         return false;
     }
 
-    // 2) 공통 필드 복사
     OutData.eEmitterType = DET_Sprite;             // 스프라이트로 기본 가정
     OutData.ActiveParticleCount = ActiveParticles; // 활성 파티클 수
     OutData.ParticleStride = ParticleStride;       // 파티클 하나당 데이터 크기
@@ -217,14 +218,9 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
         // 이유 : Kill before the spawn... Otherwise, we can get 'flashing' (beam2Emitter)
         KillParticles();
 
-        //UE_LOG(ELogLevel::Error, "  Before Update: Loc=%s", *Location.ToString());
-
         Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-        //UE_LOG(ELogLevel::Error, "  After Update: Loc=%s", *Location.ToString());
         SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
-
-        //UE_LOG(ELogLevel::Error, "  SpawnFraction=%.4f", SpawnFraction);
 
         // beams의 경우 postupdate 추가 필요
         if (ActiveParticles > 0)
@@ -241,18 +237,16 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
             EmitterTime = 0.0f;
             bFirstTime = true;
         }
-
-        //UE_LOG(ELogLevel::Error, "Tick() End : EmitterTime=%.4f, ActiveParticles=%d\n", EmitterTime, ActiveParticles);
     }
 
 }
 
 // 파티클 시스템 전체의 진행 시간 증가 및 딜레이, 루프, 종료 조건 처리
 // @return : 실제 시뮬레이션에 쓰이지 않은 시간(딜레이)
+// 현재는 단순화함 : Delay, Looping 무시
 float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
     UpdateTransforms();
-    // 현재는 단순화함 : Delay, Looping 무시
     return 0.0f;
 }
 
@@ -575,7 +569,7 @@ void FParticleEmitterInstance::UpdateTransforms()
     FMatrix ComponentToWorld = Component != nullptr ?
         Component->GetWorldMatrix().GetMatrixWithoutScale() : FMatrix::Identity;
     FMatrix EmitterToComponent = 
-        FMatrix::CreateRotationMatrix(LODLevel->RequiredModule->EmitterRotation)
+          FMatrix::CreateRotationMatrix(LODLevel->RequiredModule->EmitterRotation)
         * FMatrix::CreateTranslationMatrix(LODLevel->RequiredModule->EmitterOrigin);
 
     if (LODLevel->RequiredModule->bUseLocalSpace)
@@ -679,10 +673,94 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
     END_MY_UPDATE_LOOP;
 }
 
+/*
+ * ParticleMeshEmitterInstance 초기화
+ * 매번 캐스팅 연산을 줄이기 위해 템플릿을 미리 캐싱함
+ */
+void FParticleMeshEmitterInstance::Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex)
+{
+    FParticleEmitterInstance::Init(InComponent, InEmitterIndex);
+
+    UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[CurrentLODLevelIndex];
+    MeshTypeData = Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule);
+
+    if (MeshTypeData->IsA(UParticleModuleTypeDataMesh::StaticClass()) == false)
+    {
+        UE_LOG(ELogLevel::Warning, TEXT("FParticleMeshEmitterInstance::Init() : TypeData is not Mesh"));
+        return;
+    }
+    // if (MeshTypeData->Mesh) 추가 초기화 필요시 다음과 같이 작성 필요
+}
+
+FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSelected)
+{
+    UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
+    if (!LODLevel || !bEnabled || !LODLevel->RequiredModule->bEnabled)
+    {
+        return nullptr;
+    }
+
+    FDynamicMeshEmitterData* NewMeshData = new FDynamicMeshEmitterData(LODLevel->RequiredModule);
+
+    if (!FillReplayData(NewMeshData->Source))
+    {
+        delete NewMeshData;
+        return nullptr;
+    }
+
+    // TODO : 원래 FillReplayData에 존재해야 함
+    NewMeshData->Source.eEmitterType = DET_Mesh;
+
+    // 선택 및 버퍼 생성
+    NewMeshData->bValid = true;
+    NewMeshData->bSelected = bSelected;
+
+    // 3) DataContainer 내부 순회하며 파티클 위치/속도 로그 출력
+    //{
+    //    uint8* RawBuffer = NewMeshData->Source.DataContainer.ParticleData;
+    //    int32        Stride = NewMeshData->Source.ParticleStride;
+    //    int32        Count = NewMeshData->Source.ActiveParticleCount;
+    //
+    //    for (int32 i = 0; i < Count; ++i)
+        //{
+        //    FBaseParticle* P = reinterpret_cast<FBaseParticle*>(RawBuffer + NewMeshData->Source.DataContainer.ParticleIndices[i] * Stride);
+        //    UE_LOG(ELogLevel::Error,
+        //        TEXT("GetDynamicData(): Particle[%d] Loc=(%.2f, %.2f, %.2f) Vel=(%.2f, %.2f, %.2f)"),
+        //        i,
+        //        P->Location.X, P->Location.Y, P->Location.Z,
+        //        P->Velocity.X, P->Velocity.Y, P->Velocity.Z);
+        //}
+    //}
+
+    return NewMeshData;
+}
+
+bool FParticleMeshEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& OutData)
+{
+    return Super::FillReplayData(OutData);
+}
+
+void FParticleSpriteEmitterInstance::Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex)
+{
+    Super::Init(InComponent, InEmitterIndex);
+}
+
+FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData(bool bSelected)
+{
+    return Super::GetDynamicData(bSelected);
+}
+
+bool FParticleSpriteEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& OutData)
+{
+    return Super::FillReplayData(OutData);
+}
+
+
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)
     : bSelected(false)
     , EmitterIndex(INDEX_NONE)
 {
+
 }
 
 void FDynamicSpriteEmitterData::Init(bool bInSelected)
@@ -807,6 +885,16 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(
         IdxPtr[i*6 + 5] = BaseVertexIndex + 3;
     }
     return true;
+}
+
+FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* RequiredModule)
+    : FDynamicSpriteEmitterData(RequiredModule)
+{
+}
+
+void FDynamicMeshEmitterData::Init(bool bInSelected)
+{
+    FDynamicSpriteEmitterData::Init(bInSelected);
 }
 
 FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()

@@ -25,6 +25,9 @@ struct FParticleRequiredModule
     uint8 bUseVelocityForMotionBlur : 1;
 };
 
+/* 렌더링에 필요한 공통 파라미터(머티리얼, 색상, 정렬, Facing 등)을 정의
+ * 모든 EmitterInstance를 상속받는 모든 클래스의 생성자에 인자로 들어감
+ */
 
 class UParticleModuleRequired : public UParticleModule
 {
