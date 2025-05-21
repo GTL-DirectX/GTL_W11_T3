@@ -710,6 +710,9 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSele
         return nullptr;
     }
 
+    /* [NOTE!!] : 제대로 복사되는지 확인 필요*/
+    NewMeshData->StaticMesh = MeshTypeData->Mesh;
+
     // TODO : 원래 FillReplayData에 존재해야 함
     NewMeshData->Source.eEmitterType = DET_Mesh;
 

@@ -1,6 +1,7 @@
 #include "ParticleRenderPass.h"
 
 #include "RendererHelpers.h"
+#include "Components/Mesh/StaticMeshRenderData.h"
 #include "Engine/Engine.h"
 #include "GameFramework/Actor.h"
 #include "Particles/ParticleHelper.h"
@@ -56,7 +57,7 @@ void FParticleRenderPass::CreateRenderStates()
     auto& alphaRT = alphaDesc.RenderTarget[0];
     alphaRT.BlendEnable = TRUE;
     alphaRT.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-    alphaRT.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    alphaRT.DestBlend = D3D11_BLEND_ONE;
     alphaRT.BlendOp = D3D11_BLEND_OP_ADD;
     alphaRT.SrcBlendAlpha = D3D11_BLEND_ONE;
     alphaRT.DestBlendAlpha = D3D11_BLEND_ZERO;
@@ -95,14 +96,14 @@ void FParticleRenderPass::CreateRenderStates()
     D3D11_DEPTH_STENCIL_DESC DepthStencilStateDesc = {};
 
     // Depth test parameters
-    DepthStencilStateDesc.DepthEnable = true;
+    DepthStencilStateDesc.DepthEnable = TRUE;
     DepthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
     DepthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
     // Stencil test parameters
-    DepthStencilStateDesc.StencilEnable = true;
-    DepthStencilStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-    DepthStencilStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+    DepthStencilStateDesc.StencilEnable = FALSE;
+    //DepthStencilStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+    //DepthStencilStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 
     // Stencil operations if pixel is front-facing
     DepthStencilStateDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -233,67 +234,91 @@ void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& V
 
     for (UParticleSystemComponent* ParticleSystemComp : ParticleSystemComponents)
     {
-        /*FDynamicEmitterDataBase* EmitterData = Entry.EmitterData;
-        if (!EmitterData || !EmitterData->bValid)
-            continue;*/
+        //FDynamicEmitterDataBase* EmitterData = Entry.EmitterData;
+        //if (!EmitterData || !EmitterData->bValid)
+        //    continue;
 
         for (FDynamicEmitterDataBase* EmitterBase : ParticleSystemComp->GetRenderData())
         {
-            auto* SpriteData = static_cast<FDynamicSpriteEmitterData*>(EmitterBase);
-            if (!SpriteData || !SpriteData->bValid)
+            if (!EmitterBase || !EmitterBase->bValid)
                 continue;
 
-            // 파티클 수 가져오기 (ReplayData나 GetParticleCount() 사용)
-            const int32 NumParticles = SpriteData->Source.ActiveParticleCount;
-            if (NumParticles == 0)
-                continue;
-
-            // 버텍스 배열 준비 (파티클당 4개 꼭짓점)
-            TArray<FParticleSpriteVertex> SpriteVertices;
-            SpriteVertices.Reserve(NumParticles * 4);
-            SpriteVertices.AddUninitialized(NumParticles * 4);
-
-            // 핵심: 여기서 GetVertexAndIndexData() 호출
-             SpriteData->GetVertexAndIndexData(
-                                 /*VertexData=*/ SpriteVertices.GetData(),
-                                 /*DynamicParameterVertexData=*/ nullptr,
-                                 /*FillIndexData=*/ nullptr,
-                                 /*ParticleOrder=*/ nullptr,
-                                 /*InCameraPosition=*/ Viewport->GetCameraLocation(),
-                                 /*InLocalToWorld=*/ ParticleSystemComp->EmitterInstances[0]->SimulationToWorld,
-                                 /*InstanceFactor=*/ 1
-             );
-
-            SpriteVertices.Sort(
-                [Viewport](const FParticleSpriteVertex& A, const FParticleSpriteVertex& B)
-                {
-                    const FVector LocA = A.Position;
-                    const FVector LocB = B.Position;
-                    const FVector LocCam = Viewport->GetCameraLocation();
-                    
-                    const float DistA = (Viewport->GetCameraLocation() - A.Position).SquaredLength();
-                    const float DistB = (Viewport->GetCameraLocation() - B.Position).SquaredLength();
-                    return DistA > DistB;
-                }
-            );
-
-            if (UMaterial* Material = SpriteData->Source.Material)
+            if (FDynamicMeshEmitterData* MeshData = dynamic_cast<FDynamicMeshEmitterData*>(EmitterBase))
             {
-                const FMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
-                MaterialUtils::UpdateMaterial(BufferManager, Graphics, MaterialInfo);
+                RenderMeshParticles(MeshData, ParticleSystemComp, Viewport);
             }
-            
-            BufferManager->UpdateStructuredBuffer("ParticleSpriteInstanceBuffer", SpriteVertices);
-            BufferManager->BindStructuredBufferSRV("ParticleSpriteInstanceBuffer", 60, EShaderStage::Vertex);
-            Graphics->DeviceContext->DrawInstanced(
-                                            /*VertexCountPerInstance=*/ 6,
-                                            /*InstanceCount=*/ SpriteVertices.Num(),
-                                            /*StartVertexLocation=*/ 0,
-                                            /*StartInstanceLocation=*/ 0
-            );
+            else if (FDynamicSpriteEmitterData* SpriteData = dynamic_cast<FDynamicSpriteEmitterData*>(EmitterBase))
+            {
+                RenderSpriteParticles(SpriteData, ParticleSystemComp, Viewport);
+            }
+
         }
     }
 }
+
+void FParticleRenderPass::RenderMeshParticles(
+    FDynamicMeshEmitterData* MeshData,
+    UParticleSystemComponent* ParticleSystemComp,
+    const std::shared_ptr<FEditorViewportClient>& Viewport)
+{
+
+}
+
+void FParticleRenderPass::RenderSpriteParticles(
+    FDynamicSpriteEmitterData* SpriteData,
+    UParticleSystemComponent* ParticleSystemComp,
+    const std::shared_ptr<FEditorViewportClient>& Viewport)
+{
+    // 파티클 수 가져오기 (ReplayData나 GetParticleCount() 사용)
+    const int32 NumParticles = SpriteData->Source.ActiveParticleCount;
+    if (NumParticles == 0)
+        return;
+
+    // 버텍스 배열 준비 (파티클당 4개 꼭짓점)
+    TArray<FParticleSpriteVertex> SpriteVertices;
+    SpriteVertices.Reserve(NumParticles * 4);
+    SpriteVertices.AddUninitialized(NumParticles * 4);
+
+    // 핵심: 여기서 GetVertexAndIndexData() 호출
+    SpriteData->GetVertexAndIndexData(
+        /*VertexData=*/ SpriteVertices.GetData(),
+        /*DynamicParameterVertexData=*/ nullptr,
+        /*FillIndexData=*/ nullptr,
+        /*ParticleOrder=*/ nullptr,
+        /*InCameraPosition=*/ Viewport->GetCameraLocation(),
+        /*InLocalToWorld=*/ ParticleSystemComp->EmitterInstances[0]->SimulationToWorld,
+        /*InstanceFactor=*/ 1
+    );
+
+    SpriteVertices.Sort(
+        [Viewport](const FParticleSpriteVertex& A, const FParticleSpriteVertex& B)
+        {
+            const FVector LocA = A.Position;
+            const FVector LocB = B.Position;
+            const FVector LocCam = Viewport->GetCameraLocation();
+
+            const float DistA = (Viewport->GetCameraLocation() - A.Position).SquaredLength();
+            const float DistB = (Viewport->GetCameraLocation() - B.Position).SquaredLength();
+            return DistA > DistB;
+        }
+    );
+
+    if (UMaterial* Material = SpriteData->Source.Material)
+    {
+        const FMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
+        MaterialUtils::UpdateMaterial(BufferManager, Graphics, MaterialInfo);
+    }
+
+    BufferManager->UpdateStructuredBuffer("ParticleSpriteInstanceBuffer", SpriteVertices);
+    BufferManager->BindStructuredBufferSRV("ParticleSpriteInstanceBuffer", 60, EShaderStage::Vertex);
+    Graphics->DeviceContext->DrawInstanced(
+        /*VertexCountPerInstance=*/ 6,
+        /*InstanceCount=*/ SpriteVertices.Num(),
+        /*StartVertexLocation=*/ 0,
+        /*StartInstanceLocation=*/ 0
+    );
+}
+
 
 void FParticleRenderPass::ClearRenderArr()
 {
