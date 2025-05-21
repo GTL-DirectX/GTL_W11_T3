@@ -2,6 +2,7 @@
 
 #include "ParticleModule.h"
 
+
 enum EParticleSortMode : int
 {
     PSORTMODE_None,
@@ -25,6 +26,26 @@ struct FParticleRequiredModule
     uint8 bUseVelocityForMotionBlur : 1;
 };
 
+struct FParticleBurst
+{
+    /* Burst 개수 */
+    int32 Count;
+
+    /* If >= 0, [CountLow .. Count] 범위 내에서 랜덤 개수 떠뜨림 | < 0면 Count 고정 사용 */
+    int32 CountLow;
+
+    /* Burst시키기 위한 특정 시점, 정규화된 Emitter 수명 기준 [0..1] */
+    float Time;
+
+    FParticleBurst()
+        : Count(0)
+        , CountLow(-1)		// Disabled by default...
+        , Time(0.0f)
+    {
+    }
+
+};
+
 /* 렌더링에 필요한 공통 파라미터(머티리얼, 색상, 정렬, Facing 등)을 정의
  * 모든 EmitterInstance를 상속받는 모든 클래스의 생성자에 인자로 들어감
  */
@@ -38,7 +59,7 @@ public:
     virtual UObject* Duplicate(UObject* InOuter) override;
 
 public:
-    UPROPERTY(EditAnywhere, UMaterial*, Material)
+    UMaterial* Material = nullptr;
     UPROPERTY(EditAnywhere, FVector, EmitterOrigin)
     UPROPERTY(EditAnywhere, FRotator, EmitterRotation)
     UPROPERTY(None, EParticleSortMode, SortMode)
@@ -61,6 +82,6 @@ public:
     virtual void PostInitProperties() override;
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 
-    
-    UMaterial* CreateDefaultMaterial();
+
+    TArray<FParticleBurst> BurstList;
 };

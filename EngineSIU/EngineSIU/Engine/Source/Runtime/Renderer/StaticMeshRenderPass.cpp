@@ -27,7 +27,6 @@
 
 #include "UnrealEd/EditorViewportClient.h"
 #include "Components/Light/PointLightComponent.h"
-#include "Contents/Actors/Fish.h"
 
 FStaticMeshRenderPass::FStaticMeshRenderPass():
     BufferManager(nullptr)

@@ -1,6 +1,7 @@
 #include "ParticleLODLevel.h"
 
 #include "ParticleModule.h"
+#include "ParticleModuleAcceleration.h"
 #include "UObject/ObjectFactory.h"
 #include "UObject/Casts.h"
 
@@ -43,6 +44,8 @@ void UParticleLODLevel::PostInitProperties()
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleLifeTime>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleSize>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleColor>(this));
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleAcceleration>(this));
+
 }
 
 UObject* UParticleLODLevel::Duplicate(UObject* InOuter)

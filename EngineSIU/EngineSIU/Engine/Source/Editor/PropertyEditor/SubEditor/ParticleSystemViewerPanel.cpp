@@ -16,6 +16,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "Engine/AssetManager.h"
+#include "Engine/FObjLoader.h"
 #include "Particles/TypeData/ParticleModuleTypeDataSprite.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 
@@ -43,7 +44,7 @@ void ParticleSystemViewerPanel::Render()
     
     // Viewport
     RenderMainViewport();
-    
+
     // Emitters
     RenderEmitters();
 
@@ -81,15 +82,14 @@ void ParticleSystemViewerPanel::RenderMainViewport()
 
 void ParticleSystemViewerPanel::RenderEmitters()
 {
-
     ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, 0.f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.7f, Height * 0.55f));
     ImGui::Begin(
         "Emitters",
         nullptr,
         ImGuiWindowFlags_HorizontalScrollbar |
-        ImGuiWindowFlags_NoMove        |
-        ImGuiWindowFlags_NoResize      |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoCollapse
     );
     ImGui::SameLine();
@@ -124,9 +124,10 @@ void ParticleSystemViewerPanel::RenderEmitters()
     // ─── 모달 팝업 처리 ───
     // BeginPopupModal은 매 프레임 호출
     if (ImGui::BeginPopupModal(
-        "Save System",   // ← OpenPopup의 ID와 정확히 일치해야 함
-        nullptr,         // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
-        ImGuiWindowFlags_AlwaysAutoResize))
+        "Save System", // ← OpenPopup의 ID와 정확히 일치해야 함
+        nullptr,       // nullptr 주면 X 버튼은 생기지 않지만, Cancel 버튼으로만 닫음
+        ImGuiWindowFlags_AlwaysAutoResize
+    ))
     {
         static char SaveSystemName[128] = "";
 
@@ -139,10 +140,13 @@ void ParticleSystemViewerPanel::RenderEmitters()
 
         if (ImGui::Button("OK", ImVec2(100, 0)))
         {
-            UE_LOG(ELogLevel::Warning, TEXT("CurrentParticleSystem is %s and name is %s"), CurrentParticleSystem != nullptr ? TEXT("Valid") : TEXT("Null"), SaveSystemName);
+            UE_LOG(
+                ELogLevel::Warning, TEXT("CurrentParticleSystem is %s and name is %s"),
+                CurrentParticleSystem != nullptr ? TEXT("Valid") : TEXT("Null"), SaveSystemName
+            );
 
             // SaveSystemName 을 이용해 실제 저장 처리
-            FString Key(SaveSystemName); 
+            FString Key(SaveSystemName);
 
             UParticleSystem* SystemPtr = Cast<UParticleSystem>(CurrentParticleSystem->Duplicate(CurrentParticleSystem->GetOuter()));
             // Get() 이 반환하는 UAssetMaanger& 에 바로 호출
@@ -213,12 +217,13 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImGui::End();
         return;
     }
-    
+
+    // Emitters 그리기
     auto& Emitters = CurrentParticleSystem->Emitters;
-    float EmitterWidth       = 220.0f;
-    float totalContentWidth  = EmitterWidth * float(Emitters.Num());
+    float EmitterWidth = 220.0f;
+    float totalContentWidth = EmitterWidth * float(Emitters.Num());
     ImGui::SetNextWindowContentSize(ImVec2(totalContentWidth, 0));
-    
+
     for (int i = 0; i < Emitters.Num(); ++i)
     {
         UParticleEmitter* Emitter = Emitters[i];
@@ -242,7 +247,6 @@ void ParticleSystemViewerPanel::RenderEmitters()
         // 🔹 Emitter 이름 라벨 (시각용)
         ImVec2 regionSize = ImVec2(ImGui::GetContentRegionAvail().x, 30.0f);
         ImGui::Selectable(EmitterName.c_str(), isEmitterSelected, ImGuiSelectableFlags_Disabled, regionSize);
-
         ImGui::Separator();
 
         // 2. 모듈 리스트 영역
@@ -338,6 +342,177 @@ void ParticleSystemViewerPanel::RenderDetails()
     if (SelectedModule)
     {
         ImGui::Text("Module  : %s", *SelectedModule->GetName());
+
+        // Material만 하드코딩으로 적용
+        if (auto* RequiredModule = Cast<UParticleModuleRequired>(SelectedModule))
+        {
+            UMaterial* CurrentMat = RequiredModule->Material;
+            FString CurrentName = CurrentMat
+                ? CurrentMat->GetMaterialInfo().MaterialName
+                : FString(TEXT("None"));
+            std::string CurrentNameUtf8 = GetData(*CurrentName);
+
+            auto& MatMap = FObjManager::GetMaterials();
+            std::vector<FString> KeysToRemove;
+            KeysToRemove.reserve(MatMap.Num());
+            for (auto& Pair : MatMap)
+            {
+                UMaterial* Mat = Pair.Value;
+                const auto& MI = Mat->GetMaterialInfo();
+                // Diffuse 플래그가 없으면 제거 대상
+                if ((MI.TextureFlag & static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse)) == 0)
+                {
+                    KeysToRemove.push_back(Pair.Key);
+                }
+            }
+            for (auto& Key : KeysToRemove)
+            {
+                MatMap.Remove(Key);
+            }
+            
+            std::vector<FString> MatNames;
+            MatNames.reserve(MatMap.Num());
+            for (auto& Pair : MatMap)
+            {
+                MatNames.push_back(Pair.Key);
+            }
+
+            int CurrentIdx = 0;
+            for (int i = 0; i < (int)MatNames.size(); ++i)
+            {
+                if (MatNames[i] == CurrentName)
+                {
+                    CurrentIdx = i;
+                    break;
+                }
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
+            ImGui::Text("[ Material ]");
+            ImGui::Spacing();
+
+            float comboW = ImGui::CalcItemWidth();
+            ImGui::SetNextWindowSizeConstraints(
+                ImVec2(comboW, 0),
+                ImVec2(comboW, FLT_MAX)
+            );
+
+            float comboImgSize = 50.0f;
+            if (ImGui::BeginCombo("##MaterialCombo", CurrentNameUtf8.c_str()))
+            {
+                ImGui::BeginChild("##MaterialScrollRegion", ImVec2(0, 200), /*border=*/false);
+                float rowH = comboImgSize;
+                
+                for (int i = 0; i < MatNames.size(); ++i)
+                {
+                    const FString& MatName = MatNames[i];
+                    UMaterial* Mat = FObjManager::GetMaterial(MatName);
+                    FMaterialInfo& MaterialInfo = Mat->GetMaterialInfo();
+
+                    ImTextureID texID;
+                    if ( (MaterialInfo.TextureFlag & static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse)) != 0 )
+                    {
+                        int slot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
+                        if (MaterialInfo.TextureInfos.IsValidIndex(slot))
+                        {
+                            auto& TI = MaterialInfo.TextureInfos[slot];
+                            if (auto ptr = FEngineLoop::ResourceManager.GetTexture(TI.TexturePath))
+                                texID = (ImTextureID)ptr->TextureSRV;
+                        }
+                    }
+
+                    ImGui::PushID(i);
+
+                    float yStart = ImGui::GetCursorPosY();
+                    bool isSelected = (i == CurrentIdx);
+
+                    std::string nameUtf8 = GetData(*MatName);
+                    ImVec2 ts = ImGui::CalcTextSize(nameUtf8.c_str());
+                    ImGuiStyle& style = ImGui::GetStyle();
+                    float padX = style.FramePadding.x;
+                    float padY = (rowH - ts.y) * 0.5f;
+
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(padX, padY));
+                    bool clicked = ImGui::Selectable(
+                        "",                                       // 라벨은 비워두고
+                        isSelected,
+                        ImGuiSelectableFlags_SpanAvailWidth,     // 남은 가로 전체 차지
+                        ImVec2(0, rowH)                     // 높이만 rowH 고정
+                    );
+                    ImGui::PopStyleVar();
+
+                    if (clicked)
+                    {
+                        RequiredModule->Material = Mat;
+                        CurrentIdx = i;
+                    }
+
+                    ImVec2 itemMin = ImGui::GetItemRectMin();
+                    // 이미지
+                    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 10.0f, itemMin.y + 2.5f));
+                    if (texID)
+                        ImGui::Image(texID, ImVec2(rowH, rowH));
+                    else
+                        ImGui::Dummy(ImVec2(rowH, rowH));
+
+                    // 텍스트: 이미지 오른쪽 + 4px 여백, 수직 오프셋 padY
+                    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + rowH + 30.0f, itemMin.y + padY));
+                    ImGui::Text("%s", nameUtf8.c_str());
+                    ImGui::PopID();
+                    ImGui::SetCursorPosY( yStart + rowH + 8.0f );
+                }
+                ImGui::EndChild();
+                ImGui::EndCombo();
+            }
+            
+            ImGui::SameLine(0.0f, 30.0f);
+            
+            float comboH = ImGui::GetFrameHeight();
+            const float imgSize = 64.0f;
+            float offsetY = (comboH - imgSize) * 0.5f;
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
+            
+            if (UMaterial* SelMat = RequiredModule->Material)
+            {
+                FMaterialInfo& SelInfo = SelMat->GetMaterialInfo();
+                const uint16 DiffuseFlag = static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
+
+                if ((SelInfo.TextureFlag & DiffuseFlag) != 0)
+                {
+                    const int Slot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
+                    if (SelInfo.TextureInfos.IsValidIndex(Slot))
+                    {
+                        const FTextureInfo& TI = SelInfo.TextureInfos[Slot];
+                        auto TexPtr = FEngineLoop::ResourceManager.GetTexture(TI.TexturePath);
+                        if (TexPtr && TexPtr->TextureSRV)
+                        {
+                            ImGui::Image((ImTextureID)TexPtr->TextureSRV, ImVec2(imgSize, imgSize));
+                        }
+                        else
+                        {
+                            ImGui::Text("Diffuse texture not found or not loaded.");
+                        }
+
+                        // 테두리 그리기
+                        ImVec2 pMin = ImGui::GetItemRectMin();
+                        ImVec2 pMax = ImGui::GetItemRectMax();
+                        ImGui::GetWindowDrawList()->AddRect(
+                            pMin,
+                            pMax,
+                            IM_COL32(100, 100, 100, 50),
+                            0.0f,    // rounding
+                            ImDrawFlags_RoundCornersAll,
+                            1.0f     // thickness
+                        );
+                    }
+                }
+            }
+            ImGui::Separator();
+            ImGui::Spacing();
+        }
         RenderProperties(SelectedModule);
     }
     ImGui::End();
@@ -348,7 +523,7 @@ void ParticleSystemViewerPanel::RenderCurveEditor()
     ImGui::SetNextWindowPos(ImVec2(Width * 0.3f, Height * 0.55f));
     ImGui::SetNextWindowSize(ImVec2(Width * 0.7f, Height * 0.45f));
     ImGui::Begin("Curve Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-    
+
     ImGui::End();
 }
 

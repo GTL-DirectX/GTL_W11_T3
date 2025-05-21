@@ -6,6 +6,8 @@
 #include <d3d11.h>
 #include <dxgi.h>
 
+#include "Particles/ParticleHelper.h"
+
 struct FDynamicEmitterDataBase;
 class UParticleSystemComponent;
 
@@ -25,6 +27,14 @@ public:
     void Initialize(FDXDBufferManager* InBufferManager, FGraphicsDevice* InGraphics, FDXDShaderManager* InShaderManager) override;
     virtual void PrepareRenderArr() override;
     virtual void Render(const std::shared_ptr<FEditorViewportClient>& Viewport) override;
+    void RenderMeshParticles(
+        FDynamicMeshEmitterData* MeshData, UParticleSystemComponent* ParticleSystemComp,
+        const std::shared_ptr<FEditorViewportClient>& Viewport
+    );
+    void RenderSpriteParticles(
+        FDynamicSpriteEmitterData* SpriteData, UParticleSystemComponent* PSC,
+        const std::shared_ptr<FEditorViewportClient>& Viewport
+    );
 
     virtual void ClearRenderArr() override;
 

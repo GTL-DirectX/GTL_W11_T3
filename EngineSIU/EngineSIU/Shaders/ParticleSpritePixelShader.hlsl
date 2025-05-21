@@ -27,16 +27,17 @@ struct PS_Input
 
 float4 mainPS(PS_Input input) : SV_TARGET
 {
-    // float2 UV = input.UV * UVScale + UVOffset;
-    // float DiffuseColor = Texture.Sample(Sampler, UV);
-    // float4 FinalColor = DiffuseColor * input.Color;
-    // float4 Color = Texture.Sample(Sampler, UV);
+    float3 albedo = input.Color.rgb;
+    float  alpha  = input.Color.a;
 
-    float4 tex = MaterialTextures[TEXTURE_SLOT_DIFFUSE]
-                 .Sample(MaterialSamplers[TEXTURE_SLOT_DIFFUSE], input.UV);
-    clip(tex.a - 0.1f);
-    float3 albedo = tex.rgb * Material.DiffuseColor * input.Color.rgb;
-    float  alpha  = tex.a   * Material.Opacity     * input.Color.a;
+    if ( (Material.TextureFlag & TEXTURE_FLAG_DIFFUSE) != 0 )
+    {
+        float4 tex = MaterialTextures[TEXTURE_SLOT_DIFFUSE]
+                     .Sample(MaterialSamplers[TEXTURE_SLOT_DIFFUSE], input.UV);
+        clip(tex.a - 0.1f);
+        albedo *= tex.rgb;
+        alpha  *= tex.a;
+    }
 
-    return float4(albedo, 1.0f);
+    return float4(albedo, alpha);
 }

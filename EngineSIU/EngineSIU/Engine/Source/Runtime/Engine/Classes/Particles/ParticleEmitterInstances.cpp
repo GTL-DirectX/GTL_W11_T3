@@ -8,6 +8,7 @@
 #include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleSystem.h"
 #include "ParticleSystemComponent.h"
+#include "Engine/Asset/StaticMeshAsset.h"
 #include "Templates/AlignmentTemplates.h"
 #include "UObject/ObjectFactory.h"
 #include "TypeData/ParticleModuleTypeDataMesh.h"
@@ -710,6 +711,9 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSele
         return nullptr;
     }
 
+    /* [NOTE!!] : 제대로 복사되는지 확인 필요*/
+    NewMeshData->StaticMesh = MeshTypeData->Mesh;
+
     // TODO : 원래 FillReplayData에 존재해야 함
     NewMeshData->Source.eEmitterType = DET_Mesh;
 
@@ -831,10 +835,10 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexData(
         VertPtr[i].RelativeTime  = RelTime;
         VertPtr[i].OldPosition   = InLocalToWorld.TransformPosition(Base->OldLocation);
         VertPtr[i].ParticleId    = (float)ParticleIdx;
-        VertPtr[i].Size          = /*Payload->Size*/ FVector2D(1,1);
+        VertPtr[i].Size          = /*Payload->Size*/ FVector2D(Base->Size.X, Base->Size.Y);
         VertPtr[i].Rotation      = /*Payload->Rotation*/ 0.0f;
         VertPtr[i].SubImageIndex = /*(float)Payload->SubImageIndex*/ 0.0f;
-        VertPtr[i].Color         = FLinearColor::White;
+        VertPtr[i].Color         = Base->Color;
 
         // 4) DynamicParameter 채우기 (필요 시)
         // if (DynamicParameterVertexData)
@@ -897,6 +901,45 @@ FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* 
 void FDynamicMeshEmitterData::Init(bool bInSelected)
 {
     FDynamicSpriteEmitterData::Init(bInSelected);
+}
+
+bool FDynamicMeshEmitterData::GetVertexAndIndexData(
+    void* VertexData,
+    void* /*DynamicParameterVertexData*/,
+    void* /*FillIndexData*/,
+    FParticleOrder* ParticleOrder,
+    const FVector& /*InCameraPosition*/,
+    const FMatrix& InLocalToWorld,
+    uint32 /*InstanceFactor*/
+) const
+{
+    // Per-instance로 보낼 데이터만 채워줍니다.
+    // VertexData는 FMeshParticleInstanceVertex 배열이어야 합니다.
+    auto* Out = static_cast<FMeshParticleInstanceVertex*>(VertexData);
+    const int32 Num = Source.ActiveParticleCount;
+    const auto& DC = Source.DataContainer;
+
+    for (int32 i = 0; i < Num; ++i)
+    {
+        int32 PartIdx = ParticleOrder ? ParticleOrder[i].ParticleIndex : i;
+        int32 DataIdx = DC.ParticleIndices[PartIdx];
+        auto* Base = reinterpret_cast<FBaseParticle*>(
+            DC.ParticleData + DataIdx * Source.ParticleStride);
+
+        // 월드 매트릭스: 시뮬레이션→월드와 파티클 위치
+        FMatrix M = FMatrix::CreateTranslationMatrix(Base->Location).GetMatrixWithoutScale() /** InLocalToWorld*/;
+
+        // 채우기
+        Out[i].Transform = M;                           // 4×4
+        Out[i].Color = Base->Color;                // 파티클 컬러
+        Out[i].Velocity = FVector4(Base->Velocity, 0); // 속도
+        //Out[i].SubUVParams[0] = 0; Out[i].SubUVParams[1] = 0;
+        //Out[i].SubUVParams[2] = 0; Out[i].SubUVParams[3] = 0;
+        //Out[i].SubUVLerp = 0.f;
+        //Out[i].RelativeTime = Base->RelativeTime;
+    }
+
+    return true;
 }
 
 FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
