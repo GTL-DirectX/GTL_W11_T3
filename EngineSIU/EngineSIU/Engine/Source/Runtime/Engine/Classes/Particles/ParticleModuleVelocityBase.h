@@ -8,11 +8,12 @@ class UParticleModuleVelocityBase : public UParticleModule
 
 public:
     UParticleModuleVelocityBase() = default;
+    virtual UObject* Duplicate(UObject* InOuter) override;
 
     // 월드 공간 기준 속도 적용 여부
-    uint32 bInWorldSpace : 1 = false;
+    UPROPERTY(EditAnywhere, bool, bInWorldSpace)
 
     // PSC의 Scale을 속도에 적용할지 여부
-    uint32 bApplyOwnerScale : 1 = false; 
+    UPROPERTY(EditAnywhere, bool, bApplyOwnerScale)
 
 };

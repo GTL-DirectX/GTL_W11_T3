@@ -8,6 +8,7 @@ class UDistributionVectorUniform : public UDistributionVector
     DECLARE_CLASS(UDistributionVectorUniform, UDistributionVector)
 public:
     UDistributionVectorUniform() = default;
+    virtual UObject* Duplicate(UObject* InOuter) override;
 
     FVector Min = FVector::ZeroVector;
     FVector Max = FVector::ZeroVector;

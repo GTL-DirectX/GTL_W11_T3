@@ -54,8 +54,8 @@ public:
 
     // 초당 생성할 파티클 수
     // TODO : RawDistribution 으로 바꿔야 함
-    float EmitterDuration;
-    float SpawnRate;
+    UPROPERTY(EditAnywhere, float, EmitterDuration)
+    UPROPERTY(EditAnywhere, float, SpawnRate)
 
 
     virtual void PostInitProperties() override;
