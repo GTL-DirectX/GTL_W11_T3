@@ -8,6 +8,7 @@
 
 class UParticleModule;
 class UParticleEmitter;
+class UParticleLODLevel;
 #include "PropertyEditor/ImGuiInspector.h"
 
 class UParticleSystem;
@@ -42,7 +43,9 @@ private:
     UParticleEmitter* CreateDefaultEmitter(int32 Index, bool bIsSpriteEmitter);
     UParticleEmitter* CreateDefaultSpriteEmitter(int32 Index);
     UParticleEmitter* CreateDefaultMeshEmitter(int32 Index);
-    
+
+    UParticleLODLevel* CreateDefaultLODLevel(UParticleEmitter* Emitter);
+
 private:
     float Width = 800, Height = 600;
 
