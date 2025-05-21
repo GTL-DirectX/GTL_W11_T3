@@ -63,7 +63,7 @@ private:
 
 
 
-public:
+private:
     //inline static TMap<FString, FStaticMeshRenderData*> ObjStaticMeshMap;
     //inline static TMap<FWString, UStaticMesh*> StaticMeshMap;
     inline static TMap<FString, UMaterial*> MaterialMap;

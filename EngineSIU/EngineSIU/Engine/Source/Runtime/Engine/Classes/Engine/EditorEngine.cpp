@@ -34,17 +34,18 @@ void UEditorEngine::Init()
 
     EditorWorldContext.SetCurrentWorld(EditorWorld);
     ActiveWorld = EditorWorld;
-
     EditorPlayer = FObjectFactory::ConstructObject<AEditorPlayer>(this);
-
+    
     if (AssetManager == nullptr)
     {
         AssetManager = FObjectFactory::ConstructObject<UAssetManager>(this);
         assert(AssetManager);
         AssetManager->InitAssetManager();
     }
-    LoadLevel("Saved/AutoSaves.scene");
     AssetManager->LoadEntireAssets();
+
+    LoadLevel("Saved/AutoSaves.scene");
+    
     // StartPreviewWorld(nullptr);
 }
 
