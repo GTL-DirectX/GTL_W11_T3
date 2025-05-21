@@ -92,9 +92,9 @@ void UParticleSystemComponent::InitParticles()
             continue;
         }
 
-        // 1. 인스턴스 생성 
-        FParticleEmitterInstance* Inst = new FParticleEmitterInstance();
-        // 2. 사이즈 계산 + 풀 할당 - EmitterIndex는 internal에서 사용됨
+        // 인스턴스 생성/사이즈 계산 + 풀(Datacontainer) 할당
+        // 언리얼에서 EmitterIndex는 internal에서 사용됨
+        FParticleEmitterInstance* Inst = EmitterTemplate->CreateInstance(this);
         Inst->Init(this, EmitterIndex);
 
         EmitterInstances.Add(Inst);
