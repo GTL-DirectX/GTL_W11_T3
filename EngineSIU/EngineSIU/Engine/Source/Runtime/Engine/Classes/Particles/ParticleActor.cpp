@@ -5,6 +5,7 @@
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
+#include "ParticleModuleLifeTime.h"
 #include "ParticleModuleLocation.h"
 #include "TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleVelocity.h"
@@ -40,7 +41,11 @@ void AParticleActor::PostSpawnInitialize()
     UParticleModuleVelocity* VelMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(nullptr);
     VelMod->bEnabled = true;
     //VelMod->StartVelocity = FVector(0.f, 0.f, 1.f);  // 하드코딩
-    
+
+    // Lifetime 모듈 생성
+    UParticleModuleLifeTime* LifeMod = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(nullptr);
+    LifeMod->bEnabled = true;
+
 
     // TODO : (원한다면 파생 클래스로 교체: UParticleModuleTypeDataSprite 등)
 
@@ -51,8 +56,8 @@ void AParticleActor::PostSpawnInitialize()
     LOD->RequiredModule = ReqMod;
     LOD->TypeDataModule = SpriteTypeData;
 
-    LOD->Modules = { ReqMod, SpriteTypeData, LocMod, VelMod };
-    LOD->SpawnModules = { ReqMod, SpriteTypeData, LocMod, VelMod };  // Spawn 시에만 위치+속도 세팅
+    LOD->Modules = { ReqMod, SpriteTypeData, LocMod, VelMod, LifeMod };
+    LOD->SpawnModules = { ReqMod, SpriteTypeData, LocMod, VelMod, LifeMod };  // Spawn 시에만 위치+속도 세팅
     LOD->UpdateModules = { SpriteTypeData };
 
     // Offset/Size 계산

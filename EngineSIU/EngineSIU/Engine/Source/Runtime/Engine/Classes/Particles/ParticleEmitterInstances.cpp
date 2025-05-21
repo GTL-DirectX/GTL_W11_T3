@@ -339,7 +339,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     FVector Origin = Component->GetWorldLocation() + CurrentLODLevel->RequiredModule->EmitterOrigin;
     const FVector InitialVelocity = FVector::ZeroVector;
 
-    // SpawnTime 분배: 균일 분포
+    // SpawnTime 균등 분배
     const float Increment = (Rate > 0.f) ? (1.f / Rate) : 0.f;
     float StartTime = DeltaTime + SpawnFraction * Increment - Increment;
 
@@ -384,9 +384,9 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     // 생명 시간
     Particle->RelativeTime = 0.0f;
     float& Lifetime = CurrentLODLevel->RequiredModule->EmitterDuration;
-    Particle->OneOverMaxLifetime = Lifetime > 0.f
-        ? 1.f / (Lifetime * 2)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
-        : 1.f;
+    //Particle->OneOverMaxLifetime = Lifetime > 0.f
+    //    ? 1.f / (Lifetime * 2)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
+    //    : 1.f;
     // 생명 6배, 6개 동시존재가능
 }
 
@@ -438,6 +438,10 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
          DECLARE_PARTICLE_PTR(Particle, ParticleData + (ParticleStride * DataIdx));
 
          // 언리얼에선 bLegacySpawnBehavior가 true일때 아래와 같이 반영
+         /* SpawnTime < 0 : 과거에 생성되었어야 하는 파티클
+          * 균등 분포된 다수의 파티클 생성 시, 각 파티클을 프레임 시간 내에서 일정 간격으로 배치하기 위함
+          * 한 프레임에 10개 생성 : 
+          */
          SpawnTime -= Increment;
          Interp -= InterpDelta;
 

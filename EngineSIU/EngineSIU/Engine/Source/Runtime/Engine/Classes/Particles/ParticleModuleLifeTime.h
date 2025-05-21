@@ -13,7 +13,8 @@ public:
 
     UPROPERTY(EditAnywhere, FRawDistributionFloat, LifeTime)
 
-    virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase);
+	virtual void PostInitProperties() override;
+    virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase);
 
 
     
