@@ -34,10 +34,8 @@ public:
     UParticleModuleRequired() = default;
 
 public:
-    UMaterial* Material;
-    
+    UPROPERTY(EditAnywhere, UMaterial*, Material);
     UPROPERTY(EditAnywhere, FVector, EmitterOrigin)
-    
     UPROPERTY(EditAnywhere, FRotator, EmitterRotation)
     UPROPERTY(None, EParticleSortMode, SortMode)
 

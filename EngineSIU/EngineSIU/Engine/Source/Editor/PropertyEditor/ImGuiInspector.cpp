@@ -132,6 +132,15 @@ namespace ImGuiInspector
 
             break;
         }
+        case EPropertyType::MaterialInfo:
+        {
+            TField<FMaterialInfo>* MI = dynamic_cast<TField<FMaterialInfo>*>(Field);
+            FMaterialInfo MaterialInfo = MI->GetValue(ObjPtr);
+            std::string MatName = *MaterialInfo.MaterialName.ToString();
+            ImGui::Text("Material Name : %s", MatName.c_str());
+            break;
+        }
+            
         default:
             ImGui::Text("%s: (unsupported)", *Field->Name);
             break;
