@@ -21,6 +21,8 @@ void AParticleActor::PostSpawnInitialize()
     // -- 1) PS / Emitter / LOD 생성
     UParticleSystem* PS = FObjectFactory::ConstructObject<UParticleSystem>(this);
     UParticleEmitter* Emitter = FObjectFactory::ConstructObject<UParticleEmitter>(nullptr);
+    std::string EmitterName = "Default";
+    Emitter->EmitterName = EmitterName.c_str();
     UParticleLODLevel* LOD = FObjectFactory::ConstructObject<UParticleLODLevel>(nullptr);
 
     // -- 2) Required module

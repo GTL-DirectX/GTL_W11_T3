@@ -62,7 +62,8 @@ private:
     UParticleEmitter* SelectedEmitter = nullptr;
     std::string SelectedModuleName;
     UParticleModule* SelectedModule = nullptr;
-    int DefaultEmitterIndex = -1;
+    int SpriteEmitterIndex = -1;
+    int MeshEmitterIndex = -1;
 
     bool bOpenAddModulePopup = false;
     int  PendingModuleIndex = 0;   // 사용자가 콤보에서 고른 인덱스
@@ -71,6 +72,7 @@ private:
 template<typename T>
 void ParticleSystemViewerPanel::RenderProperties(T* Obj)
 {
+    ImGui::Spacing();
     if (!Obj)
     {
         return;

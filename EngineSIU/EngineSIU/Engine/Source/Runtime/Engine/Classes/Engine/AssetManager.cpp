@@ -4,8 +4,11 @@
 #include <filesystem>
 
 #include "FbxManager.h"
+#include "Components/Material/Material.h"
 #include "Engine/FObjLoader.h"
 #include "Particles/ParticleSystem.h"
+#include "UObject/ObjectFactory.h"
+
 
 inline UAssetManager::UAssetManager() {
     FFbxManager::Init();
@@ -109,9 +112,8 @@ bool UAssetManager::AddAsset(FString filePath)
 
 void UAssetManager::LoadEntireAssets()
 {
-    // Obj, FBX 파일 로드
+    // Assets 폴더 - Obj, FBX 파일 로드
     const std::string BasePathNameAssets = "Assets/";
-
     for (const auto& Entry : std::filesystem::recursive_directory_iterator(BasePathNameAssets))
     {
         if (Entry.is_regular_file() && Entry.path().extension() == ".obj")
@@ -148,10 +150,8 @@ void UAssetManager::LoadEntireAssets()
         }
     }
 
-
-    // Obj, FBX 파일 로드
+    // Contents 폴더 - Obj, FBX 파일 로드
     const std::string BasePathNameContents = "Contents/";
-    
     for (const auto& Entry : std::filesystem::recursive_directory_iterator(BasePathNameContents))
     {
         if (Entry.is_regular_file() && Entry.path().extension() == ".obj")
@@ -187,6 +187,46 @@ void UAssetManager::LoadEntireAssets()
             FFbxManager::Load(MeshName);
         }
     }
+
+    // Assets/Texture 폴더 - Image 파일 로드
+    const std::string BasePathNameTexture = "Assets/Texture/";
+    for (const auto& Entry : std::filesystem::recursive_directory_iterator(BasePathNameTexture))
+    {
+        if (!Entry.is_regular_file())
+            continue;
+
+        auto ext = Entry.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".bmp")
+            continue;
+
+        FWString TexturePath = Entry.path().wstring();
+        if (!FEngineLoop::ResourceManager.GetTexture(TexturePath))
+        {
+            FEngineLoop::ResourceManager.LoadTextureFromFile(
+                FEngineLoop::GraphicDevice.Device,
+                TexturePath.c_str(),
+                true
+            );
+        }
+
+        UMaterial* NewMat = FObjectFactory::ConstructObject<UMaterial>(nullptr);
+        FMaterialInfo& MaterialInfo = NewMat->GetMaterialInfo();
+        
+        FWString filename = Entry.path().stem().wstring();
+        MaterialInfo.MaterialName = filename.c_str();
+        int NumSlots = static_cast<int>(EMaterialTextureSlots::MTS_MAX);
+        MaterialInfo.TextureInfos.SetNum(NumSlots);
+        MaterialInfo.TextureFlag |= static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
+        int DiffuseSlot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
+        FTextureInfo& TextureInfo = MaterialInfo.TextureInfos[DiffuseSlot];
+        TextureInfo.TextureName = MaterialInfo.MaterialName;
+        TextureInfo.TexturePath = TexturePath;
+        TextureInfo.bIsSRGB     = true;
+        
+        FObjManager::CreateMaterial(MaterialInfo);
+    }
+    
 }
 
 // 파일 로드의 호출이 UAssetManager 외부에서 발생하였을 때 등록하는 함수입니다.

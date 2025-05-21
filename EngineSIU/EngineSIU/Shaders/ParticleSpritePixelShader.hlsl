@@ -27,13 +27,8 @@ struct PS_Input
 
 float4 mainPS(PS_Input input) : SV_TARGET
 {
-    // float2 UV = input.UV * UVScale + UVOffset;
-    // float DiffuseColor = Texture.Sample(Sampler, UV);
-    // float4 FinalColor = DiffuseColor * input.Color;
-    // float4 Color = Texture.Sample(Sampler, UV);
-
-    float3 albedo = Material.DiffuseColor * input.Color.rgb;
-    float  alpha  = Material.Opacity     * input.Color.a;
+    float3 albedo = input.Color.rgb;
+    float  alpha  = input.Color.a;
 
     if ( (Material.TextureFlag & TEXTURE_FLAG_DIFFUSE) != 0 )
     {
@@ -44,5 +39,5 @@ float4 mainPS(PS_Input input) : SV_TARGET
         alpha  *= tex.a;
     }
 
-    return float4(albedo, 1.0f);
+    return float4(albedo, alpha);
 }
