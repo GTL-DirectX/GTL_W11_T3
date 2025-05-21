@@ -4,6 +4,7 @@
 #include "UObject/ObjectMacros.h"
 
 class UParticleModuleRequired;
+class UParticleModuleSpawn;
 class UParticleModuleTypeDataBase;
 class UParticleModule;
 
@@ -14,6 +15,11 @@ class UParticleLODLevel : public UObject
 public:
     UParticleLODLevel() = default;
     virtual void UpdateModuleLists();
+
+    void AddModule(UClass* ModuleClass);
+    void AddModule(UParticleModule* Module);
+
+    void RemoveModule(UParticleModule* Module);
 
     // Particle LOD Level
     int32 LODLevel;
@@ -27,5 +33,9 @@ public:
     TArray<UParticleModule*> UpdateModules;
 
     UParticleModuleTypeDataBase* TypeDataModule;
+
+
     UParticleModuleRequired* RequiredModule;
+    UParticleModuleSpawn* SpawnModule;
+   
 };

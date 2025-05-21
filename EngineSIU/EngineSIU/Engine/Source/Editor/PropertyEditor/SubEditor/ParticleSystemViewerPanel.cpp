@@ -251,20 +251,25 @@ void ParticleSystemViewerPanel::RenderEmitters()
         {
             ImGui::Text("Select Module Type:");
 
-            // 3) 콤보박스로 리스트 보여주기
-            ImGui::Combo("##ModuleType",
-                &PendingModuleIndex,
-                // "Required\0" 는 필수 모듈이므로,
-                "Spawn\0"
-                "Lifetime\0"
-                "Size\0"
-                "Velocity\0"
-                "Color\0"
-                "Rotation\0"
-                "Acceleration\0"
-                "Scale\0"
-                "Collision\0"
-            );
+            TArray<UClass*> ModuleClasses;
+            GetChildOfClass(UParticleModule::StaticClass(), ModuleClasses);
+
+            std::string ModuleName = GetData(*ModuleClasses[PendingModuleIndex]->GetName());
+            if (ImGui::BeginCombo("##ModuleType", ModuleName.c_str()))
+            {
+                for (int i = 0; i < ModuleClasses.Num(); ++i)
+                {
+                    UClass* Class = ModuleClasses[i];
+                    if (ImGui::Selectable(GetData(Class->GetName()), false))
+                    {
+                        // Select Index 지정
+                        PendingModuleIndex = i;
+                        std::string SelectedModuleName = GetData(*Class->GetName());
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
 
             ImGui::Separator();
 
@@ -274,45 +279,10 @@ void ParticleSystemViewerPanel::RenderEmitters()
                 // 1) 선택된 Emitter 가져오기
                 //    (루프 안에서 i를 저장해 두셨다면 Emitters[i] 로 꺼내고,
                 //     아니면 SelectedEmitter 를 사용해도 됩니다.)
-                UParticleEmitter* Emitter = SelectedEmitter;
-                if (Emitter)
+
+                if (SelectedEmitter)
                 {
-                    UParticleLODLevel* LOD0 = Emitter->LODLevels[0];
-
-                    // 2) PendingModuleIndex 에 따라 직접 분기
-                    UParticleModule* NewMod = nullptr;
-                    switch (PendingModuleIndex)
-                    {
-                    case 0: // "Required"
-                        NewMod = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
-                        break;
-                    case 1: // "Spawn"
-                        NewMod = FObjectFactory::ConstructObject<UParticleModuleSpawn>(LOD0);
-                        break;
-                    case 2: // "Lifetime"
-                        NewMod = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(LOD0);
-                        break;
-                    case 3: // "Size"
-                        NewMod = FObjectFactory::ConstructObject<UParticleModuleSize>(LOD0);
-                        break;
-                    case 4: // "Velocity"
-                        NewMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(LOD0);
-                        break;
-                    case 5: // "Color"
-                        NewMod = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
-                        break;
-                        // ... 나머지 모듈도 같은 패턴으로 추가 ...
-                    default:
-                        break;
-                    }
-
-                    // 3) 리스트에 추가 & 선택 상태 갱신
-                    if (NewMod)
-                    {
-                        LOD0->Modules.Add(NewMod);
-                        SelectedModule = NewMod;
-                        SelectedEmitter = Emitter;
-                    }
+                    SelectedEmitter->LODLevels[0]->AddModule(ModuleClasses[PendingModuleIndex]);
                 }
 
                 // 4) 팝업 닫기
@@ -433,6 +403,9 @@ void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UPar
     auto pos = RawName.find('_');
     if (pos != std::string::npos)
         RawName = RawName.substr(0, pos);
+
+    if (RawName == "")
+        return;
     
     if (ImGui::Selectable(RawName.c_str(), isSelected))
     {
