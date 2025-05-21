@@ -263,19 +263,18 @@ void ParticleSystemViewerPanel::RenderEmitters()
         ImVec2 regionSize = ImVec2(ImGui::GetContentRegionAvail().x, 30.0f);
         ImGui::Selectable(EmitterName.c_str(), isEmitterSelected, ImGuiSelectableFlags_Disabled, regionSize);
 
-
         ImGui::Separator();
 
         // 2. 모듈 리스트 영역
         {
             ImGui::BeginChild(("Modules##" + std::to_string(i)).c_str(), ImVec2(0, 300), false);
 
-            auto& Modules = Emitter->LODLevels[0]->Modules;
+            auto & Modules = Emitter->LODLevels[0]->Modules;
             for (int m = 0; m < Modules.Num(); ++m)
             {
                 RenderModuleItem(Emitter, Modules[m]);
             }
-
+       
             ImGui::EndChild();
         }
 
@@ -388,10 +387,26 @@ UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultEmitter(int32 Index)
 
     // --- 3) Required 모듈 (필수) ---
     {
+        // (1) 원래 LOD0->RequiredModule이 가리키던 '기본 Required'를 임시로 저장
+        UParticleModuleRequired* OldRequired = LOD0->RequiredModule;
+
+        // (2) 새 Required 생성·설정
         UParticleModuleRequired* Required = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
         Required->EmitterOrigin   = FVector::ZeroVector;
         Required->EmitterRotation = FRotator::ZeroRotator;
         LOD0->RequiredModule = Required;
+        // (3) 기존 Modules 복사
+        TArray<UParticleModule*> Temp = LOD0->Modules;
+
+        // (4) 복사해 온 배열에서 '기본 Required' 하나만 제거
+        Temp.RemoveSingle(OldRequired);
+
+        // (5) 원본 비우고, 새 Required를 맨 앞에 추가
+        LOD0->Modules.Empty();
+        LOD0->Modules.Add(Required);
+
+        // (6) 나머지(필터링된) 모듈들 붙이기
+        LOD0->Modules.Append(Temp);
     }
 
     // --- 4) Spawn 모듈 (생성 빈도) ---
