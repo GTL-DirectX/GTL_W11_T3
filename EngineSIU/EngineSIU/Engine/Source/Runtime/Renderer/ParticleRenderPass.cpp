@@ -1,4 +1,6 @@
 #include "ParticleRenderPass.h"
+
+#include "RendererHelpers.h"
 #include "Engine/Engine.h"
 #include "GameFramework/Actor.h"
 #include "Particles/ParticleHelper.h"
@@ -179,6 +181,8 @@ void FParticleRenderPass::PrepareRender(const std::shared_ptr<FEditorViewportCli
     Graphics->DeviceContext->VSSetShader(VertexShader, nullptr, 0);
     Graphics->DeviceContext->PSSetShader(PixelShader, nullptr, 0);
     Graphics->DeviceContext->IASetInputLayout(InputLayout);
+
+    BufferManager->BindConstantBuffer(TEXT("FMaterialConstants"), 0, EShaderStage::Pixel);
 }
 
 void FParticleRenderPass::CleanUpRender(const std::shared_ptr<FEditorViewportClient>& Viewport)
@@ -273,6 +277,12 @@ void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& V
                 }
             );
 
+            if (UMaterial* Material = SpriteData->Source.Material)
+            {
+                const FMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
+                MaterialUtils::UpdateMaterial(BufferManager, Graphics, MaterialInfo);
+            }
+            
             BufferManager->UpdateStructuredBuffer("ParticleSpriteInstanceBuffer", SpriteVertices);
             BufferManager->BindStructuredBufferSRV("ParticleSpriteInstanceBuffer", 60, EShaderStage::Vertex);
             Graphics->DeviceContext->DrawInstanced(
@@ -282,32 +292,6 @@ void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& V
                                             /*StartInstanceLocation=*/ 0
             );
         }
-
-
-        // TArray<FParticleSpriteVertex> SpriteVertices = {
-        //     { FVector(0.f), 0.f, FVector(0.f), 0.f, FVector2D(1.f), 0.f, 0.f, FLinearColor(0.f, 0.f, 0.f, 1.f) },
-        //     { FVector(1.f), 0.f, FVector(0.f), 0.f, FVector2D(0.5f), 0.f, 0.f, FLinearColor(0.f, 0.f, 0.f, 1.f) },
-        //     { FVector(2.f), 0.f, FVector(0.f), 0.f, FVector2D(0.25f), 0.f, 0.f, FLinearColor(0.f, 0.f, 0.f, 1.f) },
-        // };
-        //
-        // SpriteVertices.Sort(
-        //     [Viewport](const FParticleSpriteVertex& A, const FParticleSpriteVertex& B)
-        //     {
-        // const FVector LocA = A.Position;
-        // const FVector LocB = B.Position;
-        // const FVector LocCam = Viewport->GetCameraLocation();
-        //
-        //         const float DistA = (LocCam - LocA).SquaredLength();
-        //         const float DistB = (LocCam - LocB).SquaredLength();
-        //
-        //         return DistA > DistB;
-        //     }
-        // );
-        //
-        // BufferManager->UpdateStructuredBuffer("ParticleSpriteInstanceBuffer", SpriteVertices);
-        // BufferManager->BindStructuredBufferSRV("ParticleSpriteInstanceBuffer", 0, EShaderStage::Vertex);
-        //
-        // Graphics->DeviceContext->DrawInstanced(6, SpriteVertices.Num(), 0, 0);
     }
 }
 

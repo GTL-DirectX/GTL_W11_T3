@@ -52,6 +52,9 @@ struct FParticleEmitterInstance
     /* 컴포넌트가 이 Emitter 비활성화시킬 수 있음 */
     uint8 bEnabled : 1;
 
+    /* 파티클의 머티리얼 */
+    UMaterial* Material = nullptr;
+
     FParticleEmitterInstance();
     virtual ~FParticleEmitterInstance() = default;
 
