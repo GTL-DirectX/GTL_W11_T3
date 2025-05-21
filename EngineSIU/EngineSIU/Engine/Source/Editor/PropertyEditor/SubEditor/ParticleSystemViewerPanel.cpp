@@ -2,7 +2,7 @@
 
 #include "UnrealClient.h"
 #include "Engine/EditorEngine.h"
-#include "GameFramework/Actor.h"
+#include "Particles/ParticleActor.h"
 #include "ImGui/imgui_internal.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleEmitter.h"
@@ -25,8 +25,18 @@ void ParticleSystemViewerPanel::Render()
 
     if (!CurrentParticleSystemComponent)
     {
-        CurrentParticleSystemComponent = Engine->GetSelectedActor()->GetComponentByClass<UParticleSystemComponent>();
-        CurrentParticleSystem = CurrentParticleSystemComponent->GetParticleSystem();
+        UWorld* World = Engine->GetPreviewWorld(GEngineLoop.ParticleSystemViewerAppWnd);
+        if (!World)
+            return;
+
+        for (auto Actor : World->GetActiveLevel()->Actors)
+        {
+            if (Actor && Actor->IsA<AParticleActor>())
+            {
+                CurrentParticleSystemComponent = Actor->GetComponentByClass<UParticleSystemComponent>();
+                CurrentParticleSystem = CurrentParticleSystemComponent->GetParticleSystem();
+            }
+        }
     }
     
     // Viewport
@@ -58,8 +68,6 @@ void ParticleSystemViewerPanel::RenderMainViewport()
 
     float ViewportWidth = Width * 0.3f;
     float ViewportHeight = Height * 0.55f;
-    UE_LOG(ELogLevel::Display, TEXT("Client Size: %f %f"), Width, Height);
-    UE_LOG(ELogLevel::Display, TEXT("ViewportPanelSize: %f %f"), ViewportWidth, ViewportHeight);
 
     ViewportSize = FRect{
         0,
@@ -168,11 +176,6 @@ void ParticleSystemViewerPanel::RenderEmitters()
         UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
         if (NewEmitter)
         {
-            if (!CurrentParticleSystem)
-            {
-                CurrentParticleSystem = new UParticleSystem();
-                CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
-            }
             CurrentParticleSystem->Emitters.Add(NewEmitter);
         }
     }
@@ -227,9 +230,6 @@ void ParticleSystemViewerPanel::RenderEmitters()
             SelectedEmitter = Emitter;
             SelectedModule = nullptr;
         }
-
-      
-
 
         // 🔹 Emitter 이름 라벨 (시각용)
         ImVec2 regionSize = ImVec2(ImGui::GetContentRegionAvail().x, 30.0f);
