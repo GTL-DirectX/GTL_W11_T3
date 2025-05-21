@@ -71,7 +71,7 @@ const TMap<FName, FAssetInfo>& UAssetManager::GetAssetRegistry()
 
 void UAssetManager::AddSavedParticleSystem(const FString& key, UParticleSystem*& system)
 {
-    SavedParticleSystemMap.Add(key, system);
+    SavedParticleSystemMap[key] = system;
 }
 
 bool UAssetManager::AddAsset(FString filePath)

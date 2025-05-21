@@ -148,20 +148,9 @@ void ParticleSystemViewerPanel::RenderEmitters()
             // SaveSystemName 을 이용해 실제 저장 처리
             FString Key(SaveSystemName);
 
-            //// 1) Get() 으로 매니저 참조 가져오기
-            //UAssetManager& AssetMgr = UAssetManager::Get();
-            ////UAssetManager::Get().AddSavedParticle(Key, CurrentParticleSystem);
-
-            //// 2) 바로 Map 참조 선언과 초기화
-            //auto& Map = AssetMgr.SavedParticleSystemMap;
-
-            //Map.Emplace(Key, CurrentParticleSystem);
-
-            UParticleSystem* SystemPtr = CurrentParticleSystem;
-
+            UParticleSystem* SystemPtr = Cast<UParticleSystem>(CurrentParticleSystem->Duplicate(CurrentParticleSystem->GetOuter()));
             // Get() 이 반환하는 UAssetMaanger& 에 바로 호출
             UAssetManager::Get().AddSavedParticleSystem(Key, SystemPtr);
-
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
@@ -208,41 +197,16 @@ void ParticleSystemViewerPanel::RenderEmitters()
     // 4) 팝업 그리기
     if (ImGui::BeginPopup("Add Emitter Popup", ImGuiWindowFlags_AlwaysAutoResize))
     {
-        bool bIsSpriteEmitter = false;
         if (ImGui::Selectable("New Particle Sprite Emitter"))
         {
-            bIsSpriteEmitter = true;
+            CurrentParticleSystem->AddNewEmitterSprite();
 
-            SpriteEmitterIndex++;
-            UParticleEmitter* NewEmitter = CreateDefaultSpriteEmitter(SpriteEmitterIndex);
-
-            if (NewEmitter)
-            {
-                if (!CurrentParticleSystem)
-                {
-                    CurrentParticleSystem = new UParticleSystem();
-                    CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
-                }
-                CurrentParticleSystem->Emitters.Add(NewEmitter);
-            }
             ImGui::CloseCurrentPopup();
         }
         if (ImGui::Selectable("New Particle Mesh Emitter"))
         {
-            bIsSpriteEmitter = false;
-            
-            MeshEmitterIndex++;
-            UParticleEmitter* NewEmitter = CreateDefaultMeshEmitter(MeshEmitterIndex);
+            CurrentParticleSystem->AddNewEmitterMesh();
 
-            if (NewEmitter)
-            {
-                if (!CurrentParticleSystem)
-                {
-                    CurrentParticleSystem = new UParticleSystem();
-                    CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
-                }
-                CurrentParticleSystem->Emitters.Add(NewEmitter);
-            }
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -561,92 +525,6 @@ void ParticleSystemViewerPanel::RenderCurveEditor()
     ImGui::Begin("Curve Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     ImGui::End();
-}
-
-UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultSpriteEmitter(int32 Index)
-{
-    // 1) Emitter 객체 생성
-    UParticleEmitter* NewEmitter = FObjectFactory::ConstructObject<UParticleEmitter>(CurrentParticleSystem);
-    std::string EmitterName = "SpriteEmitter_" + std::to_string(Index);
-    NewEmitter->EmitterName = EmitterName.c_str();
-    NewEmitter->ParticleSize = 20;
-
-    // LODLevel 0 생성 및 기본 설정
-    UParticleLODLevel* LOD0 = CreateDefaultLODLevel(NewEmitter);
-
-    LOD0->TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(LOD0);
-    // LODLevel을 Emitter에 추가
-    NewEmitter->LODLevels.Add(LOD0);
-
-    return NewEmitter;
-}
-
-UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultMeshEmitter(int32 Index)
-{
-    // 1) Emitter 객체 생성
-    UParticleEmitter* NewEmitter = FObjectFactory::ConstructObject<UParticleEmitter>(CurrentParticleSystem);
-    std::string EmitterName = "MeshEmitter_" + std::to_string(Index);
-    NewEmitter->EmitterName = EmitterName.c_str();
-    NewEmitter->ParticleSize = 20;
-
-    UParticleLODLevel* LOD0 = CreateDefaultLODLevel(NewEmitter);
-    LOD0->TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataMesh>(LOD0);
-
-    // 9) LODLevel을 Emitter에 추가
-    NewEmitter->LODLevels.Add(LOD0);
-
-    return NewEmitter;
-}
-
-UParticleLODLevel* ParticleSystemViewerPanel::CreateDefaultLODLevel(UParticleEmitter* Emitter)
-{
-    // -- 2) LODLevel 0 생성 및 기본 설정
-    UParticleLODLevel* LOD0 = FObjectFactory::ConstructObject<UParticleLODLevel>(Emitter);
-    LOD0->LODLevel = 0;
-    LOD0->bEnabled = true;
-
-    // -- 3) Required 모듈 (필수)
-    {
-        UParticleModuleRequired* OldReq = LOD0->RequiredModule;
-        UParticleModuleRequired* Req = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
-        Req->EmitterOrigin = FVector::ZeroVector;
-        Req->EmitterRotation = FRotator::ZeroRotator;
-        LOD0->RequiredModule = Req;
-
-        TArray<UParticleModule*> Temp = LOD0->Modules;
-        Temp.RemoveSingle(OldReq);
-        LOD0->Modules.Empty();
-        LOD0->Modules.Add(Req);
-        LOD0->Modules.Append(Temp);
-    }
-
-    // -- 4) Spawn
-    {
-        UParticleModuleSpawn* Spawn = FObjectFactory::ConstructObject<UParticleModuleSpawn>(LOD0);
-        LOD0->Modules.Add(Spawn);
-    }
-    // -- 5) Lifetime
-    {
-        UParticleModuleLifeTime* Life = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(LOD0);
-        LOD0->Modules.Add(Life);
-    }
-    // -- 6) Size
-    {
-        UParticleModuleSize* Size = FObjectFactory::ConstructObject<UParticleModuleSize>(LOD0);
-        LOD0->Modules.Add(Size);
-    }
-    // -- 7) Velocity
-    {
-        UParticleModuleVelocity* Vel = FObjectFactory::ConstructObject<UParticleModuleVelocity>(LOD0);
-        LOD0->Modules.Add(Vel);
-    }
-    // -- 8) Color
-    {
-        UParticleModuleColor* Color = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
-        LOD0->Modules.Add(Color);
-    }
-
-    return LOD0;
 }
 
 void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module)

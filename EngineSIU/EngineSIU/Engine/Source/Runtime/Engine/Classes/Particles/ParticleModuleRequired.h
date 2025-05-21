@@ -35,6 +35,7 @@ class UParticleModuleRequired : public UParticleModule
 
 public:
     UParticleModuleRequired();
+    virtual UObject* Duplicate(UObject* InOuter) override;
 
 public:
     UMaterial* Material = nullptr;
@@ -53,9 +54,9 @@ public:
 
     // 초당 생성할 파티클 수
     // TODO : RawDistribution 으로 바꿔야 함
+    float EmitterDuration;
     float SpawnRate;
 
-    float EmitterDuration;
 
     virtual void PostInitProperties() override;
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;

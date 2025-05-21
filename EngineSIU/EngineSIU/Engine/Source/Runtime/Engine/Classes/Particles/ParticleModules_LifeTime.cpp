@@ -12,6 +12,16 @@ UParticleModuleLifeTime::UParticleModuleLifeTime()
     bUpdateModule = false;
 }
 
+UObject* UParticleModuleLifeTime::Duplicate(UObject* InOuter)
+{
+    UParticleModuleLifeTime* NewModule = Cast<UParticleModuleLifeTime>(Super::Duplicate(InOuter));
+    if (NewModule)
+    {
+        NewModule->LifeTime = LifeTime;
+    }
+    return NewModule;
+}
+
 /* LifeTime 값 초기화 */
 void UParticleModuleLifeTime::PostInitProperties()
 {

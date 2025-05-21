@@ -1,11 +1,37 @@
 #include "ParticleModule.h"
 #include "TypeData/ParticleModuleTypeDataBase.h"
 
+#include "UObject/Casts.h"
+
 #include "ParticleModuleLifeTimeBase.h"
 #include "ParticleModuleLifeTime.h"
 #include "ParticleModuleColorBase.h"
 #include "ParticleModuleColor.h"
 
+
+void UParticleModule::PostInitProperties()
+{
+    bEnabled = true;
+}
+
+UObject* UParticleModule::Duplicate(UObject* InOuter)
+{
+    UParticleModule* NewModule = Cast<UParticleModule>(Super::Duplicate(InOuter));
+    if (NewModule)
+    {
+        NewModule->bEnabled = bEnabled;
+        NewModule->bSpawnModule = bSpawnModule;
+        NewModule->bUpdateModule = bUpdateModule;
+        NewModule->bFinalUpdateModule = bFinalUpdateModule;
+        NewModule->bUpdateForGPUEmitter = bUpdateForGPUEmitter;
+        NewModule->bCurvesAsColor = bCurvesAsColor;
+        NewModule->b3DDrawMode = b3DDrawMode;
+        NewModule->bSupported3DDrawMode = bSupported3DDrawMode;
+        NewModule->EditorColor = EditorColor;
+        NewModule->bEditable = bEditable;
+    }
+    return NewModule;
+}
 
 void UParticleModule::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {

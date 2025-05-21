@@ -14,6 +14,8 @@ class UParticleLODLevel : public UObject
 
 public:
     UParticleLODLevel() = default;
+    virtual void PostInitProperties() override;
+    virtual UObject* Duplicate(UObject* InOuter) override;
     virtual void UpdateModuleLists();
 
     void AddModule(UClass* ModuleClass);
@@ -34,8 +36,9 @@ public:
 
     UParticleModuleTypeDataBase* TypeDataModule;
 
-
     UParticleModuleRequired* RequiredModule;
     UParticleModuleSpawn* SpawnModule;
+
+    bool bSpriteTypeData = true;
    
 };

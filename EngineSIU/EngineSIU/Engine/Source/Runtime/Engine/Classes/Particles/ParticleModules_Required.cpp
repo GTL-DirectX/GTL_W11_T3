@@ -3,11 +3,32 @@
 #include "Engine/FObjLoader.h"
 #include "UObject/ObjectFactory.h"
 
+#include "UObject/Casts.h"
+
 UParticleModuleRequired::UParticleModuleRequired()
 {
     bEnabled = true;
     bSpawnModule = true;
     bUpdateModule = false;
+}
+
+UObject* UParticleModuleRequired::Duplicate(UObject* InOuter)
+{
+    UParticleModuleRequired* NewModule = Cast<UParticleModuleRequired>(Super::Duplicate(InOuter));
+    if (NewModule)
+    {
+        NewModule->Material = Material;
+        NewModule->EmitterOrigin = EmitterOrigin;
+        NewModule->EmitterRotation = EmitterRotation;
+        NewModule->SortMode = SortMode;
+        NewModule->bUseLocalSpace = bUseLocalSpace;
+        NewModule->bKillOnDeactivate = bKillOnDeactivate;
+        NewModule->bKillOnCompleted = bKillOnCompleted;
+        NewModule->SpawnRate = SpawnRate;
+        NewModule->EmitterDuration = EmitterDuration;
+    }
+    return NewModule;
+    
 }
 
 void UParticleModuleRequired::PostInitProperties()

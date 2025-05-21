@@ -38,14 +38,6 @@ private:
 
     void RenderAddModulePopup(UParticleEmitter* module);
     
-    // Test
-    UParticleEmitter* CreateDefaultEmitter(int32 Index);
-    UParticleEmitter* CreateDefaultEmitter(int32 Index, bool bIsSpriteEmitter);
-    UParticleEmitter* CreateDefaultSpriteEmitter(int32 Index);
-    UParticleEmitter* CreateDefaultMeshEmitter(int32 Index);
-
-    UParticleLODLevel* CreateDefaultLODLevel(UParticleEmitter* Emitter);
-
 private:
     float Width = 800, Height = 600;
 

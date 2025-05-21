@@ -10,6 +10,7 @@ class UParticleModuleLifeTime : public UParticleModuleLifeTimeBase
 
 public:
     UParticleModuleLifeTime();
+    virtual UObject* Duplicate(UObject* InOuter) override;
 
     UPROPERTY(EditAnywhere, FRawDistributionFloat, LifeTime)
 
