@@ -10,6 +10,7 @@
 #include "UObject/UObjectIterator.h"
 #include "FbxManager.h"
 #include "Contents/Actors/ItemActor.h"
+#include "Particles/ParticleActor.h"
 
 namespace PrivateEditorSelection
 {
@@ -185,7 +186,24 @@ void UEditorEngine::EndPIE()
 
 UWorld* UEditorEngine::StartPreviewWorld(HWND hWnd)
 {
-    std::unique_ptr<UWorld> PreviewWorld(UWorld::CreateWorld(this, EWorldType::EditorPreview, FString("EditorPreviewWorld")));
+    if (PreviewWorldMap.Contains(hWnd))
+    {
+        // 이미 생성된 경우
+        ActiveWorld = PreviewWorldMap[hWnd].get();
+        return PreviewWorldMap[hWnd].get();
+    }
+
+    FString NewWorldName;
+    if (hWnd == GEngineLoop.ParticleSystemViewerAppWnd)
+    {
+        NewWorldName = TEXT("ParticleSystemViewerWorld");
+    }
+    else
+    {
+        NewWorldName = TEXT("EditorPreviewWorld");
+    }
+
+    std::unique_ptr<UWorld> PreviewWorld(UWorld::CreateWorld(this, EWorldType::EditorPreview, NewWorldName));
 
     if (!PreviewWorld)
     {
@@ -197,20 +215,23 @@ UWorld* UEditorEngine::StartPreviewWorld(HWND hWnd)
     FWorldContext& WorldContext = CreateNewWorldContext(EWorldType::EditorPreview);
     WorldContext.SetCurrentWorld(PreviewWorld.get());
 
-    AItemActor* Temp = PreviewWorld->SpawnActor<AItemActor>();
-    if (Temp)
+    if (hWnd == GEngineLoop.ParticleSystemViewerAppWnd)
     {
+        AParticleActor* Temp = PreviewWorld->SpawnActor<AParticleActor>();
         Temp->SetActorLocation({ 0.f, 0.f, 0.f });
-        Temp->SetActorLabel(TEXT("OBJ_PREVIEW_ACTOR"));
+        Temp->SetActorLabel(TEXT("OBJ_PARTICLE_ACTOR"));
+    }
+    else
+    {
+        AItemActor* Temp = PreviewWorld->SpawnActor<AItemActor>();
+        if (Temp)
+        {
+            Temp->SetActorLocation({ 0.f, 0.f, 0.f });
+            Temp->SetActorLabel(TEXT("OBJ_PREVIEW_ACTOR"));
+        }
     }
 
     PreviewWorld->SpawnActor<ADirectionalLight>();
-
-    // Swap active world for binding.
-    UWorld* CurrentWorld = ActiveWorld;
-    ActiveWorld = PreviewWorld.get();
-    BindEssentialObjects();
-    ActiveWorld = CurrentWorld;
 
     // Transfer of ownership
     PreviewWorldMap.Emplace(hWnd, std::move(PreviewWorld));

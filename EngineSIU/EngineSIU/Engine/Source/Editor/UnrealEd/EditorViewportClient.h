@@ -87,7 +87,6 @@ public:
     virtual ~FEditorViewportClient() override;
 
     virtual void Draw(FViewport* Viewport) override;
-    virtual UWorld* GetWorld() const override { return nullptr; }
     void Initialize(EViewScreenLocation InViewportIndex, const FRect& InRect);
     void Tick(float DeltaTime);
     void Release() const;

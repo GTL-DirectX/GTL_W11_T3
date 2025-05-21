@@ -118,12 +118,6 @@ void ControlEditorPanel::Render()
             if (ImGui::MenuItem("ParticleSystem Viewer"))
             {
                 UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
-                UWorld* ParticleSystemWorld = Engine->GetPreviewWorld(GEngineLoop.ParticleSystemViewerAppWnd);
-                if (ParticleSystemWorld)
-                {
-                    AParticleActor* ParticleActor = ParticleSystemWorld->SpawnActor<AParticleActor>();
-					ParticleActor->SetActorLabel("Particle Viewer Default Actor");
-                }
 
                 GEngineLoop.Show(GEngineLoop.ParticleSystemViewerAppWnd);
             }
