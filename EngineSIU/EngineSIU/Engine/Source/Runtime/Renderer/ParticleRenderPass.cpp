@@ -216,9 +216,9 @@ void FParticleRenderPass::PrepareRenderArr()
             const FVector LocA = A->GetWorldLocation();
             const FVector LocB = B->GetWorldLocation();
             const FVector LocCam = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->GetCameraLocation();
-
             const float DistA = (LocCam - LocA).SquaredLength();
             const float DistB = (LocCam - LocB).SquaredLength();
+
 
             return DistA > DistB;
         }
