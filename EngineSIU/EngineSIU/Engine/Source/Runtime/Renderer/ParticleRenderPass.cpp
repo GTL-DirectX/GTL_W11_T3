@@ -284,8 +284,13 @@ void FParticleRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& V
             }
             
             BufferManager->UpdateStructuredBuffer("ParticleSpriteInstanceBuffer", SpriteVertices);
-            BufferManager->BindStructuredBufferSRV("ParticleSpriteInstanceBuffer", 0, EShaderStage::Vertex);
-            Graphics->DeviceContext->DrawInstanced(6, SpriteVertices.Num(), 0, 0);
+            BufferManager->BindStructuredBufferSRV("ParticleSpriteInstanceBuffer", 60, EShaderStage::Vertex);
+            Graphics->DeviceContext->DrawInstanced(
+                                            /*VertexCountPerInstance=*/ 6,
+                                            /*InstanceCount=*/ SpriteVertices.Num(),
+                                            /*StartVertexLocation=*/ 0,
+                                            /*StartInstanceLocation=*/ 0
+            );
         }
     }
 }

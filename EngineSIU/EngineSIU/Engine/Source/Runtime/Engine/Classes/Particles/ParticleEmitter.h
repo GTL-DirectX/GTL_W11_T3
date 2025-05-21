@@ -6,6 +6,7 @@
 #include "Container/Array.h"
 
 class UParticleLODLevel;
+class UParticleSystemComponent;
 
 enum class EEmitterRenderMode : int
 {
@@ -37,8 +38,6 @@ struct FParticleBurst
 
 };
 
-
-
 class UParticleEmitter : public UObject
 {
     DECLARE_CLASS(UParticleEmitter, UObject)
@@ -46,6 +45,7 @@ class UParticleEmitter : public UObject
 public:
     UParticleEmitter() = default;
     void Build();
+    FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent);
     void CacheEmitterModuleInfo();
     void PostLoad();
 

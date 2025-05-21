@@ -3,6 +3,7 @@
 #include "HAL/PlatformType.h"
 #include "ParticleHelper.h"
 
+class UParticleModuleTypeDataMesh;
 class UParticleEmitter;
 class UParticleSystemComponent;
 class UParticleLODLevel;
@@ -43,7 +44,8 @@ struct FParticleEmitterInstance
     /** 파티클 배열 내 최대 활성화 개수 **/
     int32 MaxActiveParticles;
 
-    float SpawnFraction;
+    /* ex) 지난 프레임에서 생성해야 했던 파티클의 소수점 개수*/
+    float SpawnFraction; 
     float EmitterTime;
     float LastDeltaTime;
 
@@ -54,6 +56,7 @@ struct FParticleEmitterInstance
     UMaterial* Material = nullptr;
 
     FParticleEmitterInstance();
+    virtual ~FParticleEmitterInstance() = default;
 
     // 각 Emitter Type에 맞게 오버라이딩 필요
     virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected);
@@ -85,4 +88,30 @@ struct FParticleEmitterInstance
     virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true);
     virtual void Rewind();
     virtual void UpdateBoundingBox(float DeltaTime);
+};
+
+
+struct FParticleMeshEmitterInstance : public FParticleEmitterInstance
+{
+    using Super = FParticleEmitterInstance;
+public:
+    FParticleMeshEmitterInstance() = default;
+
+    virtual void Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex) override;
+    virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
+    virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutData) override;
+
+    /* 매번 Cast하지 않고, LODLevel 의 TypeDataModule을 캐싱하는 용도 */
+    UParticleModuleTypeDataMesh* MeshTypeData;
+};
+
+struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
+{
+    using Super = FParticleEmitterInstance;
+public:
+    FParticleSpriteEmitterInstance() = default;
+
+    virtual void Init(UParticleSystemComponent* InComponent, int32 InEmitterIndex) override;
+    virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
+    virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutData) override;
 };

@@ -13,7 +13,7 @@ struct FParticleSpriteVertex
     float4 Color;
 };
 
-StructuredBuffer<FParticleSpriteVertex> InstanceBuffer : register(t0);
+StructuredBuffer<FParticleSpriteVertex> InstanceBuffer : register(t60);
 
 
 struct VS_Input 

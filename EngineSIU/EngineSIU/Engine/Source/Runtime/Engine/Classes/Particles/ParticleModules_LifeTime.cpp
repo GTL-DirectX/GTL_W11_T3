@@ -1,10 +1,16 @@
 #include "ParticleModuleLifeTime.h"
-
 #include "UObject/Casts.h"
 #include "ParticleEmitterInstances.h"
 #include "Distributions/DistributionFloatUniform.h"
 #include "UObject/ObjectFactory.h"
 
+
+UParticleModuleLifeTime::UParticleModuleLifeTime()
+{
+    bEnabled = true;
+    bSpawnModule = true;
+    bUpdateModule = false;
+}
 
 /* LifeTime 값 초기화 */
 void UParticleModuleLifeTime::PostInitProperties()
@@ -22,7 +28,7 @@ void UParticleModuleLifeTime::Spawn(FParticleEmitterInstance* Owner, int32 Offse
 {
     SPAWN_INIT;
     float MaxLifeTime = LifeTime.GetValue(Owner->EmitterTime, Cast<UObject>(Owner->Component));
-    
+
     if (Particle.OneOverMaxLifetime > 0.0f)
     {
         // 다른 모듈이 이미 LifeTime을 설정한 경우, MaxLifeTime을 조정하여 OneOverMaxLifetime을 유지.
