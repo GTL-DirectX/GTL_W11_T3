@@ -12,6 +12,16 @@ UParticleModuleLocation::UParticleModuleLocation()
     bUpdateModule = false;
 }
 
+UObject* UParticleModuleLocation::Duplicate(UObject* InOuter)
+{
+    UParticleModuleLocation* NewModule = Cast<UParticleModuleLocation>(Super::Duplicate(InOuter));
+    if (NewModule)
+    {
+        NewModule->StartLocation = StartLocation;
+    }
+    return NewModule;
+}
+
 void UParticleModuleLocation::PostInitProperties()
 {
     Super::PostInitProperties();

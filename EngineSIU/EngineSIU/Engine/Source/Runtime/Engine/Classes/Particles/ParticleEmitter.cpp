@@ -5,6 +5,8 @@
 #include "ParticleModule.h"
 #include "TypeData/ParticleModuleTypeDataMesh.h"
 #include "ParticleEmitterInstances.h"
+#include "UObject/Casts.h"
+#include "UObject/ObjectFactory.h"
 
 UParticleLODLevel* UParticleEmitter::GetLODLevel(int32 LODLevel)
 {
@@ -14,6 +16,51 @@ UParticleLODLevel* UParticleEmitter::GetLODLevel(int32 LODLevel)
     }
 
     return LODLevels[LODLevel];
+}
+
+void UParticleEmitter::PostInitProperties()
+{
+    Super::PostInitProperties();
+    // LODLevel 초기화
+    // LODLevel 초기화
+    LODLevels.Empty();
+
+    // 기본 LODLevel 추가
+    for (int32 i = 0; i < 1; ++i)
+    {
+        UParticleLODLevel* NewLODLevel = FObjectFactory::ConstructObject<UParticleLODLevel>(this);
+        if (NewLODLevel)
+        {
+            NewLODLevel->LODLevel = i;
+            LODLevels.Add(NewLODLevel);
+        }
+    }
+}
+
+UObject* UParticleEmitter::Duplicate(UObject* InOuter)
+{
+    UParticleEmitter* NewEmitter = Cast<UParticleEmitter>(Super::Duplicate(InOuter));
+    if (NewEmitter)
+    {
+        NewEmitter->ParticleSize = ParticleSize;
+        NewEmitter->InitialAllocationCount = InitialAllocationCount;
+        NewEmitter->ReqInstanceBytes = ReqInstanceBytes;
+        // LODLevel 복사
+        for (int32 i = 0; i < LODLevels.Num(); ++i)
+        {
+            UParticleLODLevel* LODLevel = LODLevels[i];
+            if (LODLevel)
+            {
+                UParticleLODLevel* NewLODLevel = Cast<UParticleLODLevel>(LODLevel->Duplicate(NewEmitter));
+                if (NewLODLevel)
+                {
+                    NewEmitter->LODLevels.Add(NewLODLevel);
+                }
+            }
+        }
+    }
+    return NewEmitter;
+    
 }
 
 void UParticleEmitter::Build()

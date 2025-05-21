@@ -1637,12 +1637,12 @@ void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* P
         // 1) Get() 으로 매니저 참조 가져오기
         UAssetManager& AssetMgr = UAssetManager::Get();
 
-        // 2) 바로 Map 참조 선언과 초기화
-        auto& Map = AssetMgr.GetSavedParticleSystemMap();
+        // 2) 바로 ParticleMap 참조 선언과 초기화
+        auto& ParticleMap = AssetMgr.GetSavedParticleSystemMap();
 
         // 키 FString 목록 -> TArrtay<FString> 에 담기
         TArray<FString> ParticleSystemNames;
-        for (auto& Pair : Map)
+        for (auto& Pair : ParticleMap)
         {
             ParticleSystemNames.Add(Pair.Key);
         }
@@ -1676,7 +1676,7 @@ void PropertyEditorPanel::RenderForParticleComponent(UParticleSystemComponent* P
             // --- 5) 선택된 시스템을 컴포넌트에 적용 ---
             if (SelectedPSIndex >= 0 && SelectedPSIndex < ParticleSystemNames.Num())
             {
-                UParticleSystem* ChosenPS = Map[ParticleSystemNames[SelectedPSIndex]];
+                UParticleSystem* ChosenPS = ParticleMap[ParticleSystemNames[SelectedPSIndex]];
                 ParticleComponent->Template = ChosenPS;
             }
         }

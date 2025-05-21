@@ -4,6 +4,74 @@
 #include "UObject/ObjectFactory.h"
 #include "UObject/Casts.h"
 
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleModuleSpawn.h"
+#include "ParticleModuleSize.h"
+#include "ParticleModuleLifeTime.h"
+#include "ParticleModuleVelocity.h"
+#include "ParticleModuleColor.h"
+#include "ParticleModuleLocation.h"
+#include "TypeData/ParticleModuleTypeDataSprite.h"
+
+void UParticleLODLevel::PostInitProperties()
+{
+    Super::PostInitProperties();
+    // LODLevel 초기화
+    LODLevel = 0;
+    bEnabled = true;
+    PeakActiveParticles = 0;
+    // 모듈 초기화
+    Modules.Empty();
+    SpawnModules.Empty();
+    UpdateModules.Empty();
+    TypeDataModule = nullptr;
+    RequiredModule = nullptr;
+    SpawnModule = nullptr;
+
+    // 기본 모듈 추가
+    RequiredModule = FObjectFactory::ConstructObject<UParticleModuleRequired>(this);
+    Modules.Add(RequiredModule);
+
+    SpawnModule = FObjectFactory::ConstructObject<UParticleModuleSpawn>(this);
+    Modules.Add(SpawnModule);
+
+    TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(this);
+    Modules.Add(TypeDataModule);
+
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleLocation>(this));
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleVelocity>(this));
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleLifeTime>(this));
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleSize>(this));
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleColor>(this));
+
+    UpdateModuleLists();
+}
+
+UObject* UParticleLODLevel::Duplicate(UObject* InOuter)
+{
+    UParticleLODLevel* NewLODLevel = Cast<UParticleLODLevel>(Super::Duplicate(InOuter));
+    if (NewLODLevel)
+    {
+        NewLODLevel->LODLevel = LODLevel;
+        NewLODLevel->bEnabled = bEnabled;
+        NewLODLevel->PeakActiveParticles = PeakActiveParticles;
+        // LODLevel의 모듈 복사
+        for (int32 i = 0; i < Modules.Num(); ++i)
+        {
+            UParticleModule* Module = Modules[i];
+            if (Module)
+            {
+                UParticleModule* NewModule = Cast<UParticleModule>(Module->Duplicate(NewLODLevel));
+                if (NewModule)
+                {
+                    NewLODLevel->Modules.Add(NewModule);
+                }
+            }
+        }
+    }
+    return NewLODLevel;
+}
+
 // TODO : 현재 미사용인 함수, 추후 PostLoad() 등에서 호출 필요
 // SpawnModules  :FParticleEmitterInstance::SpawnParticles 에서 쓰임
 // UpdateModules :FParticleEmitterInstance::Tick_ModuleUpdate에서 쓰임

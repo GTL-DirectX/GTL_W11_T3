@@ -11,6 +11,9 @@ class UParticleSystem : public UObject // UE는 UFXSystemAsset을 상속. 불필
 
 public:
     UParticleSystem() = default;
+    virtual void PostInitProperties() override;
+    virtual UObject* Duplicate(UObject* InOuter) override;
+
     void BuildEmitters();
 
     //virtual void PostLoad();
@@ -18,5 +21,7 @@ public:
     // 에디터에서 생성한 UParticleEmitter들
     TArray<UParticleEmitter*> Emitters;
 
+    void AddNewEmitterSprite();
+    void AddNewEmitterMesh();
 
 };

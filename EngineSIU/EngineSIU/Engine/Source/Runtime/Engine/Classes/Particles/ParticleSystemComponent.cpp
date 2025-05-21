@@ -8,6 +8,12 @@
 #include "sol/sol.hpp"
 #include "World/World.h"
 
+void UParticleSystemComponent::PostInitProperties()
+{
+    Super::PostInitProperties();
+    Template = FObjectFactory::ConstructObject<UParticleSystem>(this);
+}
+
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);

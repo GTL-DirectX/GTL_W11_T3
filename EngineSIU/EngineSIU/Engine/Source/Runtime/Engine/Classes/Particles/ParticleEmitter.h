@@ -44,17 +44,18 @@ class UParticleEmitter : public UObject
 
 public:
     UParticleEmitter() = default;
+    virtual void PostInitProperties() override;
+    virtual UObject* Duplicate(UObject* InOuter) override;
     void Build();
     FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent);
     void CacheEmitterModuleInfo();
     void PostLoad();
 
-
     UParticleLODLevel* GetCurrentLODLevel(FParticleEmitterInstance* Instance) const;
     UParticleLODLevel* GetLODLevel(int32 LODLevel);
 
     FName EmitterName;
-    int32 ParticleSize;
+    int32 ParticleSize = 1;
     int32 InitialAllocationCount = 100;
     int32 ReqInstanceBytes;
 
