@@ -15,7 +15,4 @@ public:
 
 	virtual void PostInitProperties() override;
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase);
-
-
-    
 };
