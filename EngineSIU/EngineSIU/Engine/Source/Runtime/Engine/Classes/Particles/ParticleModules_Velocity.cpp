@@ -70,8 +70,8 @@ void UParticleModuleVelocity::Spawn(FParticleEmitterInstance* Owner, int32 Offse
     Particle.Velocity += (FVector)FinalVelocity;
     Particle.BaseVelocity += (FVector)FinalVelocity;
 
-    UE_LOG(ELogLevel::Error,
-        TEXT("[Velocity] OffsetIdx=%d SpawnTime=%.3f FinalVel=(%.1f, %.1f, %.1f)"),
-        Offset, SpawnTime,
-        FinalVelocity.X, FinalVelocity.Y, FinalVelocity.Z);
+    //UE_LOG(ELogLevel::Error,
+    //    TEXT("[Velocity] OffsetIdx=%d SpawnTime=%.3f FinalVel=(%.1f, %.1f, %.1f)"),
+    //    Offset, SpawnTime,
+    //    FinalVelocity.X, FinalVelocity.Y, FinalVelocity.Z);
 }

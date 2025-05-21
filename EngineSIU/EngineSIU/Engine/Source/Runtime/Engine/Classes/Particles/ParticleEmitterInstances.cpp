@@ -66,9 +66,9 @@ void FParticleEmitterInstance::KillParticles()
         FBaseParticle* P = (FBaseParticle*)(ParticleData + DataIdx * ParticleStride);
         if (P->RelativeTime >= 1.0f)
         {
-            UE_LOG(ELogLevel::Error,
-                TEXT("KillParticles(): Active=%d, removing slot %d"),
-                ActiveParticles, DataIdx);
+            //UE_LOG(ELogLevel::Error,
+            //    TEXT("KillParticles(): Active=%d, removing slot %d"),
+            //    ActiveParticles, DataIdx);
 
             // swap i <-> tail
             /*ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
@@ -143,11 +143,11 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
         for (int32 i = 0; i < Count; ++i)
         {
             FBaseParticle* P = reinterpret_cast<FBaseParticle*>(RawBuffer + NewEmitterData->Source.DataContainer.ParticleIndices[i] * Stride);
-            UE_LOG(ELogLevel::Error,
+            /*UE_LOG(ELogLevel::Error,
                    TEXT("GetDynamicData(): Particle[%d] Loc=(%.2f, %.2f, %.2f) Vel=(%.2f, %.2f, %.2f)"),
                    i,
                    P->Location.X, P->Location.Y, P->Location.Z,
-                   P->Velocity.X, P->Velocity.Y, P->Velocity.Z);
+                   P->Velocity.X, P->Velocity.Y, P->Velocity.Z);*/
         }
     }
     return NewEmitterData;
@@ -177,7 +177,7 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     for (uint32 i = 0; i < ActiveParticles; ++i)
     {
         FBaseParticle Particle = *(FBaseParticle*)(ParticleData + ParticleIndices[i] * ParticleStride);
-        UE_LOG(ELogLevel::Error, TEXT("FillReplayData() : Particle[%d] Loc %.2f %.2f %.2f"), i, Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
+        //UE_LOG(ELogLevel::Error, TEXT("FillReplayData() : Particle[%d] Loc %.2f %.2f %.2f"), i, Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
     }
 
     // 실제 데이터 복사 : OutData.DataContainer로 파티클 데이터 / 파티클 인덱스 깊은 복사
@@ -397,7 +397,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
         const float   Increment = (Req->SpawnRate > 0.f) ? (1.f / Req->SpawnRate) : 0.f;
         float         StartTime = DeltaTime + OldLeftover * Increment - Increment;
 
-        //SpawnParticles(ToSpawn, StartTime, Increment, Origin, InitialVelocity, nullptr);
+        SpawnParticles(ToSpawn, StartTime, Increment, Origin, InitialVelocity, nullptr);
     }
 
     // 4) burst 스폰
@@ -421,10 +421,10 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     Particle->Velocity = InitialVelocity;
     Particle->BaseVelocity = InitialVelocity;
 
-    UE_LOG(ELogLevel::Error,
+    /*UE_LOG(ELogLevel::Error,
         TEXT("PreSpawn: Loc=(%.1f,%.1f,%.1f) Vel=(%.1f,%.1f,%.1f)"),
         InitialLocation.X, InitialLocation.Y, InitialLocation.Z,
-        InitialVelocity.X, InitialVelocity.Y, InitialVelocity.Z);
+        InitialVelocity.X, InitialVelocity.Y, InitialVelocity.Z);*/
 
     // 생명 시간
     Particle->RelativeTime = 0.0f;
@@ -520,7 +520,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
              continue;
          }
 
-         UE_LOG(ELogLevel::Display,
+         /*UE_LOG(ELogLevel::Display,
              TEXT("Spawned #%d: Loc=(%.1f,%.1f,%.1f) Vel=(%.1f,%.1f,%.1f)"),
              Index + 1,
              Particle->Location.X, Particle->Location.Y, Particle->Location.Z,
@@ -529,7 +529,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 
 		 UE_LOG(ELogLevel::Display,
 			 TEXT("Spawned #%d: SlotIdx=%d DataIdx=%d Active=%d"),
-			 Index + 1, SlotIdx, DataIdx, ActiveParticles);
+			 Index + 1, SlotIdx, DataIdx, ActiveParticles);*/
      }
 }
 
