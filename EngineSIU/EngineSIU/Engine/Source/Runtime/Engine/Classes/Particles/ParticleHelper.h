@@ -137,7 +137,7 @@ struct FBaseParticle
 
     // 16 bytes
     float			RelativeTime;			// Relative time, range is 0 (==spawn) to 1 (==death). RelativeTime >= 1.0f 이면 Kill. RelativeTime += DeltaTime / LifeTime.
-    float			OneOverMaxLifetime;		// Reciprocal of lifetime. 1 / Lifetime 계산을 매번 하지 않기 위한 캐시 값.
+    float			OneOverMaxLifetime;		// 1초당 늘어날 수명 = 1/MaxLifeTime [0, 1]
     float			Placeholder0;
     float			Placeholder1;
 };
@@ -849,13 +849,15 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 
 struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 {
+public:
+
     FDynamicSpriteEmitterData(const UParticleModuleRequired* RequiredModule) :
         FDynamicSpriteEmitterDataBase(RequiredModule)
     {
     }
     ~FDynamicSpriteEmitterData() {}
 
-    void Init(bool bInSelected);
+    virtual void Init(bool bInSelected);
     
     virtual int32 GetDynamicVertexStride(/*ERHIFeatureLevel::Type InFeatureLevel*/) const override // ERHIFeatureLevel::Type 은 렌더 플랫폼에 관련된 정보이므로 필요 없음.
     {
@@ -889,20 +891,14 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 };
 
 
-/** Dynamic emitter data for Mesh emitters */
-struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
+/** Dynamic emitter data for Mesh emitters
+ * SpriteEmitterDataBase를 상속받는 이유 : 기본 Sprite인 상태에서 Mesh 추가하는 듯
+ */
+struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterData /* 야매 : FDynamicSpriteEmitterDataBase*/
 {
     FDynamicMeshEmitterData(const UParticleModuleRequired* RequiredModule);
 
-    virtual ~FDynamicMeshEmitterData();
-
-    /** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
-    void Init(bool bInSelected,
-        const FParticleMeshEmitterInstance* InEmitterInstance,
-        UStaticMesh* InStaticMesh,
-        bool InUseStaticMeshLODs,
-        float InLODSizeScale
-        /*ERHIFeatureLevel::Type InFeatureLevel*/);
+    virtual void Init(bool bInSelected) override;
 
     void CalculateParticleTransform(
         const FMatrix& ProxyLocalToWorld,
@@ -919,9 +915,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
         FMatrix& OutTransformMat
     ) const;
 
-    /**
-     *	Get the vertex stride for the dynamic rendering data
-     */
     virtual int32 GetDynamicVertexStride(/*ERHIFeatureLevel::Type*/ /*InFeatureLevel*/) const override
     {
         return sizeof(FMeshParticleInstanceVertex);
@@ -932,9 +925,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
         return sizeof(FMeshParticleInstanceVertexDynamicParameter);
     }
 
-    /**
-     *	Get the source replay data for this emitter
-     */
     virtual const FDynamicSpriteEmitterReplayDataBase* GetSourceData() const override
     {
         return &Source;
@@ -946,38 +936,20 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
         return Source;
     }
 
-    /** The frame source data for this particle system.  This is everything needed to represent this
-        this particle system frame.  It does not include any transient rendering thread data.  Also, for
-        non-simulating 'replay' particle systems, this data may have come straight from disk! */
-    FDynamicMeshEmitterReplayData Source;
-
-    int32					LastFramePreRendered;
-
     UStaticMesh* StaticMesh;
-    //TArray<FMaterialRenderProxy*, TInlineAllocator<2>> MeshMaterials;
 
-    /** offset to FMeshTypeDataPayload */
+    FDynamicMeshEmitterReplayData SourceMesh; // 야매코드 : Source여야 함
+
+    int32 LastFramePreRendered;
+
+
     uint32 MeshTypeDataOffset;
 
-    // 'orientation' items...
-    // These don't need to go into the replay data, as they are constant over the life of the emitter
-    /** If true, apply the 'pre-rotation' values to the mesh. */
     uint32 bApplyPreRotation : 1;
-    /** If true, then use the locked axis setting supplied. Trumps locked axis module and/or TypeSpecific mesh settings. */
     uint32 bUseMeshLockedAxis : 1;
-    /** If true, then use the camera facing options supplied. Trumps all other settings. */
     uint32 bUseCameraFacing : 1;
-    /**
-     *	If true, apply 'sprite' particle rotation about the orientation axis (direction mesh is pointing).
-     *	If false, apply 'sprite' particle rotation about the camera facing axis.
-     */
     uint32 bApplyParticleRotationAsSpin : 1;
-    /**
-    *	If true, all camera facing options will point the mesh against the camera's view direction rather than pointing at the cameras location.
-    *	If false, the camera facing will point to the cameras position as normal.
-    */
     uint32 bFaceCameraDirectionRatherThanPosition : 1;
-    /** The EMeshCameraFacingOption setting to use if bUseCameraFacing is true. */
     uint8 CameraFacingOption;
 
     bool bUseStaticMeshLODs;

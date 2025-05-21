@@ -1,16 +1,18 @@
 #pragma once
 
 #include "ParticleModuleLocationBase.h"
+#include "Distributions/DistributionVector.h"
 
 class UParticleModuleLocation : public UParticleModuleLocationBase
 {
     DECLARE_CLASS(UParticleModuleLocation, UParticleModuleLocationBase)
 
 public:
-    UParticleModuleLocation() = default;
+    UParticleModuleLocation();
+    virtual void PostInitProperties() override;
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 
 
-    FVector StartLocation;
+    FRawDistributionVector StartLocation;
 
 };
