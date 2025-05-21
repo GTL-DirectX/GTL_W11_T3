@@ -205,7 +205,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
         if (ImGui::Selectable("New Particle Sprite Emitter"))
         {
             DefaultEmitterIndex++;
-            UParticleEmitter* NewEmitter = CreateDefaultEmitter(DefaultEmitterIndex);
+            UParticleEmitter* NewEmitter = CreateDefaultSpriteEmitter(DefaultEmitterIndex);
             if (NewEmitter)
             {
                 if (!CurrentParticleSystem)
@@ -219,10 +219,17 @@ void ParticleSystemViewerPanel::RenderEmitters()
         }
         if (ImGui::Selectable("New Particle Mesh Emitter"))
         {
-            //DefaultEmitterIndex++;
-            //auto* Emitter = CreateMeshEmitter(DefaultEmitterIndex);
-            //if (Emitter)
-            //    CurrentParticleSystem->Emitters.Add(Emitter);
+            DefaultEmitterIndex++;
+            UParticleEmitter* NewEmitter = CreateDefaultMeshEmitter(DefaultEmitterIndex);
+            if (NewEmitter)
+            {
+                if (!CurrentParticleSystem)
+                {
+                    CurrentParticleSystem = new UParticleSystem();
+                    CurrentParticleSystemComponent->SetParticleSystem(CurrentParticleSystem);
+                }
+                CurrentParticleSystem->Emitters.Add(NewEmitter);
+            }
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -393,6 +400,152 @@ UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultEmitter(int32 Index)
         // (2) 새 Required 생성·설정
         UParticleModuleRequired* Required = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
         Required->EmitterOrigin   = FVector::ZeroVector;
+        Required->EmitterRotation = FRotator::ZeroRotator;
+        LOD0->RequiredModule = Required;
+        // (3) 기존 Modules 복사
+        TArray<UParticleModule*> Temp = LOD0->Modules;
+
+        // (4) 복사해 온 배열에서 '기본 Required' 하나만 제거
+        Temp.RemoveSingle(OldRequired);
+
+        // (5) 원본 비우고, 새 Required를 맨 앞에 추가
+        LOD0->Modules.Empty();
+        LOD0->Modules.Add(Required);
+
+        // (6) 나머지(필터링된) 모듈들 붙이기
+        LOD0->Modules.Append(Temp);
+    }
+
+    // --- 4) Spawn 모듈 (생성 빈도) ---
+    {
+        UParticleModuleSpawn* Spawn = FObjectFactory::ConstructObject<UParticleModuleSpawn>(LOD0);
+        LOD0->Modules.Add(Spawn);
+    }
+
+    // --- 5) Lifetime 모듈 (수명) ---
+    {
+        UParticleModuleLifeTime* Life = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(LOD0);
+        LOD0->Modules.Add(Life);
+    }
+
+    // --- 6) Initial Size 모듈 (크기) ---
+    {
+        UParticleModuleSize* Size = FObjectFactory::ConstructObject<UParticleModuleSize>(LOD0);
+        LOD0->Modules.Add(Size);
+    }
+
+    // --- 7) Initial Velocity 모듈 (초기 속도) ---
+    {
+        UParticleModuleVelocity* Vel = FObjectFactory::ConstructObject<UParticleModuleVelocity>(LOD0);
+        LOD0->Modules.Add(Vel);
+    }
+
+    // --- 8) Color Over Time 모듈 (색상 변화) ---
+    {
+        UParticleModuleColor* Color = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
+        LOD0->Modules.Add(Color);
+    }
+
+    // 9) LODLevel을 Emitter에 추가
+    NewEmitter->LODLevels.Add(LOD0);
+
+    return NewEmitter;
+}
+
+UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultSpriteEmitter(int32 Index)
+{
+    // 1) Emitter 객체 생성
+    UParticleEmitter* NewEmitter = FObjectFactory::ConstructObject<UParticleEmitter>(CurrentParticleSystem);
+    std::string EmitterName = "DefaultSpriteEmitter_" + std::to_string(Index);
+    NewEmitter->EmitterName = EmitterName.c_str();
+    NewEmitter->ParticleSize = 20;
+
+    // 2) LODLevel 0 생성 및 기본 설정
+    UParticleLODLevel* LOD0 = FObjectFactory::ConstructObject<UParticleLODLevel>(NewEmitter);
+    LOD0->LODLevel = 0;
+    LOD0->bEnabled = true;
+
+    // --- 3) Required 모듈 (필수) ---
+    {
+        // (1) 원래 LOD0->RequiredModule이 가리키던 '기본 Required'를 임시로 저장
+        UParticleModuleRequired* OldRequired = LOD0->RequiredModule;
+
+        // (2) 새 Required 생성·설정
+        UParticleModuleRequired* Required = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
+        Required->EmitterOrigin = FVector::ZeroVector;
+        Required->EmitterRotation = FRotator::ZeroRotator;
+        LOD0->RequiredModule = Required;
+        // (3) 기존 Modules 복사
+        TArray<UParticleModule*> Temp = LOD0->Modules;
+
+        // (4) 복사해 온 배열에서 '기본 Required' 하나만 제거
+        Temp.RemoveSingle(OldRequired);
+
+        // (5) 원본 비우고, 새 Required를 맨 앞에 추가
+        LOD0->Modules.Empty();
+        LOD0->Modules.Add(Required);
+
+        // (6) 나머지(필터링된) 모듈들 붙이기
+        LOD0->Modules.Append(Temp);
+    }
+
+    // --- 4) Spawn 모듈 (생성 빈도) ---
+    {
+        UParticleModuleSpawn* Spawn = FObjectFactory::ConstructObject<UParticleModuleSpawn>(LOD0);
+        LOD0->Modules.Add(Spawn);
+    }
+
+    // --- 5) Lifetime 모듈 (수명) ---
+    {
+        UParticleModuleLifeTime* Life = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(LOD0);
+        LOD0->Modules.Add(Life);
+    }
+
+    // --- 6) Initial Size 모듈 (크기) ---
+    {
+        UParticleModuleSize* Size = FObjectFactory::ConstructObject<UParticleModuleSize>(LOD0);
+        LOD0->Modules.Add(Size);
+    }
+
+    // --- 7) Initial Velocity 모듈 (초기 속도) ---
+    {
+        UParticleModuleVelocity* Vel = FObjectFactory::ConstructObject<UParticleModuleVelocity>(LOD0);
+        LOD0->Modules.Add(Vel);
+    }
+
+    // --- 8) Color Over Time 모듈 (색상 변화) ---
+    {
+        UParticleModuleColor* Color = FObjectFactory::ConstructObject<UParticleModuleColor>(LOD0);
+        LOD0->Modules.Add(Color);
+    }
+
+    // 9) LODLevel을 Emitter에 추가
+    NewEmitter->LODLevels.Add(LOD0);
+
+    return NewEmitter;
+}
+
+UParticleEmitter* ParticleSystemViewerPanel::CreateDefaultMeshEmitter(int32 Index)
+{
+    // 1) Emitter 객체 생성
+    UParticleEmitter* NewEmitter = FObjectFactory::ConstructObject<UParticleEmitter>(CurrentParticleSystem);
+    std::string EmitterName = "DefaultMeshEmitter_" + std::to_string(Index);
+    NewEmitter->EmitterName = EmitterName.c_str();
+    NewEmitter->ParticleSize = 20;
+
+    // 2) LODLevel 0 생성 및 기본 설정
+    UParticleLODLevel* LOD0 = FObjectFactory::ConstructObject<UParticleLODLevel>(NewEmitter);
+    LOD0->LODLevel = 0;
+    LOD0->bEnabled = true;
+
+    // --- 3) Required 모듈 (필수) ---
+    {
+        // (1) 원래 LOD0->RequiredModule이 가리키던 '기본 Required'를 임시로 저장
+        UParticleModuleRequired* OldRequired = LOD0->RequiredModule;
+
+        // (2) 새 Required 생성·설정
+        UParticleModuleRequired* Required = FObjectFactory::ConstructObject<UParticleModuleRequired>(LOD0);
+        Required->EmitterOrigin = FVector::ZeroVector;
         Required->EmitterRotation = FRotator::ZeroRotator;
         LOD0->RequiredModule = Required;
         // (3) 기존 Modules 복사

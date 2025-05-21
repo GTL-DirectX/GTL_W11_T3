@@ -39,6 +39,8 @@ private:
     
     // Test
     UParticleEmitter* CreateDefaultEmitter(int32 Index);
+    UParticleEmitter* CreateDefaultSpriteEmitter(int32 Index);
+    UParticleEmitter* CreateDefaultMeshEmitter(int32 Index);
     
 private:
     float Width = 800, Height = 600;
