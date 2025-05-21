@@ -9,7 +9,7 @@ class UParticleModuleVelocity : public UParticleModuleVelocityBase
     DECLARE_CLASS(UParticleModuleVelocity, UParticleModuleVelocityBase)
 
 public:
-    UParticleModuleVelocity() = default;
+    UParticleModuleVelocity();
     virtual void PostInitProperties() override;
 
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;

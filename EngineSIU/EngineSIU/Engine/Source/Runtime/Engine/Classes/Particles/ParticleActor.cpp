@@ -30,21 +30,18 @@ void AParticleActor::PostSpawnInitialize()
 
     // TypeDataModule 생성 및 세팅 (현재는 Sprite Type이라고 가정하고 일단 아래처럼 구현)
     UParticleModuleTypeDataSprite* SpriteTypeData = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(nullptr);
-    SpriteTypeData->bEnabled = true;
 
+    /* [NOTE!!!] 모든 Module은 생성자에서 bEnabled = true */
     // Location 모듈 생성
     UParticleModuleLocation* LocMod = FObjectFactory::ConstructObject<UParticleModuleLocation>(nullptr);
-    LocMod->bEnabled = true;
-    LocMod->StartLocation = FVector::ZeroVector;  // 하드코딩
+    //LocMod->StartLocation = FVector::ZeroVector;  // 하드코딩
 
     // Velocity 모듈 생성
     UParticleModuleVelocity* VelMod = FObjectFactory::ConstructObject<UParticleModuleVelocity>(nullptr);
-    VelMod->bEnabled = true;
     //VelMod->StartVelocity = FVector(0.f, 0.f, 1.f);  // 하드코딩
 
     // Lifetime 모듈 생성
     UParticleModuleLifeTime* LifeMod = FObjectFactory::ConstructObject<UParticleModuleLifeTime>(nullptr);
-    LifeMod->bEnabled = true;
 
 
     // TODO : (원한다면 파생 클래스로 교체: UParticleModuleTypeDataSprite 등)
