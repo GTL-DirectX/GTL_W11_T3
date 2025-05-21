@@ -3,6 +3,8 @@
 #include "ParticleHelper.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
+#include "TypeData/ParticleModuleTypeDataMesh.h"
+#include "ParticleEmitterInstances.h"
 
 UParticleLODLevel* UParticleEmitter::GetLODLevel(int32 LODLevel)
 {
@@ -26,6 +28,33 @@ void UParticleEmitter::Build()
         UE_LOG(ELogLevel::Error, TEXT("ParticleSize=%d  ReqInstanceBytes=%d Modules=%d"),
             ParticleSize, ReqInstanceBytes, ModulesNeedingInstanceData.Num());
     }
+}
+
+/**
+ * @param InComponent 
+ * @return 어떤 타입의 EmitterInstance 를 만들지 결정하여 반환
+ */
+FParticleEmitterInstance* UParticleEmitter::CreateInstance(UParticleSystemComponent* InComponent)
+{
+    
+    const UParticleModuleTypeDataBase* TypeDataMod = LODLevels[0]->TypeDataModule;
+    FParticleEmitterInstance* NewInst = nullptr;
+
+    /* TODO : Beam2 등의 확장 필요 */
+    if (TypeDataMod && TypeDataMod->IsA(UParticleModuleTypeDataMesh::StaticClass()))
+    {
+        NewInst = new FParticleMeshEmitterInstance();
+    }
+    else
+    {
+        NewInst = new FParticleSpriteEmitterInstance();
+    }
+
+    // 2) 공통 포인터 설정
+    NewInst->Component = InComponent;
+    NewInst->SpriteTemplate = this;
+
+    return NewInst;
 }
 
 /*
