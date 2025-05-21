@@ -317,12 +317,6 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     int32 SpawnCount = 0;              // 이번 프레임에 생성할 일반 파티클 수
     float OldLeftover = SpawnFraction; // 지난 프레임에 못 만든 누적된 스폰 타이밍
 
-    // 간략화 버전
-    // 잔여 분수 관리 (OldLeftOver, NewLeftOver)
-    // 정수 파티클 개수 분리 (StartTime, Increment 계산 등)
-    // 풀 크기 클램핑 (Resize)
-    // 최대치 검사 (미리 할당된 파티클 풀 크기 내에서만 생성되도록 생성개수 클램핑)
-
      // 2) 누적 & 정수/소수 분리
     float Total = SpawnFraction + Rate * DeltaTime;
     int32 ToSpawn = FMath::FloorToInt32(Total);
@@ -339,30 +333,22 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
     FVector Origin = Component->GetWorldLocation() + CurrentLODLevel->RequiredModule->EmitterOrigin;
     const FVector InitialVelocity = FVector::ZeroVector;
 
-    // SpawnTime 균등 분배
+    /* Increment : 각 파티클 간의 시간 간격 (간격 시간) */
     const float Increment = (Rate > 0.f) ? (1.f / Rate) : 0.f;
+
+    /* 현재 프레임 안에서 가장 늦게 생성될 파티클을 기준으로 StartTime 결정
+     * 그 후 각 파티클 마다 SpawnTime -= Increment 해가며 역순으로 분포
+     */
+
     float StartTime = DeltaTime + SpawnFraction * Increment - Increment;
 
     if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/) 
     {
-        SpawnParticles(
-            ToSpawn,
-            StartTime,
-            Increment,
-            Origin,
-            InitialVelocity,
-            /*EventPayload=*/ nullptr
+        SpawnParticles(ToSpawn, StartTime,  Increment, Origin, 
+            InitialVelocity,nullptr
         );
     }
 
-    /*
-      float TotalSpawn = SpawnRate * DeltaTime + SpawnFraction;
-      int SpawnCount = (int)TotalSpawn;
-      SpawnFraction = TotalSpawn - SpawnCount;
-      
-      for (int i = 0; i < SpawnCount; ++i)
-          SpawnParticle();
-     */
     return SpawnFraction;
 }
 
@@ -384,10 +370,6 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     // 생명 시간
     Particle->RelativeTime = 0.0f;
     float& Lifetime = CurrentLODLevel->RequiredModule->EmitterDuration;
-    //Particle->OneOverMaxLifetime = Lifetime > 0.f
-    //    ? 1.f / (Lifetime * 2)// TODO (TOFIX!) : 임의로 duration만큼 살아있게 함
-    //    : 1.f;
-    // 생명 6배, 6개 동시존재가능
 }
 
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
