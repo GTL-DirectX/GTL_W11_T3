@@ -6,6 +6,9 @@
 #include "Core/Container/Set.h"
 #include "Template/IsArray.h"
 
+#include "Distributions/DistributionTypes.h"
+
+
 enum EPropertyFlags : uint32
 {
     None = 0,
@@ -35,6 +38,9 @@ enum class EPropertyType : uint8
     Rotator,
     Vector,
     Color,                         // 색상 타입 (FColor)
+    MaterialInfo,
+    RawDistributionFloat,
+    RawDistributionVector,
 };
 
 template <typename T>
@@ -135,3 +141,22 @@ consteval EPropertyType GetPropertyType<FColor>()
 {
     return EPropertyType::Color;
 }
+
+template<>
+consteval EPropertyType GetPropertyType<FMaterialInfo>()
+{
+    return EPropertyType::MaterialInfo;
+}
+
+template<>
+consteval EPropertyType GetPropertyType<FRawDistributionFloat>()
+{
+    return EPropertyType::RawDistributionFloat;
+}
+
+template<>
+consteval EPropertyType GetPropertyType<FRawDistributionVector>()
+{
+    return EPropertyType::RawDistributionVector;
+}
+

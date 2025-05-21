@@ -15,5 +15,5 @@ public:
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 
 
-    FRawDistributionVector StartLocation;
+    UPROPERTY(EditAnywhere, FRawDistributionVector, StartLocation)
 };

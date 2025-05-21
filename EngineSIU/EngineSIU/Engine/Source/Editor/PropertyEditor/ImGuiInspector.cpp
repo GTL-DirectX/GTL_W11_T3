@@ -8,6 +8,9 @@
 #include "UObject/Casts.h"
 #include "PropertyEditorPanel.h"
 
+#include "Distributions/DistributionFloatUniform.h"
+#include "Distributions/DistributionVectorUniform.h"
+
 namespace ImGuiInspector
 {
     void DrawFieldEditor(UField* Field, UObject*& ObjPtr)
@@ -130,6 +133,51 @@ namespace ImGuiInspector
                 FC->SetValue(ObjPtr, FLinearColor(R, G, B, A));
             }
 
+            break;
+        }
+        case EPropertyType::MaterialInfo:
+        {
+            TField<FMaterialInfo>* MI = dynamic_cast<TField<FMaterialInfo>*>(Field);
+            FMaterialInfo MaterialInfo = MI->GetValue(ObjPtr);
+            std::string MatName = *MaterialInfo.MaterialName.ToString();
+            ImGui::Text("Material Name : %s", MatName.c_str());
+
+            // Todo : 프로젝트 내 Material List 보여주기
+            //auto materialMap = FEngineLoop::ResourceManager.GetMaterialMap();
+            break;
+        }
+        case EPropertyType::RawDistributionFloat:
+        {
+            TField<FRawDistributionFloat>* RDF = dynamic_cast<TField<FRawDistributionFloat>*>(Field);
+            UDistributionFloat* Distribution = RDF->GetValue(ObjPtr).Distribution;
+            ImGui::Text("RawDistributionFloat : %s", *Field->Name);
+            if (UDistributionFloatUniform* Value = Cast<UDistributionFloatUniform>(Distribution))
+            {
+                float Min = Value->Min;
+                if (ImGui::DragFloat("Min", &Min, 0.1f))
+                    Value->Min = Min;
+
+                float Max = Value->Max;
+                if (ImGui::DragFloat("Max", &Max, 0.1f))
+                    Value->Max = Max;
+            }
+            break;
+        }
+        case EPropertyType::RawDistributionVector:
+        {
+            TField<FRawDistributionVector>* RDV = dynamic_cast<TField<FRawDistributionVector>*>(Field);
+            UDistributionVector* Distribution = RDV->GetValue(ObjPtr).Distribution;
+            ImGui::Text("RawDistributionVector : %s", *Field->Name);
+
+            if (UDistributionVectorUniform* Value = Cast<UDistributionVectorUniform>(Distribution))
+            {
+                FVector Min = Value->Min;
+                FVector Max = Value->Max;
+                FImGuiWidget::DrawVec3Control("Min", Min, 0, 85);
+                FImGuiWidget::DrawVec3Control("Max", Max, 0, 85);
+                Value->Min = Min;
+                Value->Max = Max;
+            }
             break;
         }
             

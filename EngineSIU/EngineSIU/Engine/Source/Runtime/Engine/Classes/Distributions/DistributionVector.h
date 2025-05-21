@@ -1,20 +1,8 @@
 #pragma once
 #include "HAL/PlatformType.h"
-#include "Math/Vector.h"
 #include "UObject/ObjectMacros.h"
 
 class UObject;
-
-struct FRawDistributionVector
-{
-    class UDistributionVector* Distribution;
-
-    FRawDistributionVector()
-        : Distribution(nullptr)
-    {}
-
-    FVector GetValue(float Time = 0.0f, UObject* Data = nullptr, int32 Extreme = 0);
-};
 
 class UDistributionVector : public UObject
 {

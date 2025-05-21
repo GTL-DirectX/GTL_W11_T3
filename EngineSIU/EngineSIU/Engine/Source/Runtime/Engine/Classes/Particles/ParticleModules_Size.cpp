@@ -17,6 +17,7 @@ UObject* UParticleModuleSize::Duplicate(UObject* InOuter)
     if (NewModule)
     {
         NewModule->StartSize = StartSize;
+        NewModule->StartSize.Distribution = Cast<UDistributionVectorUniform>(StartSize.Distribution->Duplicate(InOuter));
     }
     return NewModule;
 }

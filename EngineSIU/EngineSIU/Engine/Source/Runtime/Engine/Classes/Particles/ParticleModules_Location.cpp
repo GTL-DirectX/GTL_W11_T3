@@ -18,6 +18,7 @@ UObject* UParticleModuleLocation::Duplicate(UObject* InOuter)
     if (NewModule)
     {
         NewModule->StartLocation = StartLocation;
+        NewModule->StartLocation.Distribution = Cast<UDistributionVectorUniform>(StartLocation.Distribution->Duplicate(InOuter));
     }
     return NewModule;
 }

@@ -116,7 +116,7 @@ void UParticleLODLevel::AddModule(UClass* ModuleClass)
             UpdateModuleLists();
         }
     }
-}
+} 
 
 void UParticleLODLevel::AddModule(UParticleModule* Module)
 {
