@@ -26,6 +26,7 @@ UObject* UParticleModuleRequired::Duplicate(UObject* InOuter)
         NewModule->bKillOnCompleted = bKillOnCompleted;
         NewModule->SpawnRate = SpawnRate;
         NewModule->EmitterDuration = EmitterDuration;
+        NewModule->BurstList = BurstList;
     }
     return NewModule;
     

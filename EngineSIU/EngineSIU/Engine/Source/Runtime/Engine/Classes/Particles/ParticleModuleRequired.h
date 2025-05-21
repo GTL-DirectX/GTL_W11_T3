@@ -2,6 +2,7 @@
 
 #include "ParticleModule.h"
 
+
 enum EParticleSortMode : int
 {
     PSORTMODE_None,
@@ -23,6 +24,32 @@ struct FParticleRequiredModule
     //FRHIShaderResourceView* BoundingGeometryBufferSRV;
     uint8 bCutoutTexureIsValid : 1;
     uint8 bUseVelocityForMotionBlur : 1;
+};
+
+struct FParticleBurst
+{
+    /* Burst 개수 */
+    int32 Count;
+
+    /* If >= 0, [CountLow .. Count] 범위 내에서 랜덤 개수 떠뜨림 | < 0면 Count 고정 사용 */
+    int32 CountLow;
+
+    /* Burst시키기 위한 특정 시점, 정규화된 Emitter 수명 기준 [0..1] */
+    float Time;
+
+    FParticleBurst()
+        : Count(0)
+        , CountLow(-1)		// Disabled by default...
+        , Time(0.0f)
+    {
+    }
+
+    FParticleBurst(int32 InCount, int32 InCountLow, float InTime)
+        : Count(InCount)
+        , CountLow(InCountLow)
+        , Time(InTime)
+    {
+    }
 };
 
 /* 렌더링에 필요한 공통 파라미터(머티리얼, 색상, 정렬, Facing 등)을 정의
@@ -54,10 +81,13 @@ public:
 
     // 초당 생성할 파티클 수
     // TODO : RawDistribution 으로 바꿔야 함
-    float EmitterDuration;
-    float SpawnRate;
+    UPROPERTY(EditAnywhere, float, EmitterDuration)
+    UPROPERTY(EditAnywhere, float, SpawnRate)
 
 
     virtual void PostInitProperties() override;
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+
+
+    TArray<FParticleBurst> BurstList;
 };

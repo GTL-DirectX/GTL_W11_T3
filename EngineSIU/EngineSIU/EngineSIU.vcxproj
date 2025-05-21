@@ -350,11 +350,14 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleEmitter.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleLODLevel.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Acceleration.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Color.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_LifeTime.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Location.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Required.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Size.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules_Velocity.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleVelocityBase.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystem.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataMesh.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataSprite.cpp" />
@@ -542,6 +545,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatConstant.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatUniform.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionFloatUniformCurve.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionTypes.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVector.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorConstant.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Distributions\DistributionVectorUniform.h" />
@@ -734,6 +738,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleSystem.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\TypeData\ParticleModuleTypeDataSprite.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModuleAcceleration.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UnrealClient.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UserInterface\Console.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\ViewportClient.h" />

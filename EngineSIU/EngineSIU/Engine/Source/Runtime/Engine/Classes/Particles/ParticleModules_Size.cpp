@@ -8,7 +8,7 @@ UParticleModuleSize::UParticleModuleSize()
 {
     bEnabled = true;
     bSpawnModule = true;
-    bUpdateModule = false;
+    bUpdateModule = true;
 }
 
 UObject* UParticleModuleSize::Duplicate(UObject* InOuter)
@@ -17,6 +17,7 @@ UObject* UParticleModuleSize::Duplicate(UObject* InOuter)
     if (NewModule)
     {
         NewModule->StartSize = StartSize;
+        NewModule->StartSize.Distribution = Cast<UDistributionVectorUniform>(StartSize.Distribution->Duplicate(InOuter));
     }
     return NewModule;
 }
@@ -42,3 +43,22 @@ void UParticleModuleSize::Spawn(FParticleEmitterInstance* Owner, int32 Offset, f
 }
 
 
+void UParticleModuleSize::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
+{
+    if (!bEnabled || !Owner)
+    {
+        return;
+    }
+
+    const int32   ActiveParticles = Owner->ActiveParticles;
+    const uint32  ParticleStride = Owner->ParticleStride;
+    uint16* ParticleIndices = Owner->ParticleIndices;
+    uint8* ParticleData = Owner->ParticleData;
+
+    // color-over-life 적용
+    BEGIN_MY_UPDATE_LOOP
+        float t = Particle.RelativeTime;
+        FVector initSize = Particle.BaseSize;
+        Particle.Size = FMath::Lerp(initSize+2.0f, FVector::ZeroVector, t);
+    END_MY_UPDATE_LOOP
+}

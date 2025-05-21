@@ -1,6 +1,7 @@
 #include "ParticleLODLevel.h"
 
 #include "ParticleModule.h"
+#include "ParticleModuleAcceleration.h"
 #include "UObject/ObjectFactory.h"
 #include "UObject/Casts.h"
 
@@ -43,6 +44,14 @@ void UParticleLODLevel::PostInitProperties()
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleLifeTime>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleSize>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleColor>(this));
+    Modules.Add(FObjectFactory::ConstructObject<UParticleModuleAcceleration>(this));
+
+    RequiredModule->BurstList.Add(FParticleBurst{ 5, -1, 0.5f });   // CountLow<0 이면 고정 Count
+    FParticleBurst B;
+    B.Count = 6;
+    B.CountLow = 3;
+    B.Time = 0.8f;
+    RequiredModule->BurstList.Add(B);
 }
 
 UObject* UParticleLODLevel::Duplicate(UObject* InOuter)
@@ -108,7 +117,7 @@ void UParticleLODLevel::AddModule(UClass* ModuleClass)
             UpdateModuleLists();
         }
     }
-}
+} 
 
 void UParticleLODLevel::AddModule(UParticleModule* Module)
 {

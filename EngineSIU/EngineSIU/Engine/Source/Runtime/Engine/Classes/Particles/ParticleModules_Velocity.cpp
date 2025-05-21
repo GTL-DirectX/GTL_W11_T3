@@ -20,7 +20,9 @@ UObject* UParticleModuleVelocity::Duplicate(UObject* InOuter)
     if (NewModule)
     {
         NewModule->StartVelocity = StartVelocity;
+        NewModule->StartVelocity.Distribution = Cast<UDistributionVector>(StartVelocity.Distribution->Duplicate(InOuter));
         NewModule->StartVelocityRadial = StartVelocityRadial;
+        NewModule->StartVelocityRadial.Distribution = Cast<UDistributionFloat>(StartVelocityRadial.Distribution->Duplicate(InOuter));
     }
     return NewModule;
 }

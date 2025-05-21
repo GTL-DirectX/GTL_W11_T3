@@ -127,7 +127,7 @@ void UParticleEmitter::CacheEmitterModuleInfo()
     for (int32 ModuleIdx = 0; ModuleIdx < HighLODLevel->Modules.Num(); ++ModuleIdx)
     {
         UParticleModule* ParticleModule = HighLODLevel->Modules[ModuleIdx];
-
+        if (ParticleModule == nullptr) continue;
         // 1) Per-Particle 고정 데이터 바이트 누적
         int32 FixedBytes = static_cast<int32>(ParticleModule->RequiredBytes(nullptr));
         if (FixedBytes > 0)

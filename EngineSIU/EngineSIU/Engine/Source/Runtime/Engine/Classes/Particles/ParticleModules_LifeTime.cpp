@@ -18,6 +18,7 @@ UObject* UParticleModuleLifeTime::Duplicate(UObject* InOuter)
     if (NewModule)
     {
         NewModule->LifeTime = LifeTime;
+        NewModule->LifeTime.Distribution = Cast<UDistributionFloat>(LifeTime.Distribution->Duplicate(InOuter));
     }
     return NewModule;
 }
