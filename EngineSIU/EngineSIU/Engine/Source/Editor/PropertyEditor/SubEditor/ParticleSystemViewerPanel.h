@@ -30,13 +30,13 @@ private:
     void RenderEmitters();
     void RenderDetails();
     void RenderCurveEditor();
-
+    
     template <class T>
     void RenderProperties(T* Obj);
 
     void RenderModuleItem(UParticleEmitter* Emitter, UParticleModule* Module);
-
-    void RenderAddModulePopup(UParticleEmitter* module);
+    void RenderSpriteMaterial(UParticleModule* Module);
+    void RenderMeshMaterial(UParticleEmitter* Emitter);
     
 private:
     float Width = 800, Height = 600;

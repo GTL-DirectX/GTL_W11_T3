@@ -47,8 +47,8 @@ void UParticleModuleLocation::Spawn(FParticleEmitterInstance* Owner, int32 Offse
     Particle.Location += LocationOffset;
     Particle.OldLocation += LocationOffset;
 
-    UE_LOG(ELogLevel::Error,
-        TEXT("[Location] OffsetIdx=%d SpawnTime=%.3f NewLoc=(%.1f,%.1f,%.1f)"),
-        Offset, SpawnTime,
-        Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
+    //UE_LOG(ELogLevel::Error,
+    //    TEXT("[Location] OffsetIdx=%d SpawnTime=%.3f NewLoc=(%.1f,%.1f,%.1f)"),
+    //    Offset, SpawnTime,
+    //    Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
 }

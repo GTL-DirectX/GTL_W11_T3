@@ -41,7 +41,7 @@ void ParticleSystemViewerPanel::Render()
             }
         }
     }
-    
+
     // Viewport
     RenderMainViewport();
 
@@ -95,13 +95,13 @@ void ParticleSystemViewerPanel::RenderEmitters()
     ImGui::SameLine();
 
     const ImVec4 SelectedColor = ImVec4(0.2f, 0.4f, 0.8f, 0.4f); // 선택됨
-    const ImVec4 HoveredColor = ImVec4(0.2f, 0.4f, 0.8f, 0.6f); // 마우스 올렸을 때
+    const ImVec4 HoveredColor = ImVec4(0.2f, 0.4f, 0.8f, 0.6f);  // 마우스 올렸을 때
     const ImVec4 InactiveColor = ImVec4(0.2f, 0.4f, 0.8f, 0.2f); // 기본
 
     ImGui::PushStyleColor(ImGuiCol_Header, InactiveColor);
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, HoveredColor);
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, SelectedColor);
-    
+
     if (ImGui::Button("Simulate"))
     {
         // simulation logic
@@ -171,7 +171,7 @@ void ParticleSystemViewerPanel::RenderEmitters()
     if (ImGui::Button("Add"))
     {
         // 2-1) 버튼 우측 하단 좌표를 즉시 저장
-        s_AddPopupPos = ImGui::GetItemRectMax();    // ← Add 버튼 위치만 기억
+        s_AddPopupPos = ImGui::GetItemRectMax(); // ← Add 버튼 위치만 기억
         // 2-2) 팝업 열기 요청
         ImGui::OpenPopup("Add Emitter Popup");
     }
@@ -253,12 +253,12 @@ void ParticleSystemViewerPanel::RenderEmitters()
         {
             ImGui::BeginChild(("Modules##" + std::to_string(i)).c_str(), ImVec2(0, 300), false);
 
-            auto & Modules = Emitter->LODLevels[0]->Modules;
+            auto& Modules = Emitter->LODLevels[0]->Modules;
             for (int m = 0; m < Modules.Num(); ++m)
             {
                 RenderModuleItem(Emitter, Modules[m]);
             }
-       
+
             ImGui::EndChild();
         }
 
@@ -343,177 +343,16 @@ void ParticleSystemViewerPanel::RenderDetails()
     {
         ImGui::Text("Module  : %s", *SelectedModule->GetName());
 
-        // Material만 하드코딩으로 적용
-        if (auto* RequiredModule = Cast<UParticleModuleRequired>(SelectedModule))
+        if (SelectedEmitter)
         {
-            UMaterial* CurrentMat = RequiredModule->Material;
-            FString CurrentName = CurrentMat
-                ? CurrentMat->GetMaterialInfo().MaterialName
-                : FString(TEXT("None"));
-            std::string CurrentNameUtf8 = GetData(*CurrentName);
+            bool bSpriteType = SelectedEmitter->LODLevels[0]->bSpriteTypeData;
+            if (bSpriteType)
+                RenderSpriteMaterial(SelectedModule);
+            else
+                RenderMeshMaterial(SelectedEmitter);
 
-            auto& MatMap = FObjManager::GetMaterials();
-            std::vector<FString> KeysToRemove;
-            KeysToRemove.reserve(MatMap.Num());
-            for (auto& Pair : MatMap)
-            {
-                UMaterial* Mat = Pair.Value;
-                const auto& MI = Mat->GetMaterialInfo();
-                // Diffuse 플래그가 없으면 제거 대상
-                if ((MI.TextureFlag & static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse)) == 0)
-                {
-                    KeysToRemove.push_back(Pair.Key);
-                }
-            }
-            for (auto& Key : KeysToRemove)
-            {
-                MatMap.Remove(Key);
-            }
-            
-            std::vector<FString> MatNames;
-            MatNames.reserve(MatMap.Num());
-            for (auto& Pair : MatMap)
-            {
-                MatNames.push_back(Pair.Key);
-            }
-
-            int CurrentIdx = 0;
-            for (int i = 0; i < (int)MatNames.size(); ++i)
-            {
-                if (MatNames[i] == CurrentName)
-                {
-                    CurrentIdx = i;
-                    break;
-                }
-            }
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-            
-            ImGui::Text("[ Material ]");
-            ImGui::Spacing();
-
-            float comboW = ImGui::CalcItemWidth();
-            ImGui::SetNextWindowSizeConstraints(
-                ImVec2(comboW, 0),
-                ImVec2(comboW, FLT_MAX)
-            );
-
-            float comboImgSize = 50.0f;
-            if (ImGui::BeginCombo("##MaterialCombo", CurrentNameUtf8.c_str()))
-            {
-                ImGui::BeginChild("##MaterialScrollRegion", ImVec2(0, 200), /*border=*/false);
-                float rowH = comboImgSize;
-                
-                for (int i = 0; i < MatNames.size(); ++i)
-                {
-                    const FString& MatName = MatNames[i];
-                    UMaterial* Mat = FObjManager::GetMaterial(MatName);
-                    FMaterialInfo& MaterialInfo = Mat->GetMaterialInfo();
-
-                    ImTextureID texID;
-                    if ( (MaterialInfo.TextureFlag & static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse)) != 0 )
-                    {
-                        int slot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
-                        if (MaterialInfo.TextureInfos.IsValidIndex(slot))
-                        {
-                            auto& TI = MaterialInfo.TextureInfos[slot];
-                            if (auto ptr = FEngineLoop::ResourceManager.GetTexture(TI.TexturePath))
-                                texID = (ImTextureID)ptr->TextureSRV;
-                        }
-                    }
-
-                    ImGui::PushID(i);
-
-                    float yStart = ImGui::GetCursorPosY();
-                    bool isSelected = (i == CurrentIdx);
-
-                    std::string nameUtf8 = GetData(*MatName);
-                    ImVec2 ts = ImGui::CalcTextSize(nameUtf8.c_str());
-                    ImGuiStyle& style = ImGui::GetStyle();
-                    float padX = style.FramePadding.x;
-                    float padY = (rowH - ts.y) * 0.5f;
-
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(padX, padY));
-                    bool clicked = ImGui::Selectable(
-                        "",                                       // 라벨은 비워두고
-                        isSelected,
-                        ImGuiSelectableFlags_SpanAvailWidth,     // 남은 가로 전체 차지
-                        ImVec2(0, rowH)                     // 높이만 rowH 고정
-                    );
-                    ImGui::PopStyleVar();
-
-                    if (clicked)
-                    {
-                        RequiredModule->Material = Mat;
-                        CurrentIdx = i;
-                    }
-
-                    ImVec2 itemMin = ImGui::GetItemRectMin();
-                    // 이미지
-                    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 10.0f, itemMin.y + 2.5f));
-                    if (texID)
-                        ImGui::Image(texID, ImVec2(rowH, rowH));
-                    else
-                        ImGui::Dummy(ImVec2(rowH, rowH));
-
-                    // 텍스트: 이미지 오른쪽 + 4px 여백, 수직 오프셋 padY
-                    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + rowH + 30.0f, itemMin.y + padY));
-                    ImGui::Text("%s", nameUtf8.c_str());
-                    ImGui::PopID();
-                    ImGui::SetCursorPosY( yStart + rowH + 8.0f );
-                }
-                ImGui::EndChild();
-                ImGui::EndCombo();
-            }
-            
-            ImGui::SameLine(0.0f, 30.0f);
-            
-            float comboH = ImGui::GetFrameHeight();
-            const float imgSize = 64.0f;
-            float offsetY = (comboH - imgSize) * 0.5f;
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-            
-            if (UMaterial* SelMat = RequiredModule->Material)
-            {
-                FMaterialInfo& SelInfo = SelMat->GetMaterialInfo();
-                const uint16 DiffuseFlag = static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
-
-                if ((SelInfo.TextureFlag & DiffuseFlag) != 0)
-                {
-                    const int Slot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
-                    if (SelInfo.TextureInfos.IsValidIndex(Slot))
-                    {
-                        const FTextureInfo& TI = SelInfo.TextureInfos[Slot];
-                        auto TexPtr = FEngineLoop::ResourceManager.GetTexture(TI.TexturePath);
-                        if (TexPtr && TexPtr->TextureSRV)
-                        {
-                            ImGui::Image((ImTextureID)TexPtr->TextureSRV, ImVec2(imgSize, imgSize));
-                        }
-                        else
-                        {
-                            ImGui::Text("Diffuse texture not found or not loaded.");
-                        }
-
-                        // 테두리 그리기
-                        ImVec2 pMin = ImGui::GetItemRectMin();
-                        ImVec2 pMax = ImGui::GetItemRectMax();
-                        ImGui::GetWindowDrawList()->AddRect(
-                            pMin,
-                            pMax,
-                            IM_COL32(100, 100, 100, 50),
-                            0.0f,    // rounding
-                            ImDrawFlags_RoundCornersAll,
-                            1.0f     // thickness
-                        );
-                    }
-                }
-            }
-            ImGui::Separator();
-            ImGui::Spacing();
+            RenderProperties(SelectedModule);
         }
-        RenderProperties(SelectedModule);
     }
     ImGui::End();
 }
@@ -547,5 +386,186 @@ void ParticleSystemViewerPanel::RenderModuleItem(UParticleEmitter* Emitter, UPar
         SelectedEmitter = Emitter;
         SelectedModule = Module;
     }
+}
 
+void ParticleSystemViewerPanel::RenderSpriteMaterial(UParticleModule* Module)
+{
+    if (auto* RequiredModule = Cast<UParticleModuleRequired>(Module))
+    {
+        UMaterial* CurrentMat = RequiredModule->Material;
+        FString CurrentName = CurrentMat
+                                  ? CurrentMat->GetMaterialInfo().MaterialName
+                                  : FString(TEXT("None"));
+        std::string CurrentNameUtf8 = GetData(*CurrentName);
+
+        auto& MatMap = FObjManager::GetMaterials();
+        std::vector<FString> KeysToRemove;
+        KeysToRemove.reserve(MatMap.Num());
+        for (auto& Pair : MatMap)
+        {
+            UMaterial* Mat = Pair.Value;
+            const auto& MI = Mat->GetMaterialInfo();
+            // Diffuse 플래그가 없으면 제거 대상
+            if ((MI.TextureFlag & static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse)) == 0)
+            {
+                KeysToRemove.push_back(Pair.Key);
+            }
+        }
+        for (auto& Key : KeysToRemove)
+        {
+            MatMap.Remove(Key);
+        }
+
+        std::vector<FString> MatNames;
+        MatNames.reserve(MatMap.Num());
+        for (auto& Pair : MatMap)
+        {
+            MatNames.push_back(Pair.Key);
+        }
+
+        int CurrentIdx = 0;
+        for (int i = 0; i < (int)MatNames.size(); ++i)
+        {
+            if (MatNames[i] == CurrentName)
+            {
+                CurrentIdx = i;
+                break;
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::Text("[ Material ]");
+        ImGui::Spacing();
+
+        float comboW = ImGui::CalcItemWidth();
+        ImGui::SetNextWindowSizeConstraints(
+            ImVec2(comboW, 0),
+            ImVec2(comboW, FLT_MAX)
+        );
+
+        float comboImgSize = 50.0f;
+        if (ImGui::BeginCombo("##MaterialCombo", CurrentNameUtf8.c_str()))
+        {
+            ImGui::BeginChild("##MaterialScrollRegion", ImVec2(0, 200), /*border=*/false);
+            float rowH = comboImgSize;
+
+            for (int i = 0; i < MatNames.size(); ++i)
+            {
+                const FString& MatName = MatNames[i];
+                UMaterial* Mat = FObjManager::GetMaterial(MatName);
+                FMaterialInfo& MaterialInfo = Mat->GetMaterialInfo();
+
+                ImTextureID texID;
+                if ((MaterialInfo.TextureFlag & static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse)) != 0)
+                {
+                    int slot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
+                    if (MaterialInfo.TextureInfos.IsValidIndex(slot))
+                    {
+                        auto& TI = MaterialInfo.TextureInfos[slot];
+                        if (auto ptr = FEngineLoop::ResourceManager.GetTexture(TI.TexturePath))
+                            texID = (ImTextureID)ptr->TextureSRV;
+                    }
+                }
+
+                ImGui::PushID(i);
+
+                float yStart = ImGui::GetCursorPosY();
+                bool isSelected = (i == CurrentIdx);
+
+                std::string nameUtf8 = GetData(*MatName);
+                ImVec2 ts = ImGui::CalcTextSize(nameUtf8.c_str());
+                ImGuiStyle& style = ImGui::GetStyle();
+                float padX = style.FramePadding.x;
+                float padY = (rowH - ts.y) * 0.5f;
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(padX, padY));
+                bool clicked = ImGui::Selectable(
+                    "", // 라벨은 비워두고
+                    isSelected,
+                    ImGuiSelectableFlags_SpanAvailWidth, // 남은 가로 전체 차지
+                    ImVec2(0, rowH)                      // 높이만 rowH 고정
+                );
+                ImGui::PopStyleVar();
+
+                if (clicked)
+                {
+                    RequiredModule->Material = Mat;
+                    CurrentIdx = i;
+                }
+
+                ImVec2 itemMin = ImGui::GetItemRectMin();
+                // 이미지
+                ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 10.0f, itemMin.y + 2.5f));
+                if (texID)
+                    ImGui::Image(texID, ImVec2(rowH, rowH));
+                else
+                    ImGui::Dummy(ImVec2(rowH, rowH));
+
+                // 텍스트: 이미지 오른쪽 + 4px 여백, 수직 오프셋 padY
+                ImGui::SetCursorScreenPos(ImVec2(itemMin.x + rowH + 30.0f, itemMin.y + padY));
+                ImGui::Text("%s", nameUtf8.c_str());
+                ImGui::PopID();
+                ImGui::SetCursorPosY(yStart + rowH + 8.0f);
+            }
+            ImGui::EndChild();
+            ImGui::EndCombo();
+        }
+
+        ImGui::SameLine(0.0f, 30.0f);
+
+        float comboH = ImGui::GetFrameHeight();
+        const float imgSize = 64.0f;
+        float offsetY = (comboH - imgSize) * 0.5f;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
+
+        if (UMaterial* SelMat = RequiredModule->Material)
+        {
+            FMaterialInfo& SelInfo = SelMat->GetMaterialInfo();
+            const uint16 DiffuseFlag = static_cast<uint16>(EMaterialTextureFlags::MTF_Diffuse);
+
+            if ((SelInfo.TextureFlag & DiffuseFlag) != 0)
+            {
+                const int Slot = static_cast<int>(EMaterialTextureSlots::MTS_Diffuse);
+                if (SelInfo.TextureInfos.IsValidIndex(Slot))
+                {
+                    const FTextureInfo& TI = SelInfo.TextureInfos[Slot];
+                    auto TexPtr = FEngineLoop::ResourceManager.GetTexture(TI.TexturePath);
+                    if (TexPtr && TexPtr->TextureSRV)
+                    {
+                        ImGui::Image((ImTextureID)TexPtr->TextureSRV, ImVec2(imgSize, imgSize));
+                    }
+                    else
+                    {
+                        ImGui::Text("Diffuse texture not found or not loaded.");
+                    }
+
+                    // 테두리 그리기
+                    ImVec2 pMin = ImGui::GetItemRectMin();
+                    ImVec2 pMax = ImGui::GetItemRectMax();
+                    ImGui::GetWindowDrawList()->AddRect(
+                        pMin,
+                        pMax,
+                        IM_COL32(100, 100, 100, 50),
+                        0.0f, // rounding
+                        ImDrawFlags_RoundCornersAll,
+                        1.0f // thickness
+                    );
+                }
+            }
+        }
+        ImGui::Separator();
+        ImGui::Spacing();
+    }
+}
+
+void ParticleSystemViewerPanel::RenderMeshMaterial(UParticleEmitter* Emitter)
+{
+    auto* MeshModuleTypeData = Cast<UParticleModuleTypeDataMesh>(Emitter->LODLevels[0]->TypeDataModule);
+    if (UStaticMesh* Mesh = MeshModuleTypeData->Mesh)
+    {
+
+    }
 }

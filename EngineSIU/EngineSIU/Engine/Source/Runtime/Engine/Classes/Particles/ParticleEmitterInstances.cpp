@@ -66,9 +66,9 @@ void FParticleEmitterInstance::KillParticles()
         FBaseParticle* P = (FBaseParticle*)(ParticleData + DataIdx * ParticleStride);
         if (P->RelativeTime >= 1.0f)
         {
-            UE_LOG(ELogLevel::Error,
-                TEXT("KillParticles(): Active=%d, removing slot %d"),
-                ActiveParticles, DataIdx);
+            //UE_LOG(ELogLevel::Error,
+            //    TEXT("KillParticles(): Active=%d, removing slot %d"),
+            //    ActiveParticles, DataIdx);
 
             // swap i <-> tail
             /*ParticleIndices[i] = ParticleIndices[ActiveParticles - 1];
@@ -143,11 +143,11 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData(bool bSelected
         for (int32 i = 0; i < Count; ++i)
         {
             FBaseParticle* P = reinterpret_cast<FBaseParticle*>(RawBuffer + NewEmitterData->Source.DataContainer.ParticleIndices[i] * Stride);
-            UE_LOG(ELogLevel::Error,
+            /*UE_LOG(ELogLevel::Error,
                    TEXT("GetDynamicData(): Particle[%d] Loc=(%.2f, %.2f, %.2f) Vel=(%.2f, %.2f, %.2f)"),
                    i,
                    P->Location.X, P->Location.Y, P->Location.Z,
-                   P->Velocity.X, P->Velocity.Y, P->Velocity.Z);
+                   P->Velocity.X, P->Velocity.Y, P->Velocity.Z);*/
         }
     }
     return NewEmitterData;
@@ -177,7 +177,7 @@ bool FParticleEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBase& Out
     for (uint32 i = 0; i < ActiveParticles; ++i)
     {
         FBaseParticle Particle = *(FBaseParticle*)(ParticleData + ParticleIndices[i] * ParticleStride);
-        UE_LOG(ELogLevel::Error, TEXT("FillReplayData() : Particle[%d] Loc %.2f %.2f %.2f"), i, Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
+        //UE_LOG(ELogLevel::Error, TEXT("FillReplayData() : Particle[%d] Loc %.2f %.2f %.2f"), i, Particle.Location.X, Particle.Location.Y, Particle.Location.Z);
     }
 
     // 실제 데이터 복사 : OutData.DataContainer로 파티클 데이터 / 파티클 인덱스 깊은 복사
@@ -301,50 +301,112 @@ float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLO
 * 3. DeltaTime 기반 스폰 수 계산
 * 4. SpawnParticles()로 실제 생성
 */
+//float FParticleEmitterInstance::Spawn(float DeltaTime)
+//{
+//    // SpawnRate 기반 파티클 생성 수 계산
+//    // 생성할 파티클 수 결정 시, SpawnParticles()로 실제 생성 (일반용, Burst용)
+//    // 누적되지 못한 잔여 시간(SpawnFraction) 다음 프레임으로 넘김
+//
+//    // --- 1) SpawnRate 가져오기
+//    UParticleModuleRequired* Req = CurrentLODLevel->RequiredModule;
+//    float Rate = CurrentLODLevel->RequiredModule->SpawnRate; // Distribution 대신 고정 값
+//
+//    float SpawnRate = Rate;            // 초당 생성할 파티클 수
+//    int32 SpawnCount = 0;              // 이번 프레임에 생성할 일반 파티클 수
+//    float OldLeftover = SpawnFraction; // 지난 프레임에 못 만든 누적된 스폰 타이밍
+//
+//     // 2) 누적 & 정수/소수 분리
+//    float Total = SpawnFraction + Rate * DeltaTime;
+//    int32 ToSpawn = FMath::FloorToInt32(Total);
+//    SpawnFraction = Total - ToSpawn;
+//
+//    // 3) 풀 크기 클램핑
+//    ToSpawn = FMath::Min(ToSpawn, MaxActiveParticles - ActiveParticles);
+//    if (ToSpawn <= 0)
+//    {
+//        return SpawnFraction;
+//    }
+//
+//    // 4) 실제 생성
+//    FVector Origin = Component->GetWorldLocation() + CurrentLODLevel->RequiredModule->EmitterOrigin;
+//    const FVector InitialVelocity = FVector::ZeroVector;
+//
+//    /* Increment : 각 파티클 간의 시간 간격 (간격 시간) */
+//    const float Increment = (Rate > 0.f) ? (1.f / Rate) : 0.f;
+//
+//    /* 현재 프레임 안에서 가장 늦게 생성될 파티클을 기준으로 StartTime 결정
+//     * 그 후 각 파티클 마다 SpawnTime -= Increment 해가며 역순으로 분포
+//     */
+//
+//    float StartTime = DeltaTime + SpawnFraction * Increment - Increment;
+//
+//    if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/) 
+//    {
+//        SpawnParticles(ToSpawn, StartTime,  Increment, Origin, 
+//            InitialVelocity,nullptr
+//        );
+//    }
+//
+//    return SpawnFraction;
+//}
+
 float FParticleEmitterInstance::Spawn(float DeltaTime)
 {
-    // SpawnRate 기반 파티클 생성 수 계산
-    // 생성할 파티클 수 결정 시, SpawnParticles()로 실제 생성 (일반용, Burst용)
-    // 누적되지 못한 잔여 시간(SpawnFraction) 다음 프레임으로 넘김
-
-    // --- 1) SpawnRate 가져오기
+    // 1) continuous 스폰 계산
     UParticleModuleRequired* Req = CurrentLODLevel->RequiredModule;
-    float Rate = CurrentLODLevel->RequiredModule->SpawnRate; // Distribution 대신 고정 값
+    const float Duration = Req->EmitterDuration;
 
-    float SpawnRate = Rate;            // 초당 생성할 파티클 수
-    int32 SpawnCount = 0;              // 이번 프레임에 생성할 일반 파티클 수
-    float OldLeftover = SpawnFraction; // 지난 프레임에 못 만든 누적된 스폰 타이밍
-
-     // 2) 누적 & 정수/소수 분리
-    float Total = SpawnFraction + Rate * DeltaTime;
+    float OldLeftover = SpawnFraction;
+    float Total = OldLeftover + Req->SpawnRate * DeltaTime;
     int32 ToSpawn = FMath::FloorToInt32(Total);
     SpawnFraction = Total - ToSpawn;
 
-    // 3) 풀 크기 클램핑
     ToSpawn = FMath::Min(ToSpawn, MaxActiveParticles - ActiveParticles);
-    if (ToSpawn <= 0)
+
+    // 2) burst 스폰 계산
+    int32 BurstCount = 0;
+    if (Duration > 0.f)
     {
-        return SpawnFraction;
+        float OldT = FMath::Clamp(EmitterTime / Duration, 0.f, 1.f);
+        float NewT = FMath::Clamp((EmitterTime + DeltaTime) / Duration, 0.f, 1.f);
+
+        for (const FParticleBurst& Burst : Req->BurstList)
+        {
+            if (Burst.Time > OldT && Burst.Time <= NewT)
+            {
+                int32 Num = (Burst.CountLow >= 0)
+                    ? FMath::FRandRange(Burst.CountLow, Burst.Count)
+                    : Burst.Count;
+                BurstCount += Num;
+            }
+        }
     }
 
-    // 4) 실제 생성
-    FVector Origin = Component->GetWorldLocation() + CurrentLODLevel->RequiredModule->EmitterOrigin;
-    const FVector InitialVelocity = FVector::ZeroVector;
-
-    /* Increment : 각 파티클 간의 시간 간격 (간격 시간) */
-    const float Increment = (Rate > 0.f) ? (1.f / Rate) : 0.f;
-
-    /* 현재 프레임 안에서 가장 늦게 생성될 파티클을 기준으로 StartTime 결정
-     * 그 후 각 파티클 마다 SpawnTime -= Increment 해가며 역순으로 분포
-     */
-
-    float StartTime = DeltaTime + SpawnFraction * Increment - Increment;
-
-    if ((SpawnRate > 0.f) /*|| (BurstCount > 0)*/) 
+    // advance & loop emitter time
+    EmitterTime += DeltaTime;
+    if (EmitterTime >= Duration && Duration > 0.f)
     {
-        SpawnParticles(ToSpawn, StartTime,  Increment, Origin, 
-            InitialVelocity,nullptr
-        );
+        EmitterTime = FMath::Fmod(EmitterTime, Duration);
+    }
+
+    // 3) continuous 스폰
+    if (ToSpawn > 0)
+    {
+        const FVector Origin = Component->GetWorldLocation() + Req->EmitterOrigin;
+        const FVector InitialVelocity = FVector::ZeroVector;
+        const float   Increment = (Req->SpawnRate > 0.f) ? (1.f / Req->SpawnRate) : 0.f;
+        float         StartTime = DeltaTime + OldLeftover * Increment - Increment;
+
+        SpawnParticles(ToSpawn, StartTime, Increment, Origin, InitialVelocity, nullptr);
+    }
+
+    // 4) burst 스폰
+    if (BurstCount > 0)
+    {
+        const FVector Origin = Component->GetWorldLocation() + Req->EmitterOrigin;
+        const FVector InitialVelocity = FVector::ZeroVector;
+        // 보통 버스트는 한꺼번에, 시간 분산은 legacy 스폰 동작으로 처리할 수 있음
+        SpawnParticles(BurstCount, 0.f, 0.f, Origin, InitialVelocity, nullptr);
     }
 
     return SpawnFraction;
@@ -359,10 +421,10 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, const FVector& 
     Particle->Velocity = InitialVelocity;
     Particle->BaseVelocity = InitialVelocity;
 
-    UE_LOG(ELogLevel::Error,
+    /*UE_LOG(ELogLevel::Error,
         TEXT("PreSpawn: Loc=(%.1f,%.1f,%.1f) Vel=(%.1f,%.1f,%.1f)"),
         InitialLocation.X, InitialLocation.Y, InitialLocation.Z,
-        InitialVelocity.X, InitialVelocity.Y, InitialVelocity.Z);
+        InitialVelocity.X, InitialVelocity.Y, InitialVelocity.Z);*/
 
     // 생명 시간
     Particle->RelativeTime = 0.0f;
@@ -458,7 +520,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
              continue;
          }
 
-         UE_LOG(ELogLevel::Display,
+         /*UE_LOG(ELogLevel::Display,
              TEXT("Spawned #%d: Loc=(%.1f,%.1f,%.1f) Vel=(%.1f,%.1f,%.1f)"),
              Index + 1,
              Particle->Location.X, Particle->Location.Y, Particle->Location.Z,
@@ -467,7 +529,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 
 		 UE_LOG(ELogLevel::Display,
 			 TEXT("Spawned #%d: SlotIdx=%d DataIdx=%d Active=%d"),
-			 Index + 1, SlotIdx, DataIdx, ActiveParticles);
+			 Index + 1, SlotIdx, DataIdx, ActiveParticles);*/
      }
 }
 

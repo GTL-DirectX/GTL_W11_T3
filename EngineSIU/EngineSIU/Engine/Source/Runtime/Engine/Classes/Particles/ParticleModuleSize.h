@@ -16,5 +16,4 @@ public:
     void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime);
 
     UPROPERTY(EditAnywhere, FRawDistributionVector, StartSize)
-    
 };

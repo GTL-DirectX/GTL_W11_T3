@@ -35,7 +35,6 @@ public:
     TArray<UParticleModule*> UpdateModules;
 
     UParticleModuleTypeDataBase* TypeDataModule;
-
     UParticleModuleRequired* RequiredModule;
     UParticleModuleSpawn* SpawnModule;
 

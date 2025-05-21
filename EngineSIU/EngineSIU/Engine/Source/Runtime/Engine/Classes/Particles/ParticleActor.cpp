@@ -24,9 +24,6 @@ void AParticleActor::PostSpawnInitialize()
 
     ParticleSystemComponent->InitializeSystem();
 
-    // 하드코딩된 초기 위치/속도 세팅
-    ParticleSystemComponent->InitialLocationHardcoded = FVector::ZeroVector;
-    ParticleSystemComponent->InitialVelocityHardcoded = FVector(0.f, 0.f, 1.f);
 }
 
 UObject* AParticleActor::Duplicate(UObject* InOuter)

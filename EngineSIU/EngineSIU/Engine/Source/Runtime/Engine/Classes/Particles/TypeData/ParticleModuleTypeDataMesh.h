@@ -8,6 +8,8 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 
 public:
     UParticleModuleTypeDataMesh() = default;
+    virtual void PostInitProperties() override;
+    virtual UObject* Duplicate(UObject* InOuter) override;
 
     UStaticMesh* Mesh;
 };

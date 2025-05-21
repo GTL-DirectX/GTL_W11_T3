@@ -12,6 +12,7 @@
 #include "ParticleModuleVelocity.h"
 #include "ParticleModuleColor.h"
 #include "ParticleModuleLocation.h"
+#include "TypeData/ParticleModuleTypeDataMesh.h"
 #include "TypeData/ParticleModuleTypeDataSprite.h"
 
 void UParticleLODLevel::PostInitProperties()
@@ -37,7 +38,6 @@ void UParticleLODLevel::PostInitProperties()
     Modules.Add(SpawnModule);
 
     TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataSprite>(this);
-    Modules.Add(TypeDataModule);
 
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleLocation>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleVelocity>(this));
@@ -46,6 +46,12 @@ void UParticleLODLevel::PostInitProperties()
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleColor>(this));
     Modules.Add(FObjectFactory::ConstructObject<UParticleModuleAcceleration>(this));
 
+    RequiredModule->BurstList.Add(FParticleBurst{ 5, -1, 0.5f });   // CountLow<0 이면 고정 Count
+    FParticleBurst B;
+    B.Count = 6;
+    B.CountLow = 3;
+    B.Time = 0.8f;
+    RequiredModule->BurstList.Add(B);
 }
 
 UObject* UParticleLODLevel::Duplicate(UObject* InOuter)
@@ -58,6 +64,7 @@ UObject* UParticleLODLevel::Duplicate(UObject* InOuter)
         NewLODLevel->PeakActiveParticles = PeakActiveParticles;
         // LODLevel의 모듈 복사
         NewLODLevel->Modules.SetNum(Modules.Num());
+        NewLODLevel->TypeDataModule = TypeDataModule;
         for (int32 i = 0; i < Modules.Num(); ++i)
         {
             if (Modules[i])
@@ -110,7 +117,7 @@ void UParticleLODLevel::AddModule(UClass* ModuleClass)
             UpdateModuleLists();
         }
     }
-}
+} 
 
 void UParticleLODLevel::AddModule(UParticleModule* Module)
 {

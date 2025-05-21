@@ -55,7 +55,7 @@ void UParticleSystem::AddNewEmitterSprite()
     Emitters.Add(NewEmitter);
     NewEmitter->Build();
     NewEmitter->EmitterName = FName("SpriteEmitter_" + std::to_string(Emitters.Num()));
-
+    NewEmitter->LODLevels[0]->bSpriteTypeData = true;
 }
 
 void UParticleSystem::AddNewEmitterMesh()
@@ -67,7 +67,8 @@ void UParticleSystem::AddNewEmitterMesh()
     UParticleModuleTypeDataMesh* TypeDataModule = FObjectFactory::ConstructObject<UParticleModuleTypeDataMesh>(NewEmitter);
     if (NewEmitter->LODLevels[0]->TypeDataModule)
     {
-        NewEmitter->LODLevels[0]->RemoveModule(NewEmitter->LODLevels[0]->TypeDataModule);
+        NewEmitter->LODLevels[0]->TypeDataModule = nullptr;
     }
-    NewEmitter->LODLevels[0]->AddModule(UParticleModuleTypeDataMesh::StaticClass());
+    NewEmitter->LODLevels[0]->TypeDataModule = TypeDataModule;
+    NewEmitter->LODLevels[0]->bSpriteTypeData = false;
 }
